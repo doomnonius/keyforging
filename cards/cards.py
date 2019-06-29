@@ -14,12 +14,12 @@ def printdetails(card):
         print(x[0]) #title
         print("Amber:", x[1]) #amber
         print(x[2], x[3]) #house and type
-        print("Power:", x[4], "; Armor:", x[5]) #power and armor
-        print(x[6]) #traits
-        print(x[7]) #text
-        if x[8] != False:
-            print(x[8]) #flavor
-        print(x[9], ",", x[10]) #rarity and expansion
+        print("Power:", x[4], "(", x[6], "damage )", "; Armor:", x[5]) #power and armor
+        print(x[7]) #traits
+        print(x[8]) #text
+        if x[9] != False:
+            print(x[9]) #flavor
+        print(x[10], ",", x[11]) #rarity and expansion
         print('')
     else:
         print(x[0]) #title
@@ -38,15 +38,36 @@ def listdetails(card):
         details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.expansion]
     # if creature
     elif card.typ == "Creature":
-        details = [card.title, card.amber, card.house, card.typ, card.power, card.armor, card.traits, card.text, card.flavor, card.rarity, card.expansion]
+        details = [card.title, card.amber, card.house, card.typ, card.power, card.armor, card.damage, card.traits, card.text, card.flavor, card.rarity, card.expansion]
     # if upgrade or artifact
     else:
         details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.expansion]
     return details
 
-# What if I made class Card:, and instantiated each card?
 # Or create an array/list for each card, and class Card: takes a list and creates a card out of it?
-class Anger:
+# This idea is feasible, but I can just use subclasses. This will create unique versions of each card, even if the card itself appears many times in a deck or game.
+
+# Seems redundant. At least use as a test of inheritance.
+# Maybe could use this to create mavericks (inheritance at least, if not the Card class also)
+
+class Card:
+    title = "title"
+    house = "house"
+    typ = "type"
+    text = "type"
+    traits = False
+    amber = 0
+    power = 0
+    damage = 0
+    health = power - damage
+    armor = 0
+    rarity = "rarity"
+    flavor = "flavor"
+    number = 0
+    expansion = "exp"
+    is_maverick = False
+
+class Anger(Card):
     title = "Anger"
     house = "Brobnar"
     typ = "Action"
@@ -64,7 +85,7 @@ class Anger:
 
 printdetails(Anger)
 
-class Barehanded:
+class Barehanded(Card):
     title = "Barehanded"
     house = "Brobnar"
     typ = "Action"
@@ -82,7 +103,7 @@ class Barehanded:
 
 printdetails(Barehanded)
 
-class BilgumAvalanche:
+class BilgumAvalanche(Card):
     title = "Bilgum Avalanche"
     house = "Brobnar"
     typ = "Creature"
@@ -98,8 +119,6 @@ class BilgumAvalanche:
     number = 28
     expansion = "CoA"
     is_maverick = False
-
-printdetails(BilgumAvalanche)
     # def afterKey(boo):
         # """A function to apply the card text."""
         # if boo:
@@ -107,6 +126,38 @@ printdetails(BilgumAvalanche)
             # x.damage + 2 for x in [Enemy Board]
         # else:
             #nothing
+
+printdetails(BilgumAvalanche)
+
+class BloodMoney(Card):
+    title = "Blood Money"
+    house = "Brobnar"
+    typ = "Action"
+    text = "Play: Place 2 amber from the common supply on an enemy creature."
+    traits = False
+    amber = 0
+    power = 0
+    armor = 0
+    rarity = "Uncommon"
+    flavor = "You! Æmber lover. You’re next."
+    number = 3
+    expansion = "CoA"
+    is_maverick = False
+
+class BrothersInBattle:
+    title = "Brothers in Battle"
+    house = "Brobnar"
+    typ = "Action"
+    text = "Play: Choose a house. For the remainder of the turn each friendly creature of that house may fight."
+    traits = False
+    amber = 1
+    power = 0
+    armor = 0
+    rarity = "Rare"
+    flavor = 0
+    number = 4
+    expansion = "CoA"
+    is_maverick = False
 
 
 #     id = 469dd68d-cdd6-40e0-8fc9-a167c45a9aea
@@ -241,23 +292,6 @@ printdetails(BilgumAvalanche)
 #     rarity = "Rare"
 #     flavor = 0
 #     number = 57
-#     expansion = "CoA"
-#     is_maverick = False
-  
-  
-#     id = 5fbcee22-232c-46ba-84e0-3baad3946220
-#     title = Blood Money
-#     house = "Brobnar"
-#     typ = "Action"
-#     front_image = https://cdn.keyforgegame.com/media/card_front/en/"CoA"_3_XX937XGH258R_en.png
-#     text = Play: Place 2<A> from the common supply on an enemy "Creature".
-#     traits = False
-#     amber = 0
-#     power = 0
-#     armor = 0
-#     rarity = "Uncommon"
-#     flavor = “You! Æmber lover. You’re next.”
-#     number = 3
 #     expansion = "CoA"
 #     is_maverick = False
   
@@ -496,23 +530,6 @@ printdetails(BilgumAvalanche)
 #     rarity = "Common"
 #     flavor = Any landing you walk away from…
 #     number = 177
-#     expansion = "CoA"
-#     is_maverick = False
-  
-  
-#     id = a2ad028a-8447-4568-aa8e-520227640aca
-#     title = Brothers in Battle
-#     house = "Brobnar"
-#     typ = "Action"
-#     front_image = https://cdn.keyforgegame.com/media/card_front/en/"CoA"_4_75MHQJM77RGH_en.png
-#     text = Play: Choose a house. For the remainder of the turn each friendly "Creature" of that house may fight.
-#     traits = False
-#     amber = 1
-#     power = 0
-#     armor = 0
-#     rarity = "Rare"
-#     flavor = 0
-#     number = 4
 #     expansion = "CoA"
 #     is_maverick = False
   
