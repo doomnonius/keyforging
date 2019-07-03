@@ -1,5 +1,13 @@
-from . import board
-from . import fight
+from board import MyBoard, OppBoard, MyArt, OppArt
+from fight import fighting
+
+# I think it makes more sense to add these to the cardsAsClass file, which means that the only function here is addToBoard
+
+def addToBoard(card):
+	"""When a player chooses to play a card, add it to board. Once its effect is resolved, remove it from the board (but that part will be in cardsAsClass).
+	"""
+
+
 
 # This is a list of functions for all the play effects on cards, including creature, upgrades, action cards
 # Basically any and all cards with "Play:" on them
@@ -8,13 +16,13 @@ from . import fight
 
 def anger():
 	"""Value: 1 amber. Ready and fight with a friendly creature"""
-	print('Your creatures are: ' + str(board.MyBoard))
-	choice = input('Choose which one you would like to ready: ')
-	if choice.ready:
-		choice.ready = True
-		fight.fight(choice)
-	else:
-		fight.fight(choice)
+	# print('Your creatures are: ' + str(board.MyBoard))
+	# choice = input('Choose which one you would like to ready: ')
+	# if choice.ready:
+	# 	choice.ready = True
+	# 	fight.fight(choice)
+	# else:
+	# 	fight.fight(choice)
 
 
 def barehanded (OppArt, MyArt):
@@ -123,3 +131,5 @@ def yoMamaMastery (creature):
 ## Start Dis actions
 
 
+if __name__ == '__main__':
+    print ('This statement will be executed only if this script is called directly')

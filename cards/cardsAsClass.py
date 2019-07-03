@@ -1,7 +1,7 @@
-from . import destroyed
-from . import play
-from . import board
-from . import fight
+from destroyed import addToDiscard
+from play import addToBoard
+from board import MyBoard, OppBoard, MyArt, OppArt
+from fight import fighting
 
 def printdetails(card):
     """Prints a card's details by calling listdetails()."""
@@ -34,7 +34,7 @@ def listdetails(card):
         details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp]
     # if creature
     elif card.typ == "Creature":
-        details = [card.title, card.amber, card.house, card.typ, card.power, card.armor, card.damage, card.traits, card.text, card.flavor, card.rarity, card.exp]
+        details = [card.title, card.amber, card.house, card.typ, card.power, card.armor, card.damage, card.traits, card.text, card.flavor, card.rarity, card.exp, card.fight, card.ready, card.stun, card.destroyed, card.play, card.action]
     # if upgrade or artifact
     else:
         details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp]
@@ -72,7 +72,7 @@ class Card:
 
     def update(self):
         if self.damage >= self.power:
-            destroyed.destroyed(self)
+            addToBoard(self)
 
 class Anger(Card):
     title = 'Anger'
@@ -93,13 +93,13 @@ class Anger(Card):
     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_1_7C854VPW72RH_en.png'
     def played(self):
         """Value: 1 amber. Ready and fight with a friendly creature"""
-        print('Your creatures are: ' + str(board.MyBoard))
+        print('Your creatures are: ' + str(MyBoard))
         choice = input('Choose which one you would like to ready: ')
-        if not board.(choice).ready:
-    	    board.(choice).ready = True
-    	    fight.fight(choice)
-        else:
-    	    fight.fight(choice)
+        # if not board.choice.ready:
+    	#     board.choice.ready = True
+    	#     fighting(choice)
+        # else:
+    	#     fighting(choice)
 
 class Barehanded(Card):
     title = 'Barehanded'
@@ -1002,23 +1002,23 @@ class Arise(Card):
     id = '892c0a68-5213-48b2-8883-2ac3c97ac83c'
     mav = False
     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_54_F9GHFCWJ233R_en.png'
-class Arise(Card):
-    title = 'Arise!'
-    house = 'Brobnar'
-    amber = 0
-    typ = 'Action'
-    text = 'Play: Choose a house. Return each creature of that house from your discard pile to your hand. Gain 1 chain.'
-    traits = False
-    power = 0
-    armor = 0
-    damage = 0
-    rarity = 'Common'
-    flavor = False
-    exp = 'CotA'
-    number = 54
-    id = 'aeddb1b9-1241-4476-ae67-bd07016f46a2'
-    mav = True
-    image = 'https://cdn.keyforgegame.com/media/card_front/en/341_54_F9GHFCWJ233R_en.png'
+# class Arise(Card):
+#     title = 'Arise!'
+#     house = 'Brobnar'
+#     amber = 0
+#     typ = 'Action'
+#     text = 'Play: Choose a house. Return each creature of that house from your discard pile to your hand. Gain 1 chain.'
+#     traits = False
+#     power = 0
+#     armor = 0
+#     damage = 0
+#     rarity = 'Common'
+#     flavor = False
+#     exp = 'CotA'
+#     number = 54
+#     id = 'aeddb1b9-1241-4476-ae67-bd07016f46a2'
+#     mav = True
+#     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_54_F9GHFCWJ233R_en.png'
 class ControltheWeak(Card):
     title = 'Control the Weak'
     house = 'Dis'
@@ -1546,23 +1546,23 @@ class EmberImp(Card):
     id = '916f271b-9928-437c-bfc4-d60d32af8c7c'
     mav = False
     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_85_C72X25358RG2_en.png'
-class EmberImp(Card):
-    title = 'Ember Imp'
-    house = 'Brobnar'
-    amber = 0
-    typ = 'Creature'
-    text = 'Your opponent cannot play more than 2 cards each turn.'
-    traits = 'Imp'
-    power = 2
-    armor = 0
-    damage = 0
-    rarity = 'Common'
-    flavor = False
-    exp = 'CotA'
-    number = 85
-    id = '4f438035-6597-4863-8bb1-35463034e0f2'
-    mav = True
-    image = 'https://cdn.keyforgegame.com/media/card_front/en/341_85_C72X25358RG2_en.png'
+# class EmberImp(Card):
+#     title = 'Ember Imp'
+#     house = 'Brobnar'
+#     amber = 0
+#     typ = 'Creature'
+#     text = 'Your opponent cannot play more than 2 cards each turn.'
+#     traits = 'Imp'
+#     power = 2
+#     armor = 0
+#     damage = 0
+#     rarity = 'Common'
+#     flavor = False
+#     exp = 'CotA'
+#     number = 85
+#     id = '4f438035-6597-4863-8bb1-35463034e0f2'
+#     mav = True
+#     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_85_C72X25358RG2_en.png'
 class GabosLongarms(Card):
     title = 'Gabos Longarms'
     house = 'Dis'
@@ -2821,23 +2821,23 @@ class TranspositionSandals(Card):
     id = ''
     mav = False
     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_159_RQ6V4VP7WP2P_en.png'
-class AmmoniaClouds(Card):
-    title = 'Ammonia Clouds'
-    house = 'Logos'
-    amber = 0
-    typ = 'Action'
-    text = 'Play: Deal 3<D> to each creature.'
-    traits = False
-    power = 0
-    armor = 0
-    damage = 0
-    rarity = 'Common'
-    flavor = 'Partly cloudy with a chance of acid rain.'
-    exp = 'CotA'
-    number = 160
-    id = '30df482b-4066-4d11-b357-75abc4ead329'
-    mav = True
-    image = 'https://cdn.keyforgegame.com/media/card_front/en/341_160_VQMVCX37C6XQ_en.png'
+# class AmmoniaClouds(Card):
+#     title = 'Ammonia Clouds'
+#     house = 'Logos'
+#     amber = 0
+#     typ = 'Action'
+#     text = 'Play: Deal 3<D> to each creature.'
+#     traits = False
+#     power = 0
+#     armor = 0
+#     damage = 0
+#     rarity = 'Common'
+#     flavor = 'Partly cloudy with a chance of acid rain.'
+#     exp = 'CotA'
+#     number = 160
+#     id = '30df482b-4066-4d11-b357-75abc4ead329'
+#     mav = True
+#     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_160_VQMVCX37C6XQ_en.png'
 class AmmoniaClouds(Card):
     title = 'Ammonia Clouds'
     house = 'Mars'
@@ -3875,23 +3875,23 @@ class Inspiration(Card):
     id = '3056e60c-8f7c-40da-951c-6e0e9cfb9d46'
     mav = False
     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_220_J4PRQX77RXV8_en.png'
-class Inspiration(Card):
-    title = 'Inspiration'
-    house = 'Mars'
-    amber = 0
-    typ = 'Action'
-    text = 'Play: Ready and use a friendly creature.'
-    traits = False
-    power = 0
-    armor = 0
-    damage = 0
-    rarity = 'Common'
-    flavor = '“The Sanctum gives meaning to my life.” - Duma the Martyr'
-    exp = 'CotA'
-    number = 220
-    id = '0ee63919-bff1-404f-b71b-b03e85cf692e'
-    mav = True
-    image = 'https://cdn.keyforgegame.com/media/card_front/en/341_220_J4PRQX77RXV8_en.png'
+# class Inspiration(Card):
+#     title = 'Inspiration'
+#     house = 'Mars'
+#     amber = 0
+#     typ = 'Action'
+#     text = 'Play: Ready and use a friendly creature.'
+#     traits = False
+#     power = 0
+#     armor = 0
+#     damage = 0
+#     rarity = 'Common'
+#     flavor = '“The Sanctum gives meaning to my life.” - Duma the Martyr'
+#     exp = 'CotA'
+#     number = 220
+#     id = '0ee63919-bff1-404f-b71b-b03e85cf692e'
+#     mav = True
+#     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_220_J4PRQX77RXV8_en.png'
 class MightyLance(Card):
     title = 'Mighty Lance'
     house = 'Sanctum'
@@ -5405,23 +5405,23 @@ class SelwyntheFence(Card):
     id = 'c25f3a5d-b757-4c30-9097-01a9ad692833'
     mav = False
     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_309_7GJ6RPFR59G2_en.png'
-class ShadowSelf(Card):
-    title = 'Shadow Self'
-    house = 'Logos'
-    amber = 0
-    typ = 'Creature'
-    text = 'Shadow Self deals no damage when fighting.  Damage dealt to non-Specter neighbors is dealt to Shadow Self instead.'
-    traits = 'Specter'
-    power = 9
-    armor = 0
-    damage = 0
-    rarity = 'Common'
-    flavor = False
-    exp = 'CotA'
-    number = 310
-    id = '40587911-1857-4947-87e7-867cfd7fbab4'
-    mav = True
-    image = 'https://cdn.keyforgegame.com/media/card_front/en/341_310_C33C4J4W6726_en.png'
+# class ShadowSelf(Card):
+#     title = 'Shadow Self'
+#     house = 'Logos'
+#     amber = 0
+#     typ = 'Creature'
+#     text = 'Shadow Self deals no damage when fighting.  Damage dealt to non-Specter neighbors is dealt to Shadow Self instead.'
+#     traits = 'Specter'
+#     power = 9
+#     armor = 0
+#     damage = 0
+#     rarity = 'Common'
+#     flavor = False
+#     exp = 'CotA'
+#     number = 310
+#     id = '40587911-1857-4947-87e7-867cfd7fbab4'
+#     mav = True
+#     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_310_C33C4J4W6726_en.png'
 class ShadowSelf(Card):
     title = 'Shadow Self'
     house = 'Shadows'
@@ -6459,3 +6459,7 @@ class WayoftheWolf(Card):
     id = '22f59906-7f34-43e9-8285-836765e2c418'
     mav = False
     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_370_J935FXX4XCJW_en.png'
+
+
+if __name__ == '__main__':
+    print ('This statement will be executed only if this script is called directly')
