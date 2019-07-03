@@ -1,5 +1,5 @@
-import board
-import fight
+from . import board
+from . import fight
 
 # This is a list of functions for all the play effects on cards, including creature, upgrades, action cards
 # Basically any and all cards with "Play:" on them

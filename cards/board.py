@@ -1,6 +1,5 @@
-import cardsAsClass
-import fight
-import play
+#/usr/bin/python3.7
+from . import cardsAsClass
 
 a = cardsAsClass.Krump("Bob")
 b = cardsAsClass.Krump("Frank")

@@ -1,10 +1,10 @@
-import actions
-import destroyed
-import play
-import reap
-import cardsAsClass
-import creatures
-import board
+from . import actions
+from . import destroyed
+from . import play
+from . import reap
+from . import cardsAsClass
+from . import creatures
+from . import board
 
 def fight(attacker, target = False):
     """This fight function is called by a different fight function which gets user input to determine the target.

@@ -1,7 +1,7 @@
-import destroyed
-import play
-import board
-import fight
+from . import destroyed
+from . import play
+from . import board
+from . import fight
 
 def printdetails(card):
     """Prints a card's details by calling listdetails()."""
@@ -95,8 +95,8 @@ class Anger(Card):
         """Value: 1 amber. Ready and fight with a friendly creature"""
         print('Your creatures are: ' + str(board.MyBoard))
         choice = input('Choose which one you would like to ready: ')
-        if not board.choice.ready:
-    	    board.choice.ready = True
+        if not board.(choice).ready:
+    	    board.(choice).ready = True
     	    fight.fight(choice)
         else:
     	    fight.fight(choice)
