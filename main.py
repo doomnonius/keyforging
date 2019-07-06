@@ -1,2 +1,2 @@
-from cards.actions import *
-from cards.cardsAsClass import *
+import cards.cardsAsClass as card
+import decks.decks

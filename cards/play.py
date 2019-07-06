@@ -1,11 +1,25 @@
-from board import MyBoard, OppBoard, MyArt, OppArt
-from fight import fighting
-
+import cards.board as board
+import cards.cardsAsClass as x
 # I think it makes more sense to add these to the cardsAsClass file, which means that the only function here is addToBoard
+
+def listdetails(card):
+    """Creates and returns a list of a card's details."""
+    # if action
+    if card.typ == "Action":
+        details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp]
+    # if creature
+    elif card.typ == "Creature":
+        details = [card.title, card.amber, card.house, card.typ, card.power, card.armor, card.damage, card.traits, card.text, card.flavor, card.rarity, card.exp, card.fight, card.ready, card.stun, card.destroyed, card.play, card.action]
+    # if upgrade or artifact
+    else:
+        details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp]
+    return details
 
 def addToBoard(card):
 	"""When a player chooses to play a card, add it to board. Once its effect is resolved, remove it from the board (but that part will be in cardsAsClass).
 	"""
+	board.MyBoard += listdetails(card)
+
 
 
 

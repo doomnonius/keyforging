@@ -1,7 +1,6 @@
-from destroyed import addToDiscard
-from play import addToBoard
-from board import MyBoard, OppBoard, MyArt, OppArt
-from fight import fighting
+import cards.destroyed as dest
+import cards.board as board
+import cards.fight as fight
 
 def printdetails(card):
     """Prints a card's details by calling listdetails()."""
@@ -40,7 +39,7 @@ def listdetails(card):
         details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp]
     return details
 
-class Card:
+class Card(target = 0):
     def __init__(self, deck):
         self.name = deck
     
@@ -72,7 +71,7 @@ class Card:
 
     def update(self):
         if self.damage >= self.power:
-            addToBoard(self)
+            dest.addToDiscard(self)
 
 class Anger(Card):
     title = 'Anger'
@@ -93,13 +92,11 @@ class Anger(Card):
     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_1_7C854VPW72RH_en.png'
     def played(self):
         """Value: 1 amber. Ready and fight with a friendly creature"""
-        print('Your creatures are: ' + str(MyBoard))
-        choice = input('Choose which one you would like to ready: ')
-        # if not board.choice.ready:
-    	#     board.choice.ready = True
-    	#     fighting(choice)
-        # else:
-    	#     fighting(choice)
+        """Functionally, my idea is to have this return a function so when play() calls this card that function can be given an argument.
+        """
+        print('Your creatures are: ', (printdetails(x) for x in board.MyBoard))
+        target = input('Choose which one you would like to ready: ')
+        target.fighting()
 
 class Barehanded(Card):
     title = 'Barehanded'
