@@ -4,7 +4,8 @@ import cards.fight as fight
 
 def printdetails(card):
     """Prints a card's details by calling listdetails()."""
-    x = listdetails(card)
+    # x = listdetails(card)
+    x = card
     if x[3] == "Creature":
         print(x[0]) #title
         print("Amber:", x[1]) #amber
@@ -30,16 +31,16 @@ def listdetails(card):
     """Creates and returns a list of a card's details."""
     # if action
     if card.typ == "Action":
-        details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp]
+        details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp, card.destroyed, card.play, card.number]
     # if creature
     elif card.typ == "Creature":
-        details = [card.title, card.amber, card.house, card.typ, card.power, card.armor, card.damage, card.traits, card.text, card.flavor, card.rarity, card.exp, card.fight, card.ready, card.stun, card.destroyed, card.play, card.action]
+        details = [card.title, card.amber, card.house, card.typ, card.power, card.armor, card.damage, card.traits, card.text, card.flavor, card.rarity, card.exp, card.fight, card.ready, card.stun, card.destroyed, card.play, card.action, card.reap, card.number]
     # if upgrade or artifact
     else:
-        details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp]
+        details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp, card.fight, card.destroyed, card.play, card.action, card.reap, card.number]
     return details
 
-class Card(target = 0):
+class Card():
     def __init__(self, deck):
         self.name = deck
     
@@ -56,7 +57,7 @@ class Card(target = 0):
     rarity = "rarity"
     flavor = "flavor"
     number = 0
-    expansion = "exp"
+    exp = "exp"
     is_maverick = False
     
     #status effects
@@ -68,6 +69,7 @@ class Card(target = 0):
     play = False
     fight = False
     action = False
+    reap = False
 
     def update(self):
         if self.damage >= self.power:
@@ -4047,7 +4049,7 @@ class VirtuousWorks(Card):
     house = 'Sanctum'
     amber = 3
     typ = 'Action'
-    text = '(Vanilla)'
+    text = ''
     traits = False
     power = 0
     armor = 0
@@ -6121,7 +6123,7 @@ class DustPixie(Card):
     house = 'Untamed'
     amber = 2
     typ = 'Creature'
-    text = '(Vanilla)'
+    text = ''
     traits = 'Faerie'
     power = 1
     armor = 0
@@ -6457,6 +6459,8 @@ class WayoftheWolf(Card):
     mav = False
     image = 'https://cdn.keyforgegame.com/media/card_front/en/341_370_J935FXX4XCJW_en.png'
 
+direct = (dir()[0:371])
+mapDirect = list(map(listdetails, [AFairGame, AmmoniaClouds, AncientBear, Anger, AnnihilationRitual, AnomalyExploiter, Arise, ArmageddonCloak, Autocannon, BadPenny, BaitandSwitch, BannerofBattle, Barehanded, Batdrone, BattleFleet, BearFlute, Begone, Bigtwig, BilgumAvalanche, BiomatrixBackup, BlindingLight, BloodMoney, BloodofTitans, Blypyp, BoobyTrap, BouncingDeathquark, BrainEater, BrainStemAntenna, BriarGrubbling, BrothersinBattle, Bulleteye, Bulwark, Bumpsy, BurntheStockpile, Cannon, Card, CarloPhantom, ChampionAnaphiel, ChampionTabris, ChampionsChallenge, ChaosPortal, Charette, Charge, ChotaHazri, ChuffApe, CleansingWave, ClearMind, CollarOfSubordination, CombatPheromones, CommanderRemiel, Commpod, ControltheWeak, CooperativeHunting, CowardsEnd, CrazyKillingMachine, CreepingOblivion, CrystalHive, Curiosity, CustomVirus, CustomsOffice, DanceofDoom, DeepProbe, DeipnoSpymaster, DewFaerie, Dextre, DimensionDoor, DocBookton, Dodger, DominatorBauble, DoorsteptoHeaven, DrEscotera, Drumble, DumatheMartyr, Duskrunner, DustImp, DustPixie, Dysania, EMPBlast, Earthshaker, EateroftheDead, EffervescentPrinciple, EmberImp, EpicQuest, EtherSpider, EvasionSigil, ExperimentalTherapy, Faygin, Fear, FeedingPit, FertilityChant, FinishingBlow, Firespitter, FlameWreathed, Flaxia, Fogbank, Foggify, FollowtheLeader, Francus, FullMoon, FuzzyGruen, GabosLongarms, GangerChieftain, GanymedeArchivist, Gatekeeper, GatewaytoDis, GauntletofCommand, GhostlyHand, GiantSloth, GloriousFew, Gongoozle, GormofOmm, GrabberJammer, GraspingVines, GrenadeSnib, GreyMonk, Grommid, GuardianDemon, GuiltyHearts, Halacor, HallowedBlaster, HandofDis, HarlandMindlock, HayyeltheMerchant, Headhunter, HebetheHuge, Hecatomb, HelpfromFutureSelf, HiddenStash, HonorableClaim, HorsemanOfDeath, HorsemanOfFamine, HorsemanOfPestilence, HorsemanOfWar, HuntingWitch, HypnoticCommand, Hysteria, ImperialTraitor, IncubationChamber, InkatheSpider, Inspiration, InterdimensionalGraft, InvasionPortal, IronObelisk, Irradiatedmber, JammerPack, JehutheBureaucrat, JohnSmyth, KelifiDragon, KeyAbduction, KeyCharge, KeyHammer, KeyofDarkness, KeytoDis, KindrithLongshot, KingoftheCrag, KnowledgeisPower, Krump, Labwork, LadyMaxena, LashofBrokenDreams, LavaBall, LibraryAccess, LibraryofBabble, LibraryoftheDamned, Lifeward, Lifeweb, LightsOut, LomirFlamefist, LongfusedMines, LooterGoblin, LoottheBodies, LordGolgotha, LostintheWoods, LupotheScarred, MacisAsp, MacktheKnife, MagdatheRat, MantleoftheZealot, MartianHounds, MartiansMakeBadAllies, MassAbduction, Masterof1, Masterof2, Masterof3, Masterplan, MatingSeason, Miasma, MightyJavelin, MightyLance, MightyTiger, Mimicry, MindBarb, Mindwarper, MobiusScroll, Mooncurser, Mother, Mothergun, MothershipSupport, Mugwump, Murmook, MushroomMan, NaturesCall, NepentheSeed, NerveBlast, NeuroSyphon, NeutronShark, Nexus, NiffleApe, NiffleQueen, NocturnalManeuver, NoddytheThief, NovuArchaeologist, NumquidtheFair, OathofPoverty, OldBruno, OneLastJob, OneStoodAgainstMany, OrbitalBombardment, Oubliette, OverlordGreking, OzmoMartianologist, Pandemonium, PawnSacrifice, PerilousWild, PhaseShift, PhoenixHeart, PhosphorusStars, PhylyxtheDisintegrator, PileofSkulls, PingleWhoAnnoys, PiranhaMonkeys, PitDemon, Pitlord, PocketUniverse, PoisonWave, Poltergeist, PositronBolt, PotionofInvulnerability, Protectrix, ProtecttheWeak, PsychicBug, PsychicNetwork, Punch, QuixotheAdventurer, QyxxlyxPlagueMaster, RadiantTruth, RaidingKnight, RandomAccessArchives, RedHotArmor, RedPlanetRayGun, Regrowth, RelentlessAssault, RelentlessWhispers, RemoteAccess, Replicator, ResearchSmoko, Restringuntus, ReverseTime, RingofInvisibility, RitualofBalance, RitualoftheHunt, RockHurlingGiant, RocketBoots, RogueOgre, RoundTable, RoutineJob, SacrificialAltar, SafePlace, SampleCollection, SanctumGuardian, SavethePack, Scout, ScramblerStorm, ScreamingCave, Screechbomb, SeekerNeedle, SelwyntheFence, Sequis, SergeantZakiel, ShadowSelf, Shaffles, ShatterStorm, ShieldofJustice, Shooler, ShoulderArmor, SigilofBrotherhood, SilentDagger, Silvertooth, SkeletonKey, SkippyTimehog, SloppyLabwork, Smaaash, SmilingRuth, Smith, Sneklifter, Sniffer, Snudge, Snufflegator, SoftLanding, SoulSnatcher, SoundtheHorns, SpanglerBox, SpecialDelivery, SpectralTunneler, SpeedSigil, Squawker, Stampede, StaunchKnight, StealerofSouls, StrangeGizmo, SubtleMaul, Succubus, SwapWidget, TakeHostages, TakethatSmartypants, Teliga, TendrilsofPain, Tentacus, TermsofRedress, TheCommonCold, TheHarderTheyCome, TheHowlingPit, TheSpiritsWay, TheSting, TheTerror, TheVaultkeeper, TheWarchest, ThreeFates, Timetraveller, TirelessCrocag, TitanMechanic, Tocsin, Tolas, TooMuchtoProtect, TotalRecall, TranspositionSandals, TreasureMap, Tremor, Troll, TroopCall, Truebaru, Tunk, TwinBoltEmission, UlyqMegamouth, Umbra, UnguardedCamp, Urchin, UxlyxtheZookeeper, Valdr, VeemosLightbringer, VespilonTheorist, VeylanAnalyst, VezymaThinkdrone, Vigor, VirtuousWorks, Wardrummer, Warsong, WayoftheBear, WayoftheWolf, WhisperingReliquary, WildWormhole, WitchoftheEye, WitchoftheWilds, WordOfReturning, WorldTree, YoMamaMastery, YxiliMarauder, YxiloBolter, YxilxDominator, Zorg, ZyzzixtheMany]))
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

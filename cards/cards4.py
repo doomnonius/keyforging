@@ -1,3 +1,4 @@
+##Sorted but missing cards
 Anger = ['Anger', 1, 'Brobnar', 'Action', 0, 0, 0, False, 'Play: Ready and fight with a friendly creature.', '“Don’t make them angry you say? Heh. The Brobnar are born angry.” –Old Bruno', 'Common', 'CoA', 1, 'b361d7e2-6873-4890-8f87-702d9c89c5ad', False, 'https://cdn.keyforgegame.com/media/card_front/en/341_1_7C854VPW72RH_en.png']
 Barehanded = ['Barehanded', 1, 'Brobnar', 'Action', 0, 0, 0, False, 'Play: Put each artifact on top of its owner’s deck.', False, 'Rare', 'CoA', 2, 'f8f497ca-3216-446a-805a-0d00ff1b7702', False, 'https://cdn.keyforgegame.com/media/card_front/en/341_2_53CXMQCJ46PP_en.png']
 BloodMoney = ['Blood Money', 0, 'Brobnar', 'Action', 0, 0, 0, False, 'Play: Place 2<A> from the common supply on an enemy creature.', '“You! Æmber lover. You’re next.”', 'Uncommon', 'CoA', 3, '5fbcee22-232c-46ba-84e0-3baad3946220', False, 'https://cdn.keyforgegame.com/media/card_front/en/341_3_XX937XGH258R_en.png']
