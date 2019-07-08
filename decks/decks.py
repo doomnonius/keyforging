@@ -44,7 +44,9 @@ def buildDeck(L, n = 1):
 def nameList(L):
     """Takes the listdetails() function output and returns only card names.
     """
-    return [x[0] for x in MyDeck]
+    if type(L[0]) == int:
+        L = L[1:]
+    return [x[0] for x in L]
 
 buildDeck(deckIn)
 random.shuffle(MyDeck)
@@ -54,18 +56,10 @@ def drawEOT(hand, n = 0):
     """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have.
     """
     # Base case is full hand
-    if (len(hand) - 1) >= hand[0]:
-        return []
-    else:
-        print('Drawing:' + str(n))
-        if len(hand) >= 2:
-            x = hand[0] - (len(hand) - 1)
-        else:
-            x = hand[0]
-        hand.append(MyDeck.pop(-1))
-        return hand #Going to need to add end of turn stuff or a call to end of turn stuff
-
-print(MyDeck.pop())
-
+    while (len(hand) - 1) < hand[0]:
+        x = MyDeck.pop()
+        print(x)
+        hand.append(x)
+     #Going to need to add end of turn stuff or a call to end of turn stuff
 
 drawEOT(MyHand)

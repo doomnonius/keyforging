@@ -6,6 +6,4 @@ from helpers import responses
 """
 responses()
 
-# Still getting issues with creating MyHand
-
 # [card.printdetails(x) for x in deck.MyDeck]
