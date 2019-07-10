@@ -82,6 +82,7 @@ def responses():
             responses()
         elif distance(choice2, "Card") <= 1:
             print("Search for a card by name (only looks at the first six letters).")
+            responses()
         else:
             print("That is not recognized as a command.")
             responses()

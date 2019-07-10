@@ -31,8 +31,8 @@ OppDeck = []
 MyHand = [6]
 OppHand = [6]
 
-def buildDeck(L, n = 1):
-    """Takes a list of card numbers and builds a deck.
+def buildDeck(L, L2 = [], n = 1):
+    """Takes a list of card numbers and builds a deck to L2.
     """
     # print("Calling build deck: " + str(n))
     def search(n, L):
@@ -46,129 +46,130 @@ def buildDeck(L, n = 1):
     # optimization: split cards into houses
     # base case: empty list
     if len(L) == 3:
-        return
+        print(L2)
+        return L2
     elif L[0] == "Brobnar":
         if len(L) == 27:
             L[0] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, brobnar)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, brobnar)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[0] == "Dis":
         if len(L) == 27:
             L[0] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, dis)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, dis)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[0] == "Logos":
         if len(L) == 27:
             L[0] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, logos)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, logos)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[0] == "Mars":
         if len(L) == 27:
             L[0] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, mars)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, mars)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[0] == "Sanctum":
         if len(L) == 27:
             L[0] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, sanctum)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, sanctum)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[1] == "Dis":
         if len(L) == 15:
             L[1] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, dis)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, dis)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[1] == "Logos":
         if len(L) == 15:
             L[1] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, logos)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, logos)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[1] == "Mars":
         if len(L) == 15:
             L[1] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, mars)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, mars)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[1] == "Sanctum":
         if len(L) == 15:
             L[1] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, sanctum)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, sanctum)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[1] == "Shadows":
         if len(L) == 15:
             L[1] = "done"
-            buildDeck(L, n)
+            buildDeck(L, L2, n)
         elif L[3] == n:
-            MyDeck.append(card.listdetails(search(n, shadows)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, shadows)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[2] == "Logos":
         if L[3] == n:
-            MyDeck.append(card.listdetails(search(n, logos)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, logos)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[2] == "Mars":
         if L[3] == n:
-            MyDeck.append(card.listdetails(search(n, mars)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, mars)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[2] == "Sanctum":
         if L[3] == n:
-            MyDeck.append(card.listdetails(search(n, sanctum)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, sanctum)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[2] == "Shadows":
         if L[3] == n:
-            MyDeck.append(card.listdetails(search(n, shadows)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, shadows)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     elif L[2] == "Untamed":
         if L[3] == n:
-            MyDeck.append(card.listdetails(search(n, untamed)))
-            buildDeck(L[0:3] + L[4:], n)
+            L2.append(card.listdetails(search(n, untamed)))
+            buildDeck(L[0:3] + L[4:], L2, n)
         else:
-            buildDeck(L, n + 1)
+            buildDeck(L, L2, n + 1)
     else:
-        buildDeck(L, n + 1)
+        buildDeck(L, L2, n + 1)
 
 def nameList(L):
     """Takes the listdetails() function output and returns only card names.
@@ -183,9 +184,9 @@ def nameList(L):
         L = L[1:]
     return [x[0] for x in L]
 
-buildDeck(deckIn)
+MyDeck = buildDeck(deckIn)
 random.shuffle(MyDeck)
-# print(str(nameList(MyDeck)) + str(len(MyDeck)))
+print(str(nameList(MyDeck)) + str(len(MyDeck)))
 
 def drawEOT(hand, n = 0):
     """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have. Also does all other end of turn actions.
