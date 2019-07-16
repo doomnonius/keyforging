@@ -1,20 +1,89 @@
 import cards.cardsAsClass as card
 from cards.cardsAsList import listt
 import random
+import requests
+import json
+import re
+from decks.deckList import deckDict
 
-# For starters, I'll take two of my decks and manually enter them.
+url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=10&search="
+url2 = "https://www.keyforgegame.com/deck-details/"
+
+def convertToHtml(string):
+    """Converts a string to html to be used in a search.
+    """
+    if string == '':
+        return ''
+    elif string[0] in 'abcdefghijklmnopqrstuvwxyz."-':
+        return string[0] + convertToHtml(string[1:])
+    elif string[0] == ' ':
+        return '%20' + convertToHtml(string[1:])
+    elif string[0] == ',':
+        return '%2C' + convertToHtml(string[1:])
+    elif string[0] == '\'':
+        return '%27' + convertToHtml(string[1:])
+
+def importDeck():
+    """Imports a deck for the user. How it works: converts the deck name to html, appends that to the url to get the json of a dekc from the keyforge api. This data doesn't have the cards ids I need, so I regex the deck id from the json (and also check the deck is from the right expansion, that there is only one deck, and log which houses are in the deck), then add that to a second url, from which I scrape the html and use regex to find all the card ids and add them to the list.
+    """
+    def sortName(val):
+        """Used to sort deckDict by the 'name' key.
+        """
+        return val['name']
+
+    newDeck = []
+    deckname = input("Enter your deck's exact full name: ")
+    newUrl = url1 + convertToHtml(deckname.lower())
+    page = str(requests.get(newUrl).content)
+    result = '[' + page[2:-1] + ']'
+    with open('decks/newdeck.json', 'w') as f:
+        f.write(result)
+    with open('decks/newdeck.json') as f:
+        try:
+            data = json.load(f) #len(data) should be 1, if it isn't we have a problem
+        except: #if len(data) > 1:
+            print("More than one result was found. Please try again, and enter your deck name exactly.")
+            return
+        for p in data:
+            if p['data'] == []:
+                print("That input returned no results.")
+                return
+            deckid = p['data'][0]['id']
+            deckName = p['data'][0]['name']
+            deckExp = p['data'][0]['expansion']
+            if deckExp != 341:
+                print("This version of the game can only handle CotA decks.")
+                return
+            for x in deckDict:
+                if x['name'] == deckName:
+                    print("This deck has already been added.")
+                    return
+            newDeck.extend(p['data'][0]['_links']['houses'][0:3])
+            print(newDeck)
+    newUrl2 = url2 + deckid
+    newpage = str(requests.get(newUrl2).content)
+    with open('decks/newdeck.txt', 'w') as f:
+        f.write(newpage[2:-1])
+    with open('decks/newdeck.txt') as f:
+        data = f.read()
+        regex = r'"indexInExpansion":"(\d{3})"'
+        matchList = re.finditer(regex, data)
+        for match in matchList:
+            newDeck.append(int(match.group(1)))
+        print(newDeck, len(newDeck))
+    # now create a list of dicts in a new file, to which we will be appending each new deck by key of name, then list
+    # in order to save it, we'll need to add it the dict and then remake the file with the new dict
+    newDict = {}
+    newDict['name'] = deckName
+    newDict['deck'] = newDeck
+    deckDict.append(newDict)
+    deckDict.sort(key = sortName)
+    with open('decks/deckList.py', 'w') as f:
+        toSave = "deckDict = " + str(deckDict)
+        f.write(toSave) # IT WORKS!
 
 """When drawing and adding cards, use pop() and append() to work from the end of the list as it is faster
 """
-
-"""I want to write a function so that I can enter only a list of the card numbers and it will be converted into a list of the cards.
-"""
-deckIn = ["Brobnar", "Untamed", "Shadows", 7, 7, 18, 22, 27, 29, 32, 33, 48, 49, 51, 267, 276, 276, 276, 281, 290, 292, 301, 311, 315, 315, 318, 325, 332, 349, 351, 351, 361, 362, 362, 363, 363, 16, 363, 365]
-deckIn1 = deckIn[0:3]
-deckIn2 = deckIn[3:]
-deckIn1.sort()
-deckIn2.sort()
-deckIn = deckIn1 + deckIn2
 
 allCards = [card.AFairGame, card.AmmoniaClouds, card.AncientBear, card.Anger, card.AnnihilationRitual, card.AnomalyExploiter, card.Arise, card.ArmageddonCloak, card.Autocannon, card.BadPenny, card.BaitandSwitch, card.BannerofBattle, card.Barehanded, card.Batdrone, card.BattleFleet, card.BearFlute, card.Begone, card.Bigtwig, card.BilgumAvalanche, card.BiomatrixBackup, card.BlindingLight, card.BloodMoney, card.BloodofTitans, card.Blypyp, card.BoobyTrap, card.BouncingDeathquark, card.BrainEater, card.BrainStemAntenna, card.BriarGrubbling, card.BrothersinBattle, card.Bulleteye, card.Bulwark, card.Bumpsy, card.BurntheStockpile, card.Cannon, card.Card, card.CarloPhantom, card.ChampionAnaphiel, card.ChampionTabris, card.ChampionsChallenge, card.ChaosPortal, card.Charette, card.Charge, card.ChotaHazri, card.ChuffApe, card.CleansingWave, card.ClearMind, card.CollarOfSubordination, card.CombatPheromones, card.CommanderRemiel, card.Commpod, card.ControltheWeak, card.CooperativeHunting, card.CowardsEnd, card.CrazyKillingMachine, card.CreepingOblivion, card.CrystalHive, card.Curiosity, card.CustomVirus, card.CustomsOffice, card.DanceofDoom, card.DeepProbe, card.DeipnoSpymaster, card.DewFaerie, card.Dextre, card.DimensionDoor, card.DocBookton, card.Dodger, card.DominatorBauble, card.DoorsteptoHeaven, card.DrEscotera, card.Drumble, card.DumatheMartyr, card.Duskrunner, card.DustImp, card.DustPixie, card.Dysania, card.EMPBlast, card.Earthshaker, card.EateroftheDead, card.EffervescentPrinciple, card.EmberImp, card.EpicQuest, card.EtherSpider, card.EvasionSigil, card.ExperimentalTherapy, card.Faygin, card.Fear, card.FeedingPit, card.FertilityChant, card.FinishingBlow, card.Firespitter, card.FlameWreathed, card.Flaxia, card.Fogbank, card.Foggify, card.FollowtheLeader, card.Francus, card.FullMoon, card.FuzzyGruen, card.GabosLongarms, card.GangerChieftain, card.GanymedeArchivist, card.Gatekeeper, card.GatewaytoDis, card.GauntletofCommand, card.GhostlyHand, card.GiantSloth, card.GloriousFew, card.Gongoozle, card.GormofOmm, card.GrabberJammer, card.GraspingVines, card.GrenadeSnib, card.GreyMonk, card.Grommid, card.GuardianDemon, card.GuiltyHearts, card.Halacor, card.HallowedBlaster, card.HandofDis, card.HarlandMindlock, card.HayyeltheMerchant, card.Headhunter, card.HebetheHuge, card.Hecatomb, card.HelpfromFutureSelf, card.HiddenStash, card.HonorableClaim, card.HorsemanOfDeath, card.HorsemanOfFamine, card.HorsemanOfPestilence, card.HorsemanOfWar, card.HuntingWitch, card.HypnoticCommand, card.Hysteria, card.ImperialTraitor, card.IncubationChamber, card.InkatheSpider, card.Inspiration, card.InterdimensionalGraft, card.InvasionPortal, card.IronObelisk, card.Irradiatedmber, card.JammerPack, card.JehutheBureaucrat, card.JohnSmyth, card.KelifiDragon, card.KeyAbduction, card.KeyCharge, card.KeyHammer, card.KeyofDarkness, card.KeytoDis, card.KindrithLongshot, card.KingoftheCrag, card.KnowledgeisPower, card.Krump, card.Labwork, card.LadyMaxena, card.LashofBrokenDreams, card.LavaBall, card.LibraryAccess, card.LibraryofBabble, card.LibraryoftheDamned, card.Lifeward, card.Lifeweb, card.LightsOut, card.LomirFlamefist, card.LongfusedMines, card.LooterGoblin, card.LoottheBodies, card.LordGolgotha, card.LostintheWoods, card.LupotheScarred, card.MacisAsp, card.MacktheKnife, card.MagdatheRat, card.MantleoftheZealot, card.MartianHounds, card.MartiansMakeBadAllies, card.MassAbduction, card.Masterof1, card.Masterof2, card.Masterof3, card.Masterplan, card.MatingSeason, card.Miasma, card.MightyJavelin, card.MightyLance, card.MightyTiger, card.Mimicry, card.MindBarb, card.Mindwarper, card.MobiusScroll, card.Mooncurser, card.Mother, card.Mothergun, card.MothershipSupport, card.Mugwump, card.Murmook, card.MushroomMan, card.NaturesCall, card.NepentheSeed, card.NerveBlast, card.NeuroSyphon, card.NeutronShark, card.Nexus, card.NiffleApe, card.NiffleQueen, card.NocturnalManeuver, card.NoddytheThief, card.NovuArchaeologist, card.NumquidtheFair, card.OathofPoverty, card.OldBruno, card.OneLastJob, card.OneStoodAgainstMany, card.OrbitalBombardment, card.Oubliette, card.OverlordGreking, card.OzmoMartianologist, card.Pandemonium, card.PawnSacrifice, card.PerilousWild, card.PhaseShift, card.PhoenixHeart, card.PhosphorusStars, card.PhylyxtheDisintegrator, card.PileofSkulls, card.PingleWhoAnnoys, card.PiranhaMonkeys, card.PitDemon, card.Pitlord, card.PocketUniverse, card.PoisonWave, card.Poltergeist, card.PositronBolt, card.PotionofInvulnerability, card.Protectrix, card.ProtecttheWeak, card.PsychicBug, card.PsychicNetwork, card.Punch, card.QuixotheAdventurer, card.QyxxlyxPlagueMaster, card.RadiantTruth, card.RaidingKnight, card.RandomAccessArchives, card.RedHotArmor, card.RedPlanetRayGun, card.Regrowth, card.RelentlessAssault, card.RelentlessWhispers, card.RemoteAccess, card.Replicator, card.ResearchSmoko, card.Restringuntus, card.ReverseTime, card.RingofInvisibility, card.RitualofBalance, card.RitualoftheHunt, card.RockHurlingGiant, card.RocketBoots, card.RogueOgre, card.RoundTable, card.RoutineJob, card.SacrificialAltar, card.SafePlace, card.SampleCollection, card.SanctumGuardian, card.SavethePack, card.Scout, card.ScramblerStorm, card.ScreamingCave, card.Screechbomb, card.SeekerNeedle, card.SelwyntheFence, card.Sequis, card.SergeantZakiel, card.ShadowSelf, card.Shaffles, card.ShatterStorm, card.ShieldofJustice, card.Shooler, card.ShoulderArmor, card.SigilofBrotherhood, card.SilentDagger, card.Silvertooth, card.SkeletonKey, card.SkippyTimehog, card.SloppyLabwork, card.Smaaash, card.SmilingRuth, card.Smith, card.Sneklifter, card.Sniffer, card.Snudge, card.Snufflegator, card.SoftLanding, card.SoulSnatcher, card.SoundtheHorns, card.SpanglerBox, card.SpecialDelivery, card.SpectralTunneler, card.SpeedSigil, card.Squawker, card.Stampede, card.StaunchKnight, card.StealerofSouls, card.StrangeGizmo, card.SubtleMaul, card.Succubus, card.SwapWidget, card.TakeHostages, card.TakethatSmartypants, card.Teliga, card.TendrilsofPain, card.Tentacus, card.TermsofRedress, card.TheCommonCold, card.TheHarderTheyCome, card.TheHowlingPit, card.TheSpiritsWay, card.TheSting, card.TheTerror, card.TheVaultkeeper, card.TheWarchest, card.ThreeFates, card.Timetraveller, card.TirelessCrocag, card.TitanMechanic, card.Tocsin, card.Tolas, card.TooMuchtoProtect, card.TotalRecall, card.TranspositionSandals, card.TreasureMap, card.Tremor, card.Troll, card.TroopCall, card.Truebaru, card.Tunk, card.TwinBoltEmission, card.UlyqMegamouth, card.Umbra, card.UnguardedCamp, card.Urchin, card.UxlyxtheZookeeper, card.Valdr, card.VeemosLightbringer, card.VespilonTheorist, card.VeylanAnalyst, card.VezymaThinkdrone, card.Vigor, card.VirtuousWorks, card.Wardrummer, card.Warsong, card.WayoftheBear, card.WayoftheWolf, card.WhisperingReliquary, card.WildWormhole, card.WitchoftheEye, card.WitchoftheWilds, card.WordOfReturning, card.WorldTree, card.YoMamaMastery, card.YxiliMarauder, card.YxiloBolter, card.YxilxDominator, card.Zorg, card.ZyzzixtheMany]
 
@@ -46,7 +115,7 @@ def buildDeck(L, L2 = [], n = 1):
     # optimization: split cards into houses
     # base case: empty list
     if len(L) == 3:
-        print(L2)
+        print(len(L2))
         return L2
     elif L[0] == "Brobnar":
         if len(L) == 27:
@@ -183,10 +252,6 @@ def nameList(L):
     while type(L[0]) == str:
         L = L[1:]
     return [x[0] for x in L]
-
-MyDeck = buildDeck(deckIn)
-random.shuffle(MyDeck)
-print(str(nameList(MyDeck)) + str(len(MyDeck)))
 
 def drawEOT(hand, n = 0):
     """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have. Also does all other end of turn actions.

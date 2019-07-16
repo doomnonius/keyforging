@@ -63,6 +63,7 @@ class Card():
     #status effects
     ready = False
     stun = False
+    captured = 0
     
     #abilities
     destroyed = False
@@ -70,6 +71,8 @@ class Card():
     fight = False
     action = False
     reap = False
+    skirmish = False
+    elusive = False
 
     def update(self):
         if self.damage >= self.power:
