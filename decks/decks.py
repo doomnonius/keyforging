@@ -101,7 +101,7 @@ MyHand = [6]
 OppHand = [6]
 
 def buildDeck(L, L2 = [], n = 1):
-    """Takes a list of card numbers and builds a deck to L2.
+    """Takes a list of card numbers and builds a deck to L2. What this should do (and doesn't at this point), is to create a whole bunch of variables that are tied to instantiations of the appropriate classes.
     """
     # print("Calling build deck: " + str(n))
     def search(n, L):
