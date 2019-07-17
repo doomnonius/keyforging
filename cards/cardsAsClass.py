@@ -41,19 +41,29 @@ def listdetails(card):
     return details
 
 class Card():
-    def __init__(self, deck):
-        self.name = deck
+    """ Feed json.loads(returns a string) called the deck list (which       will be a json file) to this to build classes.
+        Possibly create a function defined here or elsewhere, if self.name = x, add these functions, if = y, add these.
+    """
+    def __init__(self, deckName, cardName):
+        # These are all the things that are not in the dict data but that I need to keep track of
+        self.deck = deckName
+        self.card = cardName
+        self.damage = 0
+        self.power = 0
+        self.armor = 0
+
+    def health(self):
+        return self.power - self.damage
     
+    # These things are all in the dict data
+
     title = "title"
     house = "house"
     typ = "type"
     text = "type"
     traits = False
     amber = 0
-    power = 0
-    damage = 0
-    health = power - damage
-    armor = 0
+    base_armor = 0
     rarity = "rarity"
     flavor = "flavor"
     number = 0

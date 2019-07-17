@@ -48,7 +48,7 @@ def chooseDecks():
         importOption = input("The name you've entered isn't in my database. Would you like to import it (Y/n)? ")
         while importOption != 'n' and importOption != 'N':
             deck.importDeck()
-            importOption = ("Would you like to import another deck (Y/n)? ")
+            importOption = input("Would you like to import another deck (Y/n)? ")
         chooseDecks()
     # some code here to list player 2's options, which is all the decks except the one player 1 just chose
     print("Available decks:")
@@ -84,7 +84,7 @@ def startup():
         another = input("Would you like to import another deck (Y/n)? ")
         while another != 'n' and another != 'N':
             deck.importDeck()
-            another = ("Would you like to import another deck (Y/n)? ")
+            another = input("Would you like to import another deck (Y/n)? ")
     elif distance(choice, "NewGame") <= 2:
         chooseDecks()
     elif distance(choice, "Load") <= 1:

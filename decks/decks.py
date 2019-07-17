@@ -6,7 +6,7 @@ import json
 import re
 from decks.deckList import deckDict
 
-url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=10&search="
+url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=10&links=cards&search="
 url2 = "https://www.keyforgegame.com/deck-details/"
 
 def convertToHtml(string):
@@ -29,58 +29,49 @@ def importDeck():
     def sortName(val):
         """Used to sort deckDict by the 'name' key.
         """
-        return val['name']
+        return val['card_number']
 
     newDeck = []
     deckname = input("Enter your deck's exact full name: ")
+    # why not let them import a bunch of decks at once? because links=cards doesn't work, so I'd need to do another json call. Not willing to implement that yet
     newUrl = url1 + convertToHtml(deckname.lower())
-    page = str(requests.get(newUrl).content)
-    result = '[' + page[2:-1] + ']'
+    page = requests.get(newUrl).json()
+    # print(newUrl)
     with open('decks/newdeck.json', 'w') as f:
-        f.write(result)
+        json.dump(page, f, ensure_ascii=False)
     with open('decks/newdeck.json') as f:
-        try:
-            data = json.load(f) #len(data) should be 1, if it isn't we have a problem
-        except: #if len(data) > 1:
-            print("More than one result was found. Please try again, and enter your deck name exactly.")
+        data = json.load(f)
+        if data['data'] == []:
+            print("That input returned no results.")
             return
-        for p in data:
-            if p['data'] == []:
-                print("That input returned no results.")
+        deckid = data['data'][0]['id']
+        deckName = data['data'][0]['name']
+        deckExp = data['data'][0]['expansion']
+        if deckExp != 341:
+            print("This version of the game can only handle CotA decks.")
+            return
+        for x in deckDict:
+            if x['name'] == deckName:
+                print("This deck has already been added.")
                 return
-            deckid = p['data'][0]['id']
-            deckName = p['data'][0]['name']
-            deckExp = p['data'][0]['expansion']
-            if deckExp != 341:
-                print("This version of the game can only handle CotA decks.")
-                return
-            for x in deckDict:
-                if x['name'] == deckName:
-                    print("This deck has already been added.")
-                    return
-            newDeck.extend(p['data'][0]['_links']['houses'][0:3])
-            print(newDeck)
-    newUrl2 = url2 + deckid
-    newpage = str(requests.get(newUrl2).content)
-    with open('decks/newdeck.txt', 'w') as f:
-        f.write(newpage[2:-1])
-    with open('decks/newdeck.txt') as f:
-        data = f.read()
-        regex = r'"indexInExpansion":"(\d{3})"'
-        matchList = re.finditer(regex, data)
-        for match in matchList:
-            newDeck.append(int(match.group(1)))
+        houses = (data['data'][0]['_links']['houses'][0:3])
+        print(len(data['_linked']['cards']))
+        cards = data['_linked']['cards']
+        cards.sort(key = sortName)
+        cardids = data['data'][0]['_links']['cards']
+        for card in cards:
+            for x in cardids:
+                if x == card['id']:
+                    newDeck.append(card)
         print(newDeck, len(newDeck))
-    # now create a list of dicts in a new file, to which we will be appending each new deck by key of name, then list
-    # in order to save it, we'll need to add it the dict and then remake the file with the new dict
-    newDict = {}
-    newDict['name'] = deckName
-    newDict['deck'] = newDeck
-    deckDict.append(newDict)
-    deckDict.sort(key = sortName)
-    with open('decks/deckList.py', 'w') as f:
-        toSave = "deckDict = " + str(deckDict)
-        f.write(toSave) # IT WORKS!
+        newDeck = {}
+        newDeck['houses'] = houses
+        newDeck['id'] = deckid
+        newDeck['name'] = deckName
+        newDeck['deck'] = newDeck
+        # Do something to append this data to a json file
+    
+    # ^ this works to print a dict with the houses, id, name, and deck (as a list of dicts), and can account for multiple instances of a card
 
 """When drawing and adding cards, use pop() and append() to work from the end of the list as it is faster
 """
