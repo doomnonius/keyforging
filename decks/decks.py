@@ -6,7 +6,7 @@ import json
 import re
 from decks.deckList import deckDict
 
-url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=10&links=cards&search="
+url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=1&links=cards&search="
 url2 = "https://www.keyforgegame.com/deck-details/"
 
 def convertToHtml(string):
@@ -50,12 +50,16 @@ def importDeck():
         if deckExp != 341:
             print("This version of the game can only handle CotA decks.")
             return
-        for x in deckDict:
-            if x['name'] == deckName:
-                print("This deck has already been added.")
-                return
+        with open('decks/deckList.json', 'r') as f:
+            data2 = json.load(f)
+            for x in data2:
+                if x['name'] == deckName:
+                    print("This deck has already been added.")
+                    return
+            original = data2[0:]
+            print(original)
         houses = (data['data'][0]['_links']['houses'][0:3])
-        print(len(data['_linked']['cards']))
+        # print(len(data['_linked']['cards']))
         cards = data['_linked']['cards']
         cards.sort(key = sortName)
         cardids = data['data'][0]['_links']['cards']
@@ -63,14 +67,18 @@ def importDeck():
             for x in cardids:
                 if x == card['id']:
                     newDeck.append(card)
-        print(newDeck, len(newDeck))
-        newDeck = {}
-        newDeck['houses'] = houses
-        newDeck['id'] = deckid
-        newDeck['name'] = deckName
-        newDeck['deck'] = newDeck
-        # Do something to append this data to a json file
-    
+        # print(newDeck, len(newDeck))
+        addDeck = {}
+        addDeck['houses'] = houses
+        addDeck['id'] = deckid
+        addDeck['name'] = deckName
+        addDeck['deck'] = newDeck
+        # Do something to append this data to a json file - the attempt at a solution below is not working
+    with open('decks/deckList.json', 'a') as f:
+        new = original + addDeck
+        json.dump(new, f, ensure_ascii=False)
+
+
     # ^ this works to print a dict with the houses, id, name, and deck (as a list of dicts), and can account for multiple instances of a card
 
 """When drawing and adding cards, use pop() and append() to work from the end of the list as it is faster
