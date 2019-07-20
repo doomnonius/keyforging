@@ -44,13 +44,17 @@ class Card():
     """ Feed json.loads(returns a string) called the deck list (which       will be a json file) to this to build classes.
         Possibly create a function defined here or elsewhere, if self.name = x, add these functions, if = y, add these.
     """
-    def __init__(self, deckName, cardName):
+    def __init__(self, cardInfo, deckName):
         # These are all the things that are not in the dict data but that I need to keep track of
         self.deck = deckName
-        self.card = cardName
+        self.card = cardInfo['card_title']
         self.damage = 0
-        self.power = 0
-        self.armor = 0
+        self.power = cardInfo['power']
+        self.armor = cardInfo['armor']
+        # conditionals to add
+
+    def __repr__(self):
+        print('')
 
     def health(self):
         return self.power - self.damage

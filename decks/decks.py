@@ -6,6 +6,20 @@ import json
 import re
 from decks.deckList import deckDict
 
+# idea: use composition, these five classes will go under the deck class. Not sure if this makes more sense then having them all as an individual list.
+
+# class Discard:
+
+# class Draw:
+
+# class Archive:
+
+# class Hand:
+
+# class Purged:
+
+# class Deck:
+
 url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=1&links=cards&search="
 url2 = "https://www.keyforgegame.com/deck-details/"
 
