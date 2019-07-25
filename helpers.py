@@ -4,10 +4,24 @@ import cards.board as board
 import decks.discards as discard
 import decks.purges as purge
 import decks.archives as archive
-from decks.deckList import deckDict
 import json
+import random
+
+##################
+# Contains modules:
+# choosedecks
+# developer (incomplete)
+# distance
+# load
+# startup
+# startGame
+# turn
+# responses
+##################
 
 active = ''
+Deck1 = {}
+Deck2 = {}
 
 def distance(first, second):
     '''Returns the edit distance between the strings first and second.'''
@@ -28,9 +42,10 @@ def developer():
     """Developer functions for manually changing the game state.
     """
 
-def chooseDecks():
+def chooseDecks(): #called by startup()
     """The players choose their decks from deckDict, and if their choice isn't there they are offered the option to import a deck.
     """
+    global Deck1, Deck2
     print("Available decks:")
     with open('decks/deckList.json') as f:
         data = json.load(f)
@@ -68,7 +83,7 @@ def load(saveFile):
     """Loads a saved game.
     """
 
-def startup():
+def startup(): #Called at startup
     """The initial starting of the game. Includes importing the decks (and possibly loading a saved game).
     """
     print("Game is starting up!")
@@ -96,9 +111,38 @@ def startup():
             startup()
             break
 
-def startGame():
+def startGame(): #called by choosedecks()
     """Determines first player, fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
     """
+    global Deck1, Deck2
+    first = random.choice([Deck1, Deck2])
+    if first == Deck1:
+        Deck1.draw(7)
+        Deck2.draw(6)
+        second = Deck2
+    else:
+        Deck2.draw(7)
+        Deck1.draw(6)
+        second = Deck1
+    for card in first.hand:
+        print(card)
+    mull = input("Would you like to mulligan?")
+    if mull == "Yes" or "Y" or "y":
+        for card in first.hand:
+            first.deck.append(card)
+        random.shuffle(first.deck)
+        first.hand = []
+        first.draw(6)
+    for card in second.hand:
+        print(card)
+    mull2 = input("Would you like to mulligan?")
+    if mull2 == "Yes" or "Y" or "y":
+        for card in second.hand:
+            second.deck.append(card)
+        random.shuffle(second.deck)
+        second.hand = []
+        second.draw(5)
+
 
 def turn():
     """The choices the player can make once they have chosen their active house.

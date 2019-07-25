@@ -44,7 +44,7 @@ class Card():
         """
         s = self.title + '\n' + "Amber: " + str(self.amber) + '\n'
         if self.maverick:
-            s += "Maverick" + self.house + self.type + '\n'
+            s += "Maverick" + self.house + ' ' + self.type + '\n'
         else:
             s += self.house + self.type + '\n'
         if self.type == "Creature":

@@ -3,8 +3,6 @@ from cards.cardsAsList import listt
 import random
 import requests
 import json
-import re
-from decks.deckList import deckDict
 
 class Deck:
     # idea: use composition, these five classes will go under the deck class. Not sure if this makes more sense then having them all as an individual list.
@@ -19,6 +17,11 @@ class Deck:
                     self.deck = []
                     for card in deckcards:
                         self.deck.append(cards.Card(card, self.name))
+                    random.shuffle(self.deck)
+        self.hand = [6] #first index is always size of full hand
+        self.discard = []
+        self.archive = []
+        self.purged = []
         
     def __repr__(self):
         """ How to represent a deck when called.
@@ -34,17 +37,31 @@ class Deck:
                 s += '.\n'
         return s
 
-# class Discard:
+    def drawEOT(self):
+        """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have.
+        """
+        while (len(self.hand) - 1) < self.hand[0]:
+            if self.deck != []:
+                self.hand.append(self.deck.pop())
+            else:
+                self.shuffleDiscard()
+    
+    def shuffleDiscard(self):
+        """ Deals with an empty deck.
+        """
+        random.shuffle(self.discard)
+        self.deck = self.discard
+        self.discard = []   
 
-# class Draw:
-
-# class Archive:
-
-# class Hand:
-
-# class Purged:
-
-# class Deck:
+    def draw(self, num):
+        """ Draws num cards.
+        """
+        n = num
+        while n > 0:
+            if self.deck == []:
+                self.shuffleDiscard()
+            self.hand.append(self.deck.pop())
+            n -= 1
 
 url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=1&links=cards&search="
 url2 = "https://www.keyforgegame.com/deck-details/"
@@ -131,13 +148,3 @@ def importDeck():
 """
 MyHand = [6]
 OppHand = [6]
-
-def drawEOT(hand, n = 0):
-    """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have. Also does all other end of turn actions.
-    """
-    while (len(hand) - 1) < hand[0]:
-        x = MyDeck.pop()
-        print(x)
-        hand.append(x)
-     #Going to need to add end of turn stuff
-
