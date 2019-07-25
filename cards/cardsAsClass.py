@@ -42,31 +42,21 @@ class Card():
     def __repr__(self):
         """ How to represent a card when called.
         """
-        if self.type == "Creature":
-            print(self.title)
-            print("Amber:", self.amber)
-            if self.maverick:
-                print("Maverick", self.house, self.type)
-            else:
-                print(self.house, self.type)
-            print("Power:", self.power, "(", self.damage, "damage )", "; Armor:", self.armor)
-            print(self.traits)
-            print(self.text)
-            if self.flavor != None:
-                print(self.flavor)
-            print(self.rarity, ",", self.exp, end='\n\n')
+        s = self.title + '\n' + "Amber: " + str(self.amber) + '\n'
+        if self.maverick:
+            s += "Maverick" + self.house + self.type + '\n'
         else:
-            print(self.title)
-            print("Amber:", self.amber)
-            if self.maverick:
-                print("Maverick", self.house, self.type)
-            else:
-                print(self.house, self.type)
-            print(self.traits)
-            print(self.text)
-            if self.flavor != None:
-                print(self.flavor)
-            print(self.rarity, ",", self.exp, end='\n\n')
+            s += self.house + self.type + '\n'
+        if self.type == "Creature":
+            s += "Power: " + str(self.power) + " (" + str(self.damage) + " damage )" + "; Armor: " + str(self.armor) + '\n'
+        if self.traits != None:
+            s += self.traits + '\n' + self.text + '\n'
+        else:
+            s += self.text + '\n'
+        if self.flavor != None:
+            s += self.flavor + '\n'
+        s += str(self.rarity) +  ", " + str(self.exp) + '\n\n'
+        return s
 
     def health(self):
         return self.power - self.damage
