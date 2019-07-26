@@ -4,9 +4,24 @@ import cards.board as board
 import decks.discards as discard
 import decks.purges as purge
 import decks.archives as archive
-from decks.deckList import deckDict
+import json
+import random
+
+##################
+# Contains modules:
+# choosedecks
+# developer (incomplete)
+# distance
+# load
+# startup
+# startGame
+# turn
+# responses
+##################
 
 active = ''
+Deck1 = {}
+Deck2 = {}
 
 def distance(first, second):
     '''Returns the edit distance between the strings first and second.'''
@@ -27,54 +42,48 @@ def developer():
     """Developer functions for manually changing the game state.
     """
 
-def chooseDecks():
+def chooseDecks(): #called by startup()
     """The players choose their decks from deckDict, and if their choice isn't there they are offered the option to import a deck.
     """
+    global Deck1, Deck2
     print("Available decks:")
-    for x in deckDict:
-        print(str(deckDict.index(x) + 1) + ' : ' + x['name'])
+    with open('decks/deckList.json') as f:
+        data = json.load(f)
+        for x in range(0, len(data)):
+            print(str(x+1) + ': ' + data[x]['name'])
     deckChoice = input("Choose player 1's deck by index or name: ")
-    try:
-        intChoice = int(deckChoice)
-        if intChoice - 1 <= len(deckDict) and intChoice - 1 >= 0:
-            deck.MyDeck = deck.buildDeck(deckDict[intChoice - 1]['deck'], [])
-        del deckDict[intChoice - 1]
-    except:
-        for x in deckDict:
-            if deckChoice == x['name']:
-                deck.MyDeck = deck.buildDeck(x['deck'], [])
-                del x
-                break
-        importOption = input("The name you've entered isn't in my database. Would you like to import it (Y/n)? ")
-        while importOption != 'n' and importOption != 'N':
-            deck.importDeck()
-            importOption = ("Would you like to import another deck (Y/n)? ")
+    # try:
+    intChoice = int(deckChoice)
+    if intChoice - 1 >= 0:
+        Deck1 = deck.Deck(deck.deckName(intChoice - 1))
+        print(Deck1)
+        print(Deck1.deck[0])
+    else:
+        print("Please enter numbers only.")
         chooseDecks()
     # some code here to list player 2's options, which is all the decks except the one player 1 just chose
     print("Available decks:")
-    for x in deckDict:
-        print(str(deckDict.index(x) + 1) + ' : ' + x['name'])
+    with open('decks/deckList.json') as f:
+        data = json.load(f)
+        for x in range(0, len(data)):
+            if data[x]['name'] != Deck1.name:
+                print(str(x+1) + ': ' + data[x]['name'])
+    # technically they can still choose the same deck, which I'll allow
     deckChoice2 = input("Choose player 2's deck by index or name: ")
     try:
-        deckChoice2 = int(deckChoice2)
-        if deckChoice2 - 1 <= len(deckDict) and deckChoice2 - 1 >= 0:
-            deck.OppDeck = deck.buildDeck(deckDict[deckChoice2 - 1]['deck'], [])
+        intChoice2 = int(deckChoice2)
+        if intChoice2 - 1 >= 0:
+            Deck2 = deck.Deck(deck.deckName(intChoice2 - 1))
     except:
-        for x in deckDict:
-            if deckChoice2 == x['name']:
-                deck.OppDeck = deck.buildDeck(x['deck'], [])
-                break
-        importOption = input("The name you've entered isn't in my database. Would you like to import it (Y/n)? ")
-        while importOption != 'n' and importOption != 'N':
-            deck.importDeck()
-            importOption = ("Would you like to import another deck (Y/n)? ")
+        print("Please enter numbers only.")
         chooseDecks()
+    startGame()
 
 def load(saveFile):
     """Loads a saved game.
     """
 
-def startup():
+def startup(): #Called at startup
     """The initial starting of the game. Includes importing the decks (and possibly loading a saved game).
     """
     print("Game is starting up!")
@@ -84,7 +93,7 @@ def startup():
         another = input("Would you like to import another deck (Y/n)? ")
         while another != 'n' and another != 'N':
             deck.importDeck()
-            another = ("Would you like to import another deck (Y/n)? ")
+            another = input("Would you like to import another deck (Y/n)? ")
     elif distance(choice, "NewGame") <= 2:
         chooseDecks()
     elif distance(choice, "Load") <= 1:
@@ -93,10 +102,46 @@ def startup():
         loaded = input("Which save would you like to load?")
         load(loaded)
     elif distance(choice, "Decks") <= 1:
-        print("Available decks:")
-        for x in deckDict:
-            print(str(deckDict.index(x) + 1) + ' : ' + x['name'])
+        while True:
+            print("Available decks:")
+            with open('decks/deckList.json') as f:
+                data = json.load(f)
+                for x in range(0, len(data)):
+                    print(str(x+1) + ': ' + data[x]['name'])
+            startup()
+            break
 
+def startGame(): #called by choosedecks()
+    """Determines first player, fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
+    """
+    global Deck1, Deck2
+    first = random.choice([Deck1, Deck2])
+    if first == Deck1:
+        Deck1.draw(7)
+        Deck2.draw(6)
+        second = Deck2
+    else:
+        Deck2.draw(7)
+        Deck1.draw(6)
+        second = Deck1
+    for card in first.hand:
+        print(card)
+    mull = input("Would you like to mulligan?")
+    if mull == "Yes" or "Y" or "y":
+        for card in first.hand:
+            first.deck.append(card)
+        random.shuffle(first.deck)
+        first.hand = []
+        first.draw(6)
+    for card in second.hand:
+        print(card)
+    mull2 = input("Would you like to mulligan?")
+    if mull2 == "Yes" or "Y" or "y":
+        for card in second.hand:
+            second.deck.append(card)
+        random.shuffle(second.deck)
+        second.hand = []
+        second.draw(5)
 
 
 def turn():
@@ -145,6 +190,7 @@ def responses():
         elif choice == "developer":
             developer()
         elif distance(choice, "Hand") <= 1:
+            # get to this part later
             print(deck.nameList(deck.MyHand))
         elif distance(choice, "House") <= 1:
             house = input("Which house would you like to declare? ")
