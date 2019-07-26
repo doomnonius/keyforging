@@ -46,7 +46,7 @@ class Card():
         if self.maverick:
             s += "Maverick" + self.house + ' ' + self.type + '\n'
         else:
-            s += self.house + self.type + '\n'
+            s += self.house + ' ' + self.type + '\n'
         if self.type == "Creature":
             s += "Power: " + str(self.power) + " (" + str(self.damage) + " damage )" + "; Armor: " + str(self.armor) + '\n'
         if self.traits != None:

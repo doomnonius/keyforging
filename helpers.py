@@ -19,9 +19,80 @@ import random
 # responses
 ##################
 
-active = ''
-Deck1 = {}
-Deck2 = {}
+# I should make a Game class, so I can have activeHouse and activePlayer and Deck1 and Deck2 effectively as global variables
+class Game():
+    def __init__(self, first, second):
+        """ first is first player, which is determined before Game is created.
+        """
+        self.activeHouse = ''
+        self.activePlayer = deck.Deck(deck.deckName(first - 1))
+        self.inactivePlayer = deck.Deck(deck.deckName(second - 1))
+
+    def __repr__(self):
+        s = ''
+        s += "Opponent's board:\nCreatures:\n"
+        for x in range(len(self.inactivePlayer.board["Creature"])):
+            s += str(x+1) + ': ' + self.inactivePlayer.board["Creature"][x].title + '\n'
+        s += "Artifacts: \n"
+        for x in range(len(self.inactivePlayer.board["Artifact"])):
+            s += str(x+1) + ': ' + self.inactivePlayer.board["Artifact"][x].title + '\n'
+        s += "Your board:\nCreatures:\n"
+        for x in range(len(self.activePlayer.board["Creature"])):
+            # print(x) #test line
+            s += str(x+1) + ': ' + self.activePlayer.board["Creature"][x].title + '\n'
+        s += "Artifacts: \n"
+        for x in range(len(self.activePlayer.board["Artifact"])):
+            s += str(x+1) + ': ' + self.activePlayer.board["Artifact"][x].title + '\n'
+        return s
+
+    def switch(self):
+        """ Swaps active and inactive players.
+        """
+        self.activePlayer, self.inactivePlayer = self.inactivePlayer, self.activePlayer
+        # print(self) # test line: passed on 7/25
+
+    def startGame(self): #called by choosedecks()
+        """Fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
+        """
+        self.activePlayer += 7
+        self.activePlayer.printHand()
+        mull = input("Player 1, would you like to mulligan? \n>>>")
+        if mull == "Yes" or mull == "Y" or mull == "y":
+            for card in self.activePlayer.hand:
+                self.activePlayer.deck.append(card)
+            random.shuffle(self.activePlayer.deck)
+            self.activePlayer.hand = []
+            self.activePlayer += 6
+        # for card in self.activePlayer.hand:
+        #     print(card)
+        self.inactivePlayer += 6
+        self.inactivePlayer.printHand()
+        mull2 = input("Player 2, would you like to mulligan? \n>>>")
+        if mull2 == "Yes" or mull2 == "Y" or mull2 == "y":
+            for card in self.inactivePlayer.hand:
+                self.inactivePlayer.deck.append(card)
+            random.shuffle(self.inactivePlayer.deck)
+            self.inactivePlayer.hand = []
+            self.inactivePlayer += 5
+        self.activePlayer.printHand()
+        try:
+            play = int(input("Player 1, enter the number of the card you would like to play: "))
+        except:
+            play = int(input("Player 1, enter the *number* of the card you would like to play: "))
+        x = self.activePlayer.hand[play].type
+        if x != "Upgrade": #technically don't need this here, no upgrades first turn
+            self.activePlayer.board[x].append(self.activePlayer.hand.pop(play))
+            print(self) # test line
+        self.switch() # switches active and inactive players
+        self.turn()
+
+    def turn(self):
+        """ The passive actions of a turn. 1: Forge key (if poss, and if miasma hasn't changed the state; also reset state); 2: Calls chooseHouse(); 3: calls responses(), which needs to be moved into this class, and represents all actions (playing, discarding, fighting, etc) and info seeking; 4: ready cards; 5: draw cards.
+        """
+
+    def chooseHouse(self, var):
+        """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards.
+        """
 
 def distance(first, second):
     '''Returns the edit distance between the strings first and second.'''
@@ -45,7 +116,6 @@ def developer():
 def chooseDecks(): #called by startup()
     """The players choose their decks from deckDict, and if their choice isn't there they are offered the option to import a deck.
     """
-    global Deck1, Deck2
     print("Available decks:")
     with open('decks/deckList.json') as f:
         data = json.load(f)
@@ -56,8 +126,8 @@ def chooseDecks(): #called by startup()
     intChoice = int(deckChoice)
     if intChoice - 1 >= 0:
         Deck1 = deck.Deck(deck.deckName(intChoice - 1))
-        print(Deck1)
-        print(Deck1.deck[0])
+        # print(Deck1)
+        # print(Deck1.deck[0])
     else:
         print("Please enter numbers only.")
         chooseDecks()
@@ -72,12 +142,18 @@ def chooseDecks(): #called by startup()
     deckChoice2 = input("Choose player 2's deck by index or name: ")
     try:
         intChoice2 = int(deckChoice2)
-        if intChoice2 - 1 >= 0:
-            Deck2 = deck.Deck(deck.deckName(intChoice2 - 1))
     except:
         print("Please enter numbers only.")
         chooseDecks()
-    startGame()
+    first = random.choice([intChoice, intChoice2])
+    # print(first)
+    if first == intChoice:
+        second = intChoice2
+    else:
+        second = intChoice
+    global game
+    game = Game(first, second)
+    game.startGame()
 
 def load(saveFile):
     """Loads a saved game.
@@ -110,39 +186,6 @@ def startup(): #Called at startup
                     print(str(x+1) + ': ' + data[x]['name'])
             startup()
             break
-
-def startGame(): #called by choosedecks()
-    """Determines first player, fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
-    """
-    global Deck1, Deck2
-    first = random.choice([Deck1, Deck2])
-    if first == Deck1:
-        Deck1.draw(7)
-        Deck2.draw(6)
-        second = Deck2
-    else:
-        Deck2.draw(7)
-        Deck1.draw(6)
-        second = Deck1
-    for card in first.hand:
-        print(card)
-    mull = input("Would you like to mulligan?")
-    if mull == "Yes" or "Y" or "y":
-        for card in first.hand:
-            first.deck.append(card)
-        random.shuffle(first.deck)
-        first.hand = []
-        first.draw(6)
-    for card in second.hand:
-        print(card)
-    mull2 = input("Would you like to mulligan?")
-    if mull2 == "Yes" or "Y" or "y":
-        for card in second.hand:
-            second.deck.append(card)
-        random.shuffle(second.deck)
-        second.hand = []
-        second.draw(5)
-
 
 def turn():
     """The choices the player can make once they have chosen their active house.
@@ -190,15 +233,14 @@ def responses():
         elif choice == "developer":
             developer()
         elif distance(choice, "Hand") <= 1:
-            # get to this part later
-            print(deck.nameList(deck.MyHand))
+            game.activePlayer.printHand()
         elif distance(choice, "House") <= 1:
             house = input("Which house would you like to declare? ")
             if house in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-                global active
-                active = house
+                global activeHouse
+                activeHouse = house
                 house = "none"
-                print("You've chosen " + active + " as your active house.")
+                print("You've chosen " + activeHouse + " as your active house.")
                 turn()
             else:
                 print("That's not a valid house.")

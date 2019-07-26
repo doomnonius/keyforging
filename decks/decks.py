@@ -18,10 +18,16 @@ class Deck:
                     for card in deckcards:
                         self.deck.append(cards.Card(card, self.name))
                     random.shuffle(self.deck)
-        self.hand = [6] #first index is always size of full hand
+        self.handSize = 6
+        self.hand = [] #first index is always size of full hand
         self.discard = []
         self.archive = []
         self.purged = []
+        self.chains = 0
+        self.board = {"Creature": [], "Artifact": [], "Action": []}
+        self.keys = 0
+        self.amber = 0
+        self.keyCost = 6
         
     def __repr__(self):
         """ How to represent a deck when called.
@@ -40,7 +46,7 @@ class Deck:
     def drawEOT(self):
         """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have.
         """
-        while (len(self.hand) - 1) < self.hand[0]:
+        while (len(self.hand)) < self.handSize:
             if self.deck != []:
                 self.hand.append(self.deck.pop())
             else:
@@ -51,17 +57,28 @@ class Deck:
         """
         random.shuffle(self.discard)
         self.deck = self.discard
-        self.discard = []   
+        self.discard = []
 
-    def draw(self, num):
+    def printHand(self):
+        """ Prints names and houses of cards in hand.
+        """
+        for x in range (0, len(self.hand)):
+            print(str(x) + ": " + self.hand[x].title + " (" + self.hand[x].house + ")")
+        full = input("Would you like to see full details for the cards in your hand?\n>>>")
+        if full == "Yes" or full == "Y" or full == "y":
+            for card in self.hand:
+                print(card)
+
+    def __iadd__(self, num):
         """ Draws num cards.
         """
-        n = num
-        while n > 0:
+        while num > 0:
             if self.deck == []:
                 self.shuffleDiscard()
             self.hand.append(self.deck.pop())
-            n -= 1
+            num -= 1
+        self.hand.sort(key=lambda x: x.house)
+        return self
 
 url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=1&links=cards&search="
 url2 = "https://www.keyforgegame.com/deck-details/"
