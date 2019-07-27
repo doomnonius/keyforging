@@ -1,11 +1,17 @@
 import decks.decks as deck
 import cards.cardsAsClass as card
+import cards.destroyed as dest
+import cards.actions as action
+import cards.play as play
+import cards.reap as reap
+import cards.fight as fight
 # import cards.board as board # not using this
 # import decks.discards as discard # not using this
 # import decks.purges as purge # not using this
 # import decks.archives as archive # not using this
 import json
 import random
+import time
 
 ##################
 # Contains modules:
@@ -31,13 +37,13 @@ class Game():
 
     def __repr__(self):
         s = ''
-        s += "Opponent's board:\nCreatures:\n"
+        s += "\nOpponent's board:\nCreatures:\n"
         for x in range(len(self.inactivePlayer.board["Creature"])):
             s += str(x+1) + ': ' + str(self.inactivePlayer.board["Creature"][x]) + '\n'
         s += "Artifacts: \n"
         for x in range(len(self.inactivePlayer.board["Artifact"])):
             s += str(x+1) + ': ' + str(self.inactivePlayer.board["Artifact"][x]) + '\n'
-        s += "Your board:\nCreatures:\n"
+        s += "\nYour board:\nCreatures:\n"
         for x in range(len(self.activePlayer.board["Creature"])):
             # print(x) #test line
             s += str(x+1) + ': ' + str(self.activePlayer.board["Creature"][x]) + "\n"
@@ -79,13 +85,19 @@ class Game():
             self.inactivePlayer += 5
         self.activePlayer.printShort(self.activePlayer.hand)
         try:
-            play = int(input("Player 1, enter the number of the card you would like to play: "))
+            chosen = int(input("Player 1, enter the number of the card you would like to play: "))
         except:
-            play = int(input("Player 1, enter the *number* of the card you would like to play: "))
-        x = self.activePlayer.hand[play].type
+            chosen = int(input("Player 1, enter the *number* of the card you would like to play: "))
+        x = self.activePlayer.hand[chosen].type
         if x != "Upgrade": #technically don't need this here, no upgrades first turn
-            self.activePlayer.board[x].append(self.activePlayer.hand.pop(play))
+            self.activePlayer.board[x].append(self.activePlayer.hand.pop(chosen))
             # print(self) # test line
+        # ready played card
+        for creature in self.activePlayer.board["Creature"]:
+            creature.ready = True
+            creature.armor = creature.base_armor
+        for artifact in self.activePlayer.board["Artifact"]:
+            artifact.ready = True
         self.switch() # switches active and inactive players
         self.turn(2)
 
@@ -156,13 +168,40 @@ class Game():
             choice = input("Choose a house. Your deck's houses are " + self.activePlayer.houses[0] + ", " + self.activePlayer.houses[1] + ", " + self.activePlayer.houses[2] + ".\n>>>").title()
             if choice in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
                 self.activeHouse = choice.title()
+                return
+            else:
+                print("\nThat's not a valid choice!\n")
+                time.sleep(3)
+                self.chooseHouse("activeHouse")
 
     
     def responses(self):
         """This is called during step 3 of the turn.
         """
-        choice = input("What would you like to do? (h for help): ").title()
+        choice = input("\nWhat would you like to do? (h for help):\n>>>").title()
         while True: # returns on EndTurn or Concede
+            try:
+                chosen = int(choice)
+                # Shows your hand, then prompts to choose a card to play
+                self.activePlayer.printShort(self.activePlayer.hand, False)
+                flank = 1
+                try:
+                    flank = int(input("Choose left flank (0) or right flank (1, default):  "))
+                except:
+                    pass
+                # Checks card is viable play
+                if self.activePlayer.hand[chosen].house == self.activeHouse:
+                    # Increases amber, adds the card to the action section of the board, then calls the card's play function
+                    self.activePlayer.amber += self.activePlayer.hand[chosen].amber
+                    if self.activePlayer.hand[chosen].type != "Upgrade" and flank == 0:
+                        self.activePlayer.board[self.activePlayer.hand[chosen].type].insert(0, self.activePlayer.hand.pop(chosen))
+                    elif self.activePlayer.hand[chosen].type != "Upgrade":
+                        self.activePlayer.board[self.activePlayer.hand[chosen].type].append(self.activePlayer.hand.pop(chosen))
+                    self.activePlayer.printShort(self.activePlayer.hand, False)
+                else:
+                    print("\nYou can only play cards from the active house.")
+            except:
+                pass
             if choice == 'h' or choice == 'H':
                 print("Available info commands are 'House', 'Hand', 'Board', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck', and 'OppHand'. \nAvailable action commands are 'Play', 'Fight', 'Discard', 'Action', 'Reap', 'EndTurn', and 'Concede'.\n>>>")
                 choice2 = input("Type a command here to learn more about it, or press enter to return:\n>>>").title()
@@ -213,7 +252,7 @@ class Game():
                         print("Choose a friendly creature to reap with.")
                     else:
                         print("That is not recognized as a command.")
-                    self.responses()
+                    # self.responses() # probably unnecessary line
             elif choice == "developer":
                 developer()
             elif distance(choice, "Hand") <= 1:
@@ -249,11 +288,6 @@ class Game():
                 print("Your opponent's deck has " + str(len(self.inactivePlayer.deck)) + " cards.")
             elif distance(choice, "OppHand") <= 1:
                 print("Your opponent's hand has " + str(len(self.inactivePlayer.hand)) + " cards.")
-            elif distance(choice, "Play") <= 1:
-                # Shows your hand, then prompts to choose a card to play
-                # Checks card is viable play
-                # Increases amber, then calls the card's play function
-                pass
             elif distance(choice, "Fight") <= 1:
                 # Shows board, then prompts to choose attacker and defender
                 # Checks card is viable to fight or be fought (taunt)
@@ -279,8 +313,11 @@ class Game():
                 self.inactivePlayer.keys = 3
                 return
             else:
-                choice = input("Unrecognized command. Try again.\n>>>")
-            choice = input("What would you like to do? (h for help):\n>>>")
+                try:
+                    int(choice)
+                except:
+                    print("Unrecognized command. Try again.\n")
+            choice = input("\nWhat would you like to do? (h for help):\n>>>")
 
     def endGame(self):
         """ Declares a winner and ends the game.

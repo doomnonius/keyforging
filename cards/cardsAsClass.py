@@ -39,10 +39,14 @@ class Card():
         # abilities
         if self.type == "Artifact":
             self.captured = False
+            self.ready = False
         # these will refer to dictionaries of functions
         # maybe dest.basic will return the right function
         # we're going to need to first create the deck with all these as false, and then go through the deck and change it for each item. It's a bit crazy.
-        self.destroyed = False #dest.destDict[self.title]
+        destList = dir(dest)
+        for x in destList:
+            if str(x)[0:3] == "key" and str(x)[3:6] == self.number:
+                self.destroyed = destList.index(x)
         self.play = False
         self.fight = False
         self.action = False
@@ -79,6 +83,10 @@ class Card():
                 s += self.title + " (" + self.house + " Amber: " + self.captured + ")"
         elif self.type == "Action":
             s += self.title + " (" + self.house + ")"
+        if self.ready:
+            s += " Ready"
+        else:
+            s += " Exhausted"
         return s
 
     def __mul__(self, other):
@@ -88,6 +96,7 @@ class Card():
         other.armor = 0
         if self.health() < 0:
             self.destroyed
+        return self, other
 
     def health(self):
         return self.power - self.damage

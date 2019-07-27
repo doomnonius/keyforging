@@ -1,13 +1,11 @@
 # This is all the destroyed and leaves play effects
 # Also include things like Krump?
 
-funcDict = {}
-
 ###########
 ## Basic ##
 ###########
 
-def basicDest(card, deck, purge = False, archive = False, addDeck = False):
+def basicDest(game, purge = False, archive = False, addDeck = False):
     """ Basic function, decides which of these four to call. Needs to be fed the deck to check states to decide this. Optionals are for cards that explicitly purge or archive or add to deck but won't have states.
     """
     
@@ -44,68 +42,12 @@ def sortDest(name):
 ## Brobnar ##
 #############
 
-def keynum():
-    """ This needs to return the functions that this card will have.
-    """
-    def playnum():
-        """ Amber increases will be done before this call, then does card effect.
-        """
-        return func
-    def fightnum():
-        """
-        """
-        return func
-    def reapnum():
-        """
-        """
-        return func
-    def actionnum():
-        """
-        """
-        return func
-    def destnum():
-        """
-        """
-        return func
-    play = playnum()
-    fight = fightnum()
-    reap = reapnum()
-    action = actionnum()
-    dest = destnum()
-    
-    return play, fight, reap, action, dest
-
-def key001():
+def key001(game):
     """ Anger: Ready and fight w/ a friendly creature.
     """
+    basicDest(game)
 
-    def play001():
-        """ Then ready and fight with a friendly minion.
-        """
-        return func
-    def fight001():
-        """
-        """
-        return func
-    def reap001():
-        """
-        """
-        return func
-    def action001():
-        """
-        """
-        return func
-    def dest001():
-        """
-        """
-        return func
-    play = play001()
-    fight = fight001()
-    reap = reap001()
-    action = action001()
-    dest = dest001()
-    
-    return play, fight, reap, action, dest
+funcDict = {}
 
 def keyMagda(card, deck, oppamber, myamber):
     """ Opponent steals two amber from controller of this minion. Takes amber amounts as args, and returns adjusted. Also takes card and deck so it can manipulate them.
@@ -117,6 +59,8 @@ def keyMagda(card, deck, oppamber, myamber):
     return oppamber, myamber
 
 def addFunctions(card):
+    """ Returns value, which should be a tuple of 5 different functions.
+    """
     for x in range(1, 371):
         if x == int(card.number):
             for key, value in funcDict.items():
@@ -130,7 +74,7 @@ def makeFuncList(deck):
             dirList.append(x)
     global funcDict
     for card in deck:
-        funcDict.update(card.title, (basic))
+        funcDict.update(card.title, addFunctions(card))
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

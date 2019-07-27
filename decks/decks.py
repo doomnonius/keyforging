@@ -18,9 +18,6 @@ class Deck:
                         self.deck.append(cards.Card(card, self.name))
                         # eventually will add edge cases here for errata, i.e. if self.deck[len(self.deck)-1].title == "Bait and Switch"
                     # before we shuffle, we'll iterate over the cards again to give them the appropriate reap, fight, etc. functions, now that they are created
-                    dest.makeFuncList(self)
-                    for card in self.deck:
-                        dest.addFunctions(card)
                     random.shuffle(self.deck)
         self.handSize = 6
         self.hand = [] #first index is always size of full hand
@@ -65,18 +62,24 @@ class Deck:
         self.deck = self.discard
         self.discard = []
 
-    def printShort(self, listt):
+    def printShort(self, listt, booly = True):
         """ Prints names and houses of cards in specified list (hand, discard, purge, etc.).
         """
         for x in range (0, len(listt)):
             print(str(x) + ": " + listt[x].title + " (" + listt[x].house + ")")
-        full = input("Enter a number to see full details for that card, or press enter to continue: ")
+        if booly:
+            full = input("Enter a number to see full details for that card, or press enter to continue: ")
+        else:
+            full = ''
         while full != '':
             try:
                 print(repr(listt[int(full)]))
             except:
                 print("Error: input was not a number.")
-            full = input("Enter a number to see full details for that card, or press enter to continue: ")
+            if booly:
+                full = input("Enter a number to see full details for that card, or press enter to continue: ")
+            else:
+                full = ''
 
 
     def __iadd__(self, num):
