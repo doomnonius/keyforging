@@ -1,11 +1,10 @@
 import cards.cardsAsClass as cards
-from cards.cardsAsList import listt
 import random
+import cards.destroyed as dest
 import requests
 import json
 
 class Deck:
-    # idea: use composition, these five classes will go under the deck class. Not sure if this makes more sense then having them all as an individual list.
     def __init__(self, name):
         with open('decks/deckList.json') as f:
             data = json.load(f)
@@ -17,6 +16,11 @@ class Deck:
                     self.deck = []
                     for card in deckcards:
                         self.deck.append(cards.Card(card, self.name))
+                        # eventually will add edge cases here for errata, i.e. if self.deck[len(self.deck)-1].title == "Bait and Switch"
+                    # before we shuffle, we'll iterate over the cards again to give them the appropriate reap, fight, etc. functions, now that they are created
+                    dest.makeFuncList(self)
+                    for card in self.deck:
+                        dest.addFunctions(card)
                     random.shuffle(self.deck)
         self.handSize = 6
         self.hand = [] #first index is always size of full hand
@@ -28,6 +32,8 @@ class Deck:
         self.keys = 0
         self.amber = 0
         self.keyCost = 6
+        # whenever a state-creating card is played, it will add its state to this dict (use .update(key=value))
+        self.states = {"Forge": {}, "House": {}, "Play": {}, "Fight": {}, "Buff": {}, "Destroyed":{}}
         
     def __repr__(self):
         """ How to represent a deck when called.
@@ -59,15 +65,19 @@ class Deck:
         self.deck = self.discard
         self.discard = []
 
-    def printHand(self):
-        """ Prints names and houses of cards in hand.
+    def printShort(self, listt):
+        """ Prints names and houses of cards in specified list (hand, discard, purge, etc.).
         """
-        for x in range (0, len(self.hand)):
-            print(str(x) + ": " + self.hand[x].title + " (" + self.hand[x].house + ")")
-        full = input("Would you like to see full details for the cards in your hand?\n>>>")
-        if full == "Yes" or full == "Y" or full == "y":
-            for card in self.hand:
-                print(card)
+        for x in range (0, len(listt)):
+            print(str(x) + ": " + listt[x].title + " (" + listt[x].house + ")")
+        full = input("Enter a number to see full details for that card, or press enter to continue: ")
+        while full != '':
+            try:
+                print(repr(listt[int(full)]))
+            except:
+                print("Error: input was not a number.")
+            full = input("Enter a number to see full details for that card, or press enter to continue: ")
+
 
     def __iadd__(self, num):
         """ Draws num cards.
@@ -156,12 +166,10 @@ def importDeck():
         # Do something to append this data to a json file - the attempt at a solution below is not working
     with open('decks/deckList.json', 'w') as f:
         new = allDecks + [addDeck]
-        print(new[0]['name'])
+        # print(new[0]['name']) # test line
         new.sort(key=lambda x: x["name"])
         json.dump(new, f, ensure_ascii=False)
     # ^ this works to print a dict with the houses, id, name, and deck (as a list of dicts), and can account for multiple instances of a card
 
 """When drawing and adding cards, use pop() and append() to work from the end of the list as it is faster
 """
-MyHand = [6]
-OppHand = [6]

@@ -1,6 +1,6 @@
 import cards.cardsAsClass as card
 import decks.decks as deck 
-from helpers import responses, startup
+from helpers import startup
 
 """This file should be where instructions are entered by the user, and they can ask for help.
 """

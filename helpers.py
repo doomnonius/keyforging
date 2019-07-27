@@ -1,9 +1,9 @@
 import decks.decks as deck
 import cards.cardsAsClass as card
-import cards.board as board
-import decks.discards as discard
-import decks.purges as purge
-import decks.archives as archive
+# import cards.board as board # not using this
+# import decks.discards as discard # not using this
+# import decks.purges as purge # not using this
+# import decks.archives as archive # not using this
 import json
 import random
 
@@ -19,12 +19,13 @@ import random
 # responses
 ##################
 
-# I should make a Game class, so I can have activeHouse and activePlayer and Deck1 and Deck2 effectively as global variables
 class Game():
     def __init__(self, first, second):
-        """ first is first player, which is determined before Game is created.
+        """ first is first player, which is determined before Game is created and entered as an input. deck.deckName is a function that pulls the right deck from the list.
         """
         self.activeHouse = ''
+        self.first = first - 1
+        self.second = second - 1
         self.activePlayer = deck.Deck(deck.deckName(first - 1))
         self.inactivePlayer = deck.Deck(deck.deckName(second - 1))
 
@@ -32,17 +33,17 @@ class Game():
         s = ''
         s += "Opponent's board:\nCreatures:\n"
         for x in range(len(self.inactivePlayer.board["Creature"])):
-            s += str(x+1) + ': ' + self.inactivePlayer.board["Creature"][x].title + '\n'
+            s += str(x+1) + ': ' + str(self.inactivePlayer.board["Creature"][x]) + '\n'
         s += "Artifacts: \n"
         for x in range(len(self.inactivePlayer.board["Artifact"])):
-            s += str(x+1) + ': ' + self.inactivePlayer.board["Artifact"][x].title + '\n'
+            s += str(x+1) + ': ' + str(self.inactivePlayer.board["Artifact"][x]) + '\n'
         s += "Your board:\nCreatures:\n"
         for x in range(len(self.activePlayer.board["Creature"])):
             # print(x) #test line
-            s += str(x+1) + ': ' + self.activePlayer.board["Creature"][x].title + '\n'
+            s += str(x+1) + ': ' + str(self.activePlayer.board["Creature"][x]) + "\n"
         s += "Artifacts: \n"
         for x in range(len(self.activePlayer.board["Artifact"])):
-            s += str(x+1) + ': ' + self.activePlayer.board["Artifact"][x].title + '\n'
+            s += str(x+1) + ': ' + str(self.activePlayer.board["Artifact"][x]) + '\n'
         return s
 
     def switch(self):
@@ -55,7 +56,8 @@ class Game():
         """Fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
         """
         self.activePlayer += 7
-        self.activePlayer.printHand()
+        print("\nPlayer 1's hand:")
+        self.activePlayer.printShort(self.activePlayer.hand)
         mull = input("Player 1, would you like to mulligan? \n>>>")
         if mull == "Yes" or mull == "Y" or mull == "y":
             for card in self.activePlayer.hand:
@@ -66,7 +68,8 @@ class Game():
         # for card in self.activePlayer.hand:
         #     print(card)
         self.inactivePlayer += 6
-        self.inactivePlayer.printHand()
+        print("\nPlayer 2's hand:")
+        self.inactivePlayer.printShort(self.inactivePlayer.hand)
         mull2 = input("Player 2, would you like to mulligan? \n>>>")
         if mull2 == "Yes" or mull2 == "Y" or mull2 == "y":
             for card in self.inactivePlayer.hand:
@@ -74,7 +77,7 @@ class Game():
             random.shuffle(self.inactivePlayer.deck)
             self.inactivePlayer.hand = []
             self.inactivePlayer += 5
-        self.activePlayer.printHand()
+        self.activePlayer.printShort(self.activePlayer.hand)
         try:
             play = int(input("Player 1, enter the number of the card you would like to play: "))
         except:
@@ -82,20 +85,212 @@ class Game():
         x = self.activePlayer.hand[play].type
         if x != "Upgrade": #technically don't need this here, no upgrades first turn
             self.activePlayer.board[x].append(self.activePlayer.hand.pop(play))
-            print(self) # test line
+            # print(self) # test line
         self.switch() # switches active and inactive players
-        self.turn()
+        self.turn(2)
 
-    def turn(self):
-        """ The passive actions of a turn. 1: Forge key (if poss, and if miasma hasn't changed the state; also reset state); 2: Calls chooseHouse(); 3: calls responses(), which needs to be moved into this class, and represents all actions (playing, discarding, fighting, etc) and info seeking; 4: ready cards; 5: draw cards.
+    def turn(self, num):
+        """ The passive actions of a turn. 1: Forge key (if poss, and if miasma hasn't changed the state; also reset state); 2: Calls chooseHouse(); 3: calls responses(), which needs to be moved into this class, and represents all actions (playing, discarding, fighting, etc) and info seeking; 4: ready cards; 5: draw cards. num is the turn number.
+        """
+        while True:
+            print("\nTurn: " + str(num) + '\n')
+            print(self) # step 0: show the board state
+            print("You have", self.activePlayer.amber, "amber and", self.activePlayer.keys, "keys. Your opponent has", self.inactivePlayer.amber, "amber and", self.inactivePlayer.keys, "keys.\n")
+            # step 1: check if a key is forged, then forge it
+            # all code is here because it's short
+            if self.checkForgeStates():
+                if self.activePlayer.amber >= self.activePlayer.keyCost:
+                    self.activePlayer.amber -= self.activePlayer.keyCost
+                    self.activePlayer.keys += 1
+                    print("You forged a key for", self.activePlayer.keyCost, "amber. You now have", self.activePlayer.keys, "key(s) and", self.activePlayer.amber, "amber.\n") # it works!
+            else:
+                print("Forging skipped this turn!")
+            if self.activePlayer.keys >= 3:
+                break
+            # step 2: the player chooses a house
+            # outsourced b/c multipurpose
+            self.chooseHouse("activeHouse")
+            # step 3: call responses
+            # outsourced b/c long
+            self.responses()
+            # step 4: ready cards and reset armor
+            # here b/c short
+            for creature in self.activePlayer.board["Creature"]:
+                creature.ready = True
+                creature.armor = creature.base_armor
+            for artifact in self.activePlayer.board["Artifact"]:
+                artifact.ready = True
+            # step 5.1: draw cards
+            self.activePlayer.drawEOT()
+            print("Checking draw:", self.activePlayer.handSize == len(self.activePlayer.hand)) # test line
+            # step 5.2: check for EOT effects
+            self.checkEOTStates()
+            # step 5.3: switch players
+            self.switch()
+            # step 5.4: increment num
+            num += 1
+        self.endGame()
+
+    def checkForgeStates(self):
+        """ Checks if there is anything in Deck.states["Forge"]. Implementation for other things is still hazy.
+        """
+        if len(self.activePlayer.states["Forge"]) != 0:
+            for key in self.activePlayer.states["Forge"]:
+                # I don't see anything to do but have each possible card here, but for testing purposes I'm only going to include Miasma
+                if key == True:
+                    if self.activePlayer.states["Forge"]["Miasma"]:
+                        self.activePlayer.states["Forge"]["Miasma"] = False
+                    return False
+        return True
+
+    def checkEOTStates(self):
+        """ Checks for end of turn effects. There aren't more than a couple in CotA.
         """
 
-    def chooseHouse(self, var):
-        """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards.
+    def chooseHouse(self, varAsStr):
+        """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak.
         """
+        if varAsStr == "activeHouse":
+            print("Your hand is: ")
+            self.activePlayer.printShort(self.activePlayer.hand)
+            choice = input("Choose a house. Your deck's houses are " + self.activePlayer.houses[0] + ", " + self.activePlayer.houses[1] + ", " + self.activePlayer.houses[2] + ".\n>>>").title()
+            if choice in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+                self.activeHouse = choice.title()
+
+    
+    def responses(self):
+        """This is called during step 3 of the turn.
+        """
+        choice = input("What would you like to do? (h for help): ").title()
+        while True: # returns on EndTurn or Concede
+            if choice == 'h' or choice == 'H':
+                print("Available info commands are 'House', 'Hand', 'Board', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck', and 'OppHand'. \nAvailable action commands are 'Play', 'Fight', 'Discard', 'Action', 'Reap', 'EndTurn', and 'Concede'.\n>>>")
+                choice2 = input("Type a command here to learn more about it, or press enter to return:\n>>>").title()
+                while choice2 != '':
+                    if distance(choice2, "Hand") <= 1:
+                        print("Lists the names of the cards in your hand.")
+                    if distance(choice2, "House") <= 1:
+                        print("Lists the active house.")
+                    elif distance(choice2, "Board") <= 1:
+                        print("Lists the creatures and artifacts on the board.")
+                    elif distance(choice2, "MyDiscard") <= 1:
+                        print("Lists the contents of your discard pile.")
+                    elif distance(choice2, "OppDiscard") <= 1:
+                        print("Lists the contents of your opponent's discard pile.")
+                    elif distance(choice2, "MyPurge") <= 1:
+                        print("Lists your purged cards.")
+                    elif distance(choice2, "OppPurge") <= 1:
+                        print("Lists your opponent's purged cards.")
+                    elif distance(choice2, "MyArchive") <= 1:
+                        print("Lists your archive.")
+                    elif distance(choice2, "OppArchive") <= 1:
+                        print("Returns the number of cards in your opponent's archive.")
+                    elif distance(choice2, "Keys") <= 1:
+                        print("Lists how many keys each player has.")
+                    elif distance(choice2, "Amber") <= 1:
+                        print("Lists how much amber each player has.")
+                    elif distance(choice2, "MyDeck") <= 1:
+                        print("Returns the number of cards in your deck.")
+                    elif distance(choice2, "OppDeck") <= 1:
+                        print("Returns the number of cards in your opponent's deck. ")
+                    elif distance(choice2, "EndTurn") <= 1:
+                        print("Ends your turn.")
+                    elif distance(choice2, "Card") <= 1:
+                        print("Search for a card in one of the active decks by name.")
+                    elif distance(choice2, "OppHand") <= 1:
+                        print("Returns the number of cards in your opponent's hand.")
+                    elif distance(choice2, "OppHand") <= 1:
+                        print("Concede the game.")
+                    elif distance(choice2, "Play") <= 1:
+                        print("Play a card from hand.")
+                    elif distance(choice2, "Fight") <= 1:
+                        print("Choose a creature to fight with and a creature to fight against.")
+                    elif distance(choice2, "Discard") <= 1:
+                        print("Choose a card from hand to discard.")
+                    elif distance(choice2, "Action") <= 1:
+                        print("Choose a card with an action, and use that action.")
+                    elif distance(choice2, "Reap") <= 1:
+                        print("Choose a friendly creature to reap with.")
+                    else:
+                        print("That is not recognized as a command.")
+                    self.responses()
+            elif choice == "developer":
+                developer()
+            elif distance(choice, "Hand") <= 1:
+                game.activePlayer.printShort(self.activePlayer.hand)
+            elif distance(choice, "House") <= 1:
+                print(self.activeHouse)
+            elif distance(choice, "Board") <= 1:
+                print(self)
+            elif distance(choice, "MyDiscard") <= 1:
+                self.activePlayer.printShort(self.activePlayer.discard)
+            elif distance(choice, "OppDiscard") <= 1:
+                self.inactivePlayer.printShort(self.inactivePlayer.discard)
+            elif distance(choice, "MyPurge") <= 1:
+                self.activePlayer.printShort(self.activePlayer.purges)
+            elif distance(choice, "OppPurge") <= 1:
+                self.inactivePlayer.printShort(self.inactivePlayer.discard)
+            elif distance(choice, "MyArchive") <= 1:
+                self.activePlayer.printShort(self.activePlayer.archive)
+            elif distance(choice, "OppArchive") <= 1:
+                print("There are " + str(len(self.inactivePlayer.archive) + " cards in your opponent's archive."))
+            elif distance(choice, "Keys") <= 1 or distance(choice, "Amber") <= 1:
+                print("You have", self.activePlayer.amber, "amber and", self.activePlayer.keys, "keys. Your opponent has", self.inactivePlayer.amber, "amber and", self.inactivePlayer.keys, "keys.\n")
+            elif distance(choice, "Card") <= 1:
+                cardName = input("Enter the name of a card from one of the active decks:\n>>>").title()
+                for x in [deck.Deck(deck.deckName(self.first)), deck.Deck(deck.deckName(self.second))]:
+                    for card in x.deck:
+                        if cardName == card.title.title():
+                            print(repr(card))
+                            break
+            elif distance(choice, "MyDeck") <= 1:
+                print("Your deck has " + str(len(self.activePlayer.deck)) + " cards.")
+            elif distance(choice, "OppDeck") <= 1:
+                print("Your opponent's deck has " + str(len(self.inactivePlayer.deck)) + " cards.")
+            elif distance(choice, "OppHand") <= 1:
+                print("Your opponent's hand has " + str(len(self.inactivePlayer.hand)) + " cards.")
+            elif distance(choice, "Play") <= 1:
+                # Shows your hand, then prompts to choose a card to play
+                # Checks card is viable play
+                # Increases amber, then calls the card's play function
+                pass
+            elif distance(choice, "Fight") <= 1:
+                # Shows board, then prompts to choose attacker and defender
+                # Checks card is viable to fight or be fought (taunt)
+                print(self)
+                attacker = input("Choose a minion to fight with: ")
+                defender = input("Choose a minion to fight against: ")
+            elif distance(choice, "Discard") <= 1:
+                # Shows hand, then prompts to choose a card to discard.
+                # Checks card is viable to discard
+                pass
+            elif distance(choice, "Action") <= 1:
+                # Shows friendly cards with "Action" keyword, prompts a choice
+                # Checks card is viable to use
+                pass
+            elif distance(choice, "Reap") <= 1:
+                # Shows friendly board, prompts choice.
+                # Checks viability
+                pass
+            elif distance(choice, "EndTurn") <= 1:
+                print("Ending Turn!")
+                return
+            elif distance(choice, "Concede") <= 1:
+                self.inactivePlayer.keys = 3
+                return
+            else:
+                choice = input("Unrecognized command. Try again.\n>>>")
+            choice = input("What would you like to do? (h for help):\n>>>")
+
+    def endGame(self):
+        """ Declares a winner and ends the game.
+        """
+###############################################
+
 
 def distance(first, second):
-    '''Returns the edit distance between the strings first and second.'''
+    """Returns the edit distance between the strings first and second.
+    """
 
     if first == '':
         return len(second)
@@ -121,30 +316,31 @@ def chooseDecks(): #called by startup()
         data = json.load(f)
         for x in range(0, len(data)):
             print(str(x+1) + ': ' + data[x]['name'])
-    deckChoice = input("Choose player 1's deck by index or name: ")
-    # try:
-    intChoice = int(deckChoice)
-    if intChoice - 1 >= 0:
-        Deck1 = deck.Deck(deck.deckName(intChoice - 1))
-        # print(Deck1)
-        # print(Deck1.deck[0])
-    else:
-        print("Please enter numbers only.")
-        chooseDecks()
+    deckChoice = input("Choose player 1's deck by index: ")
+    while deckChoice != int:
+        try:
+            intChoice = int(deckChoice)
+        except:
+            deckChoice = input("Choose player 1's deck by index: ")
+        while intChoice - 1 < 0 or intChoice > len(data):
+            deckChoice = input("Choose player 1's deck by index: ")
+        break
     # some code here to list player 2's options, which is all the decks except the one player 1 just chose
     print("Available decks:")
     with open('decks/deckList.json') as f:
         data = json.load(f)
         for x in range(0, len(data)):
-            if data[x]['name'] != Deck1.name:
+            if x+1 != intChoice:
                 print(str(x+1) + ': ' + data[x]['name'])
-    # technically they can still choose the same deck, which I'll allow
-    deckChoice2 = input("Choose player 2's deck by index or name: ")
-    try:
-        intChoice2 = int(deckChoice2)
-    except:
-        print("Please enter numbers only.")
-        chooseDecks()
+    deckChoice2 = input("Choose player 2's deck by index: ")
+    while deckChoice2 != int:
+        try:
+            intChoice2 = int(deckChoice2)
+        except:
+            deckChoice2 = input("Choose player 2's deck by index: ")
+        while intChoice2 - 1 < 0 or intChoice2 > len(data) or deckChoice2 == deckChoice:
+            deckChoice2 = input("Choose player 2's deck by index: ")
+        break
     first = random.choice([intChoice, intChoice2])
     # print(first)
     if first == intChoice:
@@ -187,69 +383,5 @@ def startup(): #Called at startup
             startup()
             break
 
-def turn():
-    """The choices the player can make once they have chosen their active house.
-    """
 
-def responses():
-    """This is called once the game is started.
-    """
-    choice = input("What would you like to do? (h for help): ")
-    while choice != '':
-        #Potential choices: Hand, Boards, Discards, Purges
-        if choice == 'h' or choice == 'H':
-            print("Available commands are 'House', 'Hand', 'MyBoard', 'OppBoard', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck', and 'EndTurn'. I might even add a save game function at some point.")
-            choice2 = input("Type a command here to learn more about it, or press enter to return: ")
-            while choice2 != '':
-                if distance(choice2, "Hand") <= 1:
-                    print("Lists the names of the cards in your hand.")
-                elif distance(choice2, "MyBoard") <= 1:
-                    print("Lists the creatures and artifacts on your side of the board.")
-                elif distance(choice2, "OppBoard") <= 1:
-                    print("Lists the creatures and artifacts on your opponent's side of the board.")
-                elif distance(choice2, "MyDiscard") <= 1:
-                    print("Lists the contents of your discard pile.")
-                elif distance(choice2, "OppDiscard") <= 1:
-                    print("Lists the contents of your opponent's discard pile.")
-                elif distance(choice2, "MyPurge") <= 1:
-                    print("Lists your purged cards.")
-                elif distance(choice2, "OppPurge") <= 1:
-                    print("Lists your opponent's purged cards.")
-                elif distance(choice2, "Keys") <= 1:
-                    print("Lists how many keys each player has.")
-                elif distance(choice2, "Amber") <= 1:
-                    print("Lists how much amber each player has.")
-                elif distance(choice2, "MyDeck") <= 1:
-                    print("Returns the number of cards in your deck.")
-                elif distance(choice2, "OppDeck") <= 1:
-                    print("Returns the number of cards in your opponent's deck. ")
-                elif distance(choice2, "EndTurn") <= 1:
-                    print("Ends your turn.")
-                elif distance(choice2, "Card") <= 1:
-                    print("Search for a card by name (only looks at the first six letters).")
-                else:
-                    print("That is not recognized as a command.")
-                responses()
-        elif choice == "developer":
-            developer()
-        elif distance(choice, "Hand") <= 1:
-            game.activePlayer.printHand()
-        elif distance(choice, "House") <= 1:
-            house = input("Which house would you like to declare? ")
-            if house in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-                global activeHouse
-                activeHouse = house
-                house = "none"
-                print("You've chosen " + activeHouse + " as your active house.")
-                turn()
-            else:
-                print("That's not a valid house.")
-                responses()
-        elif distance(choice, "MyBoard") <= 1:
-            print("Creatures", deck.nameList(board.MyBoard))
-            print("Creatures", deck.nameList(board.MyArt))
-        elif distance(choice, "Card") <= 1:
-            cardIn = input("Enter the name of the card you are looking for: ")
-            [card.printdetails(card.listdetails(x)) for x in deck.allCards if distance(cardIn[0:7], x.title[0:7]) <= 2]
-        responses()
     

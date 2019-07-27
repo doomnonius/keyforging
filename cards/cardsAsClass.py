@@ -1,6 +1,8 @@
 import cards.destroyed as dest
 import cards.board as board
 import cards.fight as fight
+import cards.play as play
+import cards.actions as action
 
 class Card():
     """ Feed json.loads(returns a string) called the deck list (which       will be a json file) to this to build classes.
@@ -22,22 +24,30 @@ class Card():
         self.amber = cardInfo['amber']
         self.rarity = cardInfo["rarity"]
         self.flavor = cardInfo["flavor_text"]
-        self.number = int(cardInfo['card_number'])
+        self.number = (cardInfo['card_number'])
         self.exp = cardInfo["expansion"]
         self.maverick = cardInfo['is_maverick']
         # conditionals to add?
         # status effects
-        self.ready = False
-        self.stun = False
-        self.captured = 0
+        if self.type == "Creature":
+            self.ready = False
+            self.stun = False
+            self.captured = 0
+            self.reap = False
+            self.skirmish = False
+            self.elusive = False
         # abilities
-        self.destroyed = False
+        if self.type == "Artifact":
+            self.captured = False
+        # these will refer to dictionaries of functions
+        # maybe dest.basic will return the right function
+        # we're going to need to first create the deck with all these as false, and then go through the deck and change it for each item. It's a bit crazy.
+        self.destroyed = False #dest.destDict[self.title]
         self.play = False
         self.fight = False
         self.action = False
         self.reap = False
-        self.skirmish = False
-        self.elusive = False
+        
 
     def __repr__(self):
         """ How to represent a card when called.
@@ -57,6 +67,27 @@ class Card():
             s += self.flavor + '\n'
         s += str(self.rarity) +  ", " + str(self.exp) + '\n\n'
         return s
+
+    def __str__(self):
+        s = ''
+        if self.type == "Creature":
+            s += self.title + " (" + self.house + "): (Power: " + str(self.power) + " Armor: " + str(self.armor) + " Damage: " + str(self.damage) + " Captured: " + str(self.captured) + ')'
+        elif self.type == "Artifact":
+            if not self.captured:
+                s += self.title + " (" + self.house + ")"
+            else:
+                s += self.title + " (" + self.house + " Amber: " + self.captured + ")"
+        elif self.type == "Action":
+            s += self.title + " (" + self.house + ")"
+        return s
+
+    def __mul__(self, other):
+        self.damage = other.power - self.armor
+        self.armor = 0
+        other.damage = other.power - self.armor
+        other.armor = 0
+        if self.health() < 0:
+            self.destroyed
 
     def health(self):
         return self.power - self.damage
