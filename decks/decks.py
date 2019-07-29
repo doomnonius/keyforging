@@ -19,12 +19,12 @@ class Deck:
                         # eventually will add edge cases here for errata, i.e. if self.deck[len(self.deck)-1].title == "Bait and Switch"
                     # before we shuffle, we'll iterate over the cards again to give them the appropriate reap, fight, etc. functions, now that they are created
                     random.shuffle(self.deck)
-        self.handSize = 6
         self.hand = [] #first index is always size of full hand
+        self.handSize = 6
+        self.chains = 0
         self.discard = []
         self.archive = []
         self.purged = []
-        self.chains = 0
         self.board = {"Creature": [], "Artifact": [], "Action": []}
         self.keys = 0
         self.amber = 0
@@ -49,11 +49,27 @@ class Deck:
     def drawEOT(self):
         """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have.
         """
-        while (len(self.hand)) < self.handSize:
+        draw = self.handSize
+        if 0 < self.chains < 7:
+            draw -= 1
+        elif 6 < self.chains < 13:
+            draw -= 2
+        elif 12 < self.chains < 19:
+            draw -= 3
+        elif 18 < self.chains < 25:
+            draw -= 4
+        else:
+            pass
+        if len(self.hand) >= self.handSize:
+            pass
+        else:
+            self.chains -= 1
+        while (len(self.hand)) < draw:
             if self.deck != []:
                 self.hand.append(self.deck.pop())
             else:
                 self.shuffleDiscard()
+        self.deck.sort(key = lambda x: x.house)
     
     def shuffleDiscard(self):
         """ Deals with an empty deck.

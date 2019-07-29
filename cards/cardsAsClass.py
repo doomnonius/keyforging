@@ -30,12 +30,46 @@ class Card():
         # conditionals to add?
         # status effects
         if self.type == "Creature":
-            self.ready = False
-            self.stun = False
+            if "enters play ready" in self.text:
+                self.ready = True
+            else:
+                self.ready = False
+            if "enters play stunned" in self.text:
+                self.stun = True
+            else:
+                self.stun = False
             self.captured = 0
-            self.reap = False
-            self.skirmish = False
-            self.elusive = False
+            # check for skirmish in self.text
+            if "Skirmish" in self.text:
+                self.skirmish = True
+            else:
+                self.skirmish = False
+            # check for elusive in self.text
+            if "Elusive" in self.text:
+                self.elusive = True
+            else:
+                self.elusive = False
+            # check for taunt in self.text
+            if "Taunt" in self.text:
+                self.taunt = True
+            else:
+                self.taunt = False
+            if "Reap:" in self.text:
+                self.reap = True
+            else:
+                self.reap = False
+            if "Fight:" in self.text:
+                self.fight = True
+            else:
+                self.fight = False
+            if "Assault" in self.text:
+                self.assault = True
+            else:
+                self.assault = False
+            if "Hazardous" in self.text:
+                self.hazard = True
+            else:
+                self.hazard = False
         # abilities
         if self.type == "Artifact":
             self.captured = False
@@ -47,10 +81,14 @@ class Card():
         for x in destList:
             if str(x)[0:3] == "key" and str(x)[3:6] == self.number:
                 self.destroyed = destList.index(x)
-        self.play = False
-        self.fight = False
-        self.action = False
-        self.reap = False
+        if "Play:" in self.text:
+            self.play = True
+        else:
+            self.play = False
+        if "Action:" in self.text or "Omni:" in self.text:
+            self.action = True
+        else:
+            self.action = False
         
 
     def __repr__(self):
@@ -69,7 +107,7 @@ class Card():
             s += self.text + '\n'
         if self.flavor != None:
             s += self.flavor + '\n'
-        s += str(self.rarity) +  ", " + str(self.exp) + '\n\n'
+        s += str(self.rarity) +  ", " + str(self.exp)
         return s
 
     def __str__(self):
@@ -87,16 +125,28 @@ class Card():
             s += " Ready"
         else:
             s += " Exhausted"
+        if self.type == "Creature":
+            if self.stun:
+                s += ", Stunned"
         return s
 
     def __mul__(self, other):
-        self.damage = other.power - self.armor
-        self.armor = 0
-        other.damage = other.power - self.armor
-        other.armor = 0
-        if self.health() < 0:
-            self.destroyed
-        return self, other
+        if self.skirmish:
+            self.damage += 0
+        else:
+            self.damage += (other.power - self.armor)
+            self.armor -= other.power
+            if self.armor < 0: self.armor = 0
+        
+        if other.elusive:
+            other.damage += 0 #other.power - self.armor
+            other.elusive = False
+        else:
+            other.damage += (self.power - other.armor)
+            other.armor -= self.power
+            if other.armor < 0: other.armor = 0
+        
+        return
 
     def health(self):
         return self.power - self.damage
