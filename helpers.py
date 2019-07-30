@@ -61,7 +61,7 @@ class Game():
     def startGame(self): #called by choosedecks()
         """Fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
         """
-        self.activePlayer += 7
+        self.activePlayer += 36 #self.activePlayer += 7
         print("\nPlayer 1's hand:")
         self.activePlayer.printShort(self.activePlayer.hand)
         mull = input("Player 1, would you like to mulligan? \n>>>")
@@ -73,7 +73,7 @@ class Game():
             self.activePlayer += 6
         # for card in self.activePlayer.hand:
         #     print(card)
-        self.inactivePlayer += 6
+        self.inactivePlayer += 36 # self.inactivePlayer += 6
         print("\nPlayer 2's hand:")
         self.inactivePlayer.printShort(self.inactivePlayer.hand)
         mull2 = input("Player 2, would you like to mulligan? \n>>>")
@@ -83,71 +83,47 @@ class Game():
             random.shuffle(self.inactivePlayer.deck)
             self.inactivePlayer.hand = []
             self.inactivePlayer += 5
-        self.activePlayer.printShort(self.activePlayer.hand)
-        while True:
-            try:
-                chosen = int(input("Player 1, enter the number of the card you would like to play: "))
-                break
-            except:
-                pass
-        x = self.activePlayer.hand[chosen].type
-        while chosen != '':
-            if x != "Upgrade": #technically don't need this here, no upgrades first turn
-                self.activePlayer.board[x].append(self.activePlayer.hand.pop(chosen))
-                # print(self) # test line
-                break
-            else:
-                # make them try again
-                print("You can't play an upgrade on an empty board. Try again.")
-                time.sleep(1)
-                while True:
-                    try:
-                        chosen = int(input("Player 1, enter the number of the card you would like to play: "))
-                        break
-                    except:
-                        pass
-        # ready played card
-        for creature in self.activePlayer.board["Creature"]:
-            creature.ready = True
-            creature.armor = creature.base_armor
-        for artifact in self.activePlayer.board["Artifact"]:
-            artifact.ready = True
-        self.activePlayer.drawEOT()
-        self.switch() # switches active and inactive players
-        self.turn(2)
+        self.turn(1)
+        # From here on should be in turn(), I think
 
     def turn(self, num):
         """ The passive actions of a turn. 1: Forge key (if poss, and if miasma hasn't changed the state; also reset state); 2: Calls chooseHouse(); 3: calls responses(), which needs to be moved into this class, and represents all actions (playing, discarding, fighting, etc) and info seeking; 4: ready cards; 5: draw cards. num is the turn number.
         """
         while True:
             print("\nTurn: " + str(num))
-            time.sleep(1)
-            print(self) # step 0: show the board state
-            time.sleep(1)
-            print("You have", self.activePlayer.amber, "amber and", self.activePlayer.keys, "keys. Your opponent has", self.inactivePlayer.amber, "amber and", self.inactivePlayer.keys, "keys.\n")
-            time.sleep(1)
-            # step 1: check if a key is forged, then forge it
-            # all code is here because it's short
-            if self.checkForgeStates():
-                if self.activePlayer.amber >= self.activePlayer.keyCost:
-                    self.activePlayer.amber -= self.activePlayer.keyCost
-                    self.activePlayer.keys += 1
-                    print("You forged a key for", self.activePlayer.keyCost, "amber. You now have", self.activePlayer.keys, "key(s) and", self.activePlayer.amber, "amber.\n") # it works!
-            else:
-                print("Forging skipped this turn!")
-            if self.activePlayer.keys >= 3:
-                break
+            if num > 1:
+                time.sleep(1)
+                print(self) # step 0: show the board state
+                time.sleep(1)
+                print("You have", self.activePlayer.amber, "amber and", self.activePlayer.keys, "keys. Your opponent has", self.inactivePlayer.amber, "amber and", self.inactivePlayer.keys, "keys.\n")
+                time.sleep(1)
+                # step 1: check if a key is forged, then forge it
+                # all code is here because it's short
+                if self.checkForgeStates():
+                    if self.activePlayer.amber >= self.activePlayer.keyCost:
+                        self.activePlayer.amber -= self.activePlayer.keyCost
+                        self.activePlayer.keys += 1
+                        print("You forged a key for", self.activePlayer.keyCost, "amber. You now have", self.activePlayer.keys, "key(s) and", self.activePlayer.amber, "amber.\n") # it works!
+                else:
+                    print("Forging skipped this turn!")
+                if self.activePlayer.keys >= 3:
+                    break
             # step 2: the player chooses a house
             # outsourced b/c multipurpose
             self.chooseHouse("activeHouse")
             # step 3: call responses
             # outsourced b/c long
-            self.responses()
+            if num == 1:
+                self.responses(num, numPlays = 1)
+            else:
+                self.responses(num)
             # step 4: ready cards and reset armor
             # here b/c short
             for creature in self.activePlayer.board["Creature"]:
                 creature.ready = True
                 creature.armor = creature.base_armor
+                if "Elusive" in creature.text:
+                    creature.elusive = True
             for artifact in self.activePlayer.board["Artifact"]:
                 artifact.ready = True
             # step 5.1: draw cards
@@ -185,6 +161,7 @@ class Game():
         """ Checks for fight states (warsong, etc) or before fight effects, or stun or exhaust.
         """
         if attacker.stun == True:
+            attacker.stun == False
             return False
         if attacker.ready == False:
             return False
@@ -204,17 +181,20 @@ class Game():
                 return
             else:
                 print("\nThat's not a valid choice!\n")
-                time.sleep(3)
+                time.sleep(1)
                 self.chooseHouse("activeHouse")
 
     
-    def responses(self):
-        """This is called during step 3 of the turn.
+    def responses(self, turn, numPlays = 100):
+        """This is called during step 3 of the turn. Num plays is for turn one play limiting.
         """
         choice = input("\nWhat would you like to do? (h for help):\n>>>").title()
-        while True: # returns on EndTurn or Concede
+        while True: # returns on EndTurn or Concede, or after one play on turn one
             try:
                 chosen = int(choice)
+                # if the above works, they are trying to play a card, then we check for first turn
+                if numPlays == 0:
+                    break
                 # Checks card is viable play
                 if self.activePlayer.hand[chosen].house == self.activeHouse and chosen < len(self.activePlayer.hand):
                     # Increases amber, adds the card to the action section of the board, then calls the card's play function
@@ -226,10 +206,14 @@ class Game():
                             flank = int(input("Choose left flank (0) or right flank (1, default):  "))
                         except:
                             pass
+                    # left flank
                     if self.activePlayer.hand[chosen].type != "Upgrade" and flank == 0:
                         self.activePlayer.board[self.activePlayer.hand[chosen].type].insert(0, self.activePlayer.hand.pop(chosen))
+                        numPlays -= 1
+                    # default case: right flank
                     elif self.activePlayer.hand[chosen].type != "Upgrade":
                         self.activePlayer.board[self.activePlayer.hand[chosen].type].append(self.activePlayer.hand.pop(chosen))
+                        numPlays -= 1
                     else:
                         self.upgrade()
                     self.activePlayer.printShort(self.activePlayer.hand, False)
@@ -238,7 +222,7 @@ class Game():
             except:
                 pass
             if choice == 'h' or choice == 'H':
-                print("Available info commands are 'House', 'Hand', 'Board', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck', and 'OppHand'. \nAvailable action commands are 'Play', 'Fight', 'Discard', 'Action', 'Reap', 'EndTurn', and 'Concede'.\n>>>")
+                print("Enter a number to play that card. Available info commands are 'House', 'Hand', 'Board', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck', and 'OppHand'. \nAvailable action commands are 'Turn', 'Fight', 'Discard', 'Action', 'Reap', 'EndTurn', and 'Concede'.\n>>>")
                 choice2 = input("Type a command here to learn more about it, or press enter to return:\n>>>").title()
                 while choice2 != '':
                     if distance(choice2, "Hand") <= 1:
@@ -291,6 +275,8 @@ class Game():
                     # self.responses() # probably unnecessary line
             elif choice == "developer":
                 developer()
+            elif distance(choice, "Turn") <= 1:
+                print("Turn: " + turn)
             elif distance(choice, "Hand") <= 1:
                 game.activePlayer.printShort(self.activePlayer.hand)
             elif distance(choice, "House") <= 1:
@@ -330,10 +316,14 @@ class Game():
                 while True:
                     try:
                         attacker = int(input("Choose a minion to fight with: ")) - 1
+                        # next line basically checks if they've listed a valid option
+                        if self.activePlayer.board["Creature"][attacker].house != self.activeHouse:
+                            print("\nYou can only use cards from the active house.")
+                            KeyError()
                         str(self.activePlayer.board["Creature"][attacker].type)
                         break
                     except:
-                        pass
+                        print("Your entry was invalid. Try again.")
                 # self.checkFightStates(attacker) also checks before fight abilities, stuns, and exhaustion
                 if self.checkFightStates(self.activePlayer.board["Creature"][attacker]):
                     while True:
@@ -347,13 +337,11 @@ class Game():
                     print("You cannot fight with that minion.")
                 # Checks card is viable to fight or be fought (taunt)
                 try:
-                    defender > 0
-                    if self.activePlayer.board["Creature"][attacker].house == self.activeHouse:
-                        self.activePlayer.board["Creature"][attacker] * self.activePlayer.board["Creature"][defender]
-                        self.activePlayer.board["Creature"][attacker].ready = False
-                    else:
-                        print("\nYou can only use cards from the active house.")
+                    print("Trying to fight.")
+                    self.activePlayer.board["Creature"][attacker].fightCard(self.inactivePlayer.board["Creature"][defender])
+                    self.activePlayer.board["Creature"][attacker].ready = False
                 except:
+                    print("Fight failed.")
                     pass
             elif distance(choice, "Discard") <= 1:
                 # Shows hand, then prompts to choose a card to discard.

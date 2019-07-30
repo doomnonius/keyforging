@@ -50,26 +50,20 @@ class Card():
             else:
                 self.elusive = False
             # check for taunt in self.text
-            if "Taunt" in self.text:
-                self.taunt = True
-            else:
-                self.taunt = False
-            if "Reap:" in self.text:
-                self.reap = True
-            else:
-                self.reap = False
-            if "Fight:" in self.text:
-                self.fight = True
-            else:
-                self.fight = False
-            if "Assault" in self.text:
-                self.assault = True
-            else:
-                self.assault = False
-            if "Hazardous" in self.text:
-                self.hazard = True
-            else:
-                self.hazard = False
+            if "Taunt" in self.text: self.taunt = True
+            else: self.taunt = False
+            if "Reap:" in self.text: self.reap = True
+            else: self.reap = False
+            if "Fight:" in self.text: self.fight = True
+            else: self.fight = False
+            if "Assault" in self.text: self.assault = True
+            else: self.assault = False
+            if "Hazardous" in self.text: self.hazard = True
+            else: self.hazard = False
+            if "Destroyed:" in self.text: self.dest = True
+            else: self.dest = False
+            if "Leaves Play:" in self.text: self.lp = True
+            else: self.lp = False
         # abilities
         if self.type == "Artifact":
             self.captured = False
@@ -85,10 +79,14 @@ class Card():
             self.play = True
         else:
             self.play = False
-        if "Action:" in self.text or "Omni:" in self.text:
+        if "Action:" in self.text:
             self.action = True
         else:
             self.action = False
+        if "Omni: " in self.text:
+            self.omni = True
+        else:
+            self.omni = False
         
 
     def __repr__(self):
@@ -114,6 +112,23 @@ class Card():
         s = ''
         if self.type == "Creature":
             s += self.title + " (" + self.house + "): (Power: " + str(self.power) + " Armor: " + str(self.armor) + " Damage: " + str(self.damage) + " Captured: " + str(self.captured) + ')'
+            if self.elusive:
+                s += " E"
+            if self.taunt:
+                s += " T"
+            if self.hazard:
+                s += " H"
+            if self.skirmish:
+                s += " S"
+            if self.assault:
+                s += " As"            
+            if self.reap:
+                s += " R"
+            if self.fight:
+                s += " F"
+            if self.dest:
+                s += " D"
+            if self.lp: s += " LP"     
         elif self.type == "Artifact":
             if not self.captured:
                 s += self.title + " (" + self.house + ")"
@@ -121,6 +136,12 @@ class Card():
                 s += self.title + " (" + self.house + " Amber: " + self.captured + ")"
         elif self.type == "Action":
             s += self.title + " (" + self.house + ")"
+        if self.play:
+                s += " P"
+        if self.omni:
+            s += " O"
+        if self.action:
+            s += " Ac"
         if self.ready:
             s += " Ready"
         else:
@@ -130,23 +151,32 @@ class Card():
                 s += ", Stunned"
         return s
 
-    def __mul__(self, other):
+    def fightCard(self, other):
+        print(self.title + " is fighting " + other.title + "!")
+        # add hazardous and assault in here too
         if self.skirmish:
+            print("skir if") # Test line
+            self.damage += 0
+        elif other.elusive:
+            print("skir elif") # Test line
             self.damage += 0
         else:
+            print("skir else") # Test line
             self.damage += (other.power - self.armor)
             self.armor -= other.power
             if self.armor < 0: self.armor = 0
-        
         if other.elusive:
+            print("elu if")
             other.damage += 0 #other.power - self.armor
             other.elusive = False
         else:
+            print("elu else")
             other.damage += (self.power - other.armor)
             other.armor -= self.power
             if other.armor < 0: other.armor = 0
-        
-        return
+        print(self)
+        print(other)
+        return self, other
 
     def health(self):
         return self.power - self.damage
