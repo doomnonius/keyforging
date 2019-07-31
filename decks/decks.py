@@ -31,6 +31,7 @@ class Deck:
         self.keyCost = 6
         # whenever a state-creating card is played, it will add its state to this dict (use .update(key=value))
         self.states = {"Forge": {}, "House": {}, "Play": {}, "Fight": {}, "Buff": {}, "Destroyed":{}, "Reap": {}}
+        self.pendingDest = []
         
     def __repr__(self):
         """ How to represent a deck when called.

@@ -4,6 +4,22 @@ import cards.fight as fight
 import cards.play as play
 import cards.actions as action
 
+def listOfWords (S):
+	""" Builds from the back of the list. Either adds a new item
+	to the list, or adds a character to the string at the head
+	of the list
+	"""
+	#base case
+	if len(S) == 0:
+		return ['']
+	else: 
+		c = S[0]
+		L = listOfWords(S[1:])
+		if S[0] == ' ':
+			return [''] + L
+		else:
+			return [c + L[0]] + L[1:]
+
 class Card():
     """ Feed json.loads(returns a string) called the deck list (which       will be a json file) to this to build classes.
         Possibly create a function defined here or elsewhere, if self.name = x, add these functions, if = y, add these.
@@ -13,14 +29,20 @@ class Card():
         self.deck = deckName
         self.title = cardInfo['card_title']
         self.damage = 0
-        self.power = cardInfo['power']
-        self.base_armor = cardInfo['armor']
+        self.power = int(cardInfo['power'])
+        self.base_armor = int(cardInfo['armor'])
         self.armor = self.base_armor
         self.id = cardInfo['id']
         self.house = cardInfo["house"]
         self.type = cardInfo["card_type"]
         self.text = cardInfo["card_text"]
-        self.traits = cardInfo['traits']
+        if cardInfo['traits'] != None:
+            self.traits = cardInfo['traits']
+        else:
+            self.traits = ''
+        if len(listOfWords(self.traits)[0]) > 0:
+            self.traitList = listOfWords(self.traits)
+            print(self.traitList)
         self.amber = cardInfo['amber']
         self.rarity = cardInfo["rarity"]
         self.flavor = cardInfo["flavor_text"]
@@ -54,11 +76,11 @@ class Card():
             else: self.taunt = False
             if "Reap:" in self.text: self.reap = True
             else: self.reap = False
-            if "Fight:" in self.text: self.fight = True
+            if "Fight:" in self.text or "Fight/" in self.text: self.fight = True
             else: self.fight = False
             if "Assault" in self.text: self.assault = True
             else: self.assault = False
-            if "Hazardous" in self.text: self.hazard = True
+            if "Hazardous" in self.text: self.hazard = True, self.text[10]
             else: self.hazard = False
             if "Destroyed:" in self.text: self.dest = True
             else: self.dest = False
@@ -75,7 +97,7 @@ class Card():
         for x in destList:
             if str(x)[0:3] == "key" and str(x)[3:6] == self.number:
                 self.destroyed = destList.index(x)
-        if "Play:" in self.text:
+        if "Play:" in self.text or "Play/" in self.text:
             self.play = True
         else:
             self.play = False
@@ -83,7 +105,7 @@ class Card():
             self.action = True
         else:
             self.action = False
-        if "Omni: " in self.text:
+        if "Omni:" in self.text:
             self.omni = True
         else:
             self.omni = False
@@ -155,25 +177,26 @@ class Card():
         print(self.title + " is fighting " + other.title + "!")
         # add hazardous and assault in here too
         if self.skirmish:
-            print("skir if") # Test line
+            print("The attacker has skirmish, and takes no damage.") # Test line
             self.damage += 0
         elif other.elusive:
-            print("skir elif") # Test line
+            # print("skir elif") # Test line
             self.damage += 0
         else:
-            print("skir else") # Test line
+            # print("skir else") # Test line
             self.damage += (other.power - self.armor)
             self.armor -= other.power
             if self.armor < 0: self.armor = 0
         if other.elusive:
-            print("elu if")
+            print("The defender has elusive, so no damage is dealt.")
             other.damage += 0 #other.power - self.armor
             other.elusive = False
         else:
-            print("elu else")
+            # print("elu else") # test line
             other.damage += (self.power - other.armor)
             other.armor -= self.power
             if other.armor < 0: other.armor = 0
+        self.ready = False
         print(self)
         print(other)
         return self, other
@@ -181,9 +204,10 @@ class Card():
     def health(self):
         return self.power - self.damage
 
-    def update(self):
+    def update(self, game):
         if self.damage >= self.power:
-            self.destroyed
+            print(self.title + " is dead.")
+        #     self.destroyed(game)
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')
