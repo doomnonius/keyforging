@@ -114,7 +114,7 @@ class Card():
     def __repr__(self):
         """ How to represent a card when called.
         """
-        s = self.title + '\n' + "Amber: " + str(self.amber) + '\n'
+        s = '\n' + self.title + '\n' + "Amber: " + str(self.amber) + '\n'
         if self.maverick:
             s += "Maverick" + self.house + ' ' + self.type + '\n'
         else:
@@ -127,7 +127,7 @@ class Card():
             s += self.text + '\n'
         if self.flavor != None:
             s += self.flavor + '\n'
-        s += str(self.rarity) +  ", " + str(self.exp)
+        s += str(self.rarity) +  ", " + str(self.exp) + '\n'
         return s
 
     def __str__(self):

@@ -9,10 +9,15 @@ import cards.cardsAsClass as x
 
 def key001(game):
 	"""Value: 1 amber. Ready and fight with a friendly creature"""
+	print("\nYour creatures:")
 	game.activePlayer.printShort(game.activePlayer.board["Creature"], False)
+	print("")
+	if len(game.activePlayer.board["Creature"]) == 0:
+		print("You have no creatures to target. The card is still played.")
+		return
 	while True:
 		try:
-			choice = int(input('Choose a friendly minion: '))
+			choice = int(input('Choose a friendly creature: '))
 			break
 		except:
 			pass
@@ -23,9 +28,59 @@ def key001(game):
 		game.fightCard(choice)
 
 
-def barehanded (OppArt, MyArt):
+def key002(game):
 	"""Value: 1 amber. Put Each artifact on top of its owner's \
 	deck."""
+	# can't use a while loop b/c active player chooses order
+	if len(game.activePlayer.board["Artifact"]) > 1:
+		pendingDiscard = []
+		while len(game.activePlayer.board["Artifact"]) > 0:
+			pendingDiscard.append(game.activePlayer.board["Artifact"].pop())
+	elif len(game.activePlayer.board["Artifact"]) == 1:
+		game.activePlayer.deck.append(game.activePlayer.board["Artifact"].pop())
+	else:
+		pass
+	try:
+		game.activePlayer.printShort(pendingDiscard, False)
+		while len(pendingDiscard) > 1:
+			while True:
+				try:
+					choice = int(input("Choose which card to add to your deck: "))
+					break
+				except:
+					pass
+			game.activePlayer.deck.append(pendingDiscard.pop(choice))
+	except:
+		pass
+	try:
+		game.activePlayer.deck.append(pendingDiscard.pop())
+	except:
+		pass
+	# run it all again w/ inactive player
+	if len(game.inactivePlayer.board["Artifact"]) > 1:
+		pendingDiscard = []
+		while len(game.inactivePlayer.board["Artifact"]) > 0:
+			pendingDiscard.append(game.inactivePlayer.board["Artifact"].pop())
+	elif len(game.inactivePlayer.board["Artifact"]) == 1:
+		game.inactivePlayer.deck.append(game.inactivePlayer.board["Artifact"].pop())
+	else:
+		pass
+	try:
+		game.inactivePlayer.printShort(pendingDiscard, False)
+		while len(pendingDiscard) > 1:
+			while True:
+				try:
+					choice = int(input("Choose which card to add to your opponent's deck: "))
+					break
+				except:
+					pass
+			game.inactivePlayer.deck.append(pendingDiscard.pop(choice))
+	except:
+		pass
+	try:
+		game.inactivePlayer.deck.append(pendingDiscard.pop())
+	except:
+		pass
 
 def bloodMoney (creature):
 	"""Place 2 amber from the common supply on an enemy creature."""
