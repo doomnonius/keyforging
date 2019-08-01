@@ -159,7 +159,7 @@ class Card():
         elif self.type == "Action":
             s += self.title + " (" + self.house + ")"
         if self.play:
-                s += " P"
+            s += " P"
         if self.omni:
             s += " O"
         if self.action:

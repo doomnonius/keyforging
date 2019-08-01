@@ -2,41 +2,25 @@ import cards.board as board
 import cards.cardsAsClass as x
 # I think it makes more sense to add these to the cardsAsClass file, which means that the only function here is addToBoard
 
-def listdetails(card):
-    """Creates and returns a list of a card's details."""
-    # if action
-    if card.typ == "Action":
-        details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp]
-    # if creature
-    elif card.typ == "Creature":
-        details = [card.title, card.amber, card.house, card.typ, card.power, card.armor, card.damage, card.traits, card.text, card.flavor, card.rarity, card.exp, card.fight, card.ready, card.stun, card.destroyed, card.play, card.action]
-    # if upgrade or artifact
-    else:
-        details = [card.title, card.amber, card.house, card.typ, card.text, card.flavor, card.rarity, card.exp]
-    return details
-
-def addToBoard(card):
-	"""When a player chooses to play a card, add it to board. Once its effect is resolved, remove it from the board (but that part will be in cardsAsClass).
-	"""
-	board.MyBoard += listdetails(card)
-
-
-
-
 # This is a list of functions for all the play effects on cards, including creature, upgrades, action cards
 # Basically any and all cards with "Play:" on them
 
 ## Start House Brobnar
 
-def anger():
+def key001(game):
 	"""Value: 1 amber. Ready and fight with a friendly creature"""
-	# print('Your creatures are: ' + str(board.MyBoard))
-	# choice = input('Choose which one you would like to ready: ')
-	# if choice.ready:
-	# 	choice.ready = True
-	# 	fight.fight(choice)
-	# else:
-	# 	fight.fight(choice)
+	game.activePlayer.printShort(game.activePlayer.board["Creature"], False)
+	while True:
+		try:
+			choice = int(input('Choose a friendly minion: '))
+			break
+		except:
+			pass
+	if not game.activePlayer.board["Creature"][choice].ready and 0 <= choice < len(game.activePlayer.board["Creature"]):
+		game.activePlayer.board["Creature"][choice].ready = True
+		game.fightCard(choice)
+	else:
+		game.fightCard(choice)
 
 
 def barehanded (OppArt, MyArt):

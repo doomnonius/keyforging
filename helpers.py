@@ -200,6 +200,44 @@ class Game():
                 time.sleep(1)
                 self.chooseHouse("activeHouse")
 
+    def fightCard(self, attacker = -1):
+        """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.
+        """
+        # Shows board, then prompts to choose attacker and defender
+        print(self)
+        if len(self.inactivePlayer.board["Creature"]) == 0:
+            print("Your opponent has no creatures for you to attack. Fight canceled.")
+            return
+        while True:
+            if attacker < 0:
+                try:
+                    attacker = int(input("Choose a minion to fight with: "))
+                    # next line basically checks if they've listed a valid option
+                    if self.activePlayer.board["Creature"][attacker].house != self.activeHouse:
+                        print("\nYou can only use cards from the active house.")
+                    str(self.activePlayer.board["Creature"][attacker].type)
+                    break
+                except:
+                    print("Your entry was invalid. Try again.")
+        # self.checkFightStates(attacker) also checks before fight abilities, stuns, and exhaustion
+        if self.checkFightStates(self.activePlayer.board["Creature"][attacker]):
+            while True:
+                try:
+                    defender = int(input("Choose a minion to fight against: "))
+                    str(self.inactivePlayer.board["Creature"][defender].type)
+                    break
+                except:
+                    pass
+        else:
+            print("You cannot fight with that minion.")
+        # Checks card is viable to fight or be fought (taunt)
+        try:
+            print("Trying to fight.")
+            self.activePlayer.board["Creature"][attacker].fightCard(self.inactivePlayer.board["Creature"][defender])
+        except:
+            print("Fight failed.")
+            pass
+
     def playCard(self, chosen, booly = True):
         """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
         """
@@ -211,7 +249,8 @@ class Game():
                 self.checkPlayStates() # self-explanatory?
                 self.activePlayer.amber += self.activePlayer.hand[chosen].amber
                 flank = 1
-                if self.activePlayer.hand[chosen].type == "Creature":
+                cardType = self.activePlayer.hand[chosen].type
+                if self.activePlayer.hand[chosen].type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
                     # print("playCard area 1.3") # test line
                     try:
                         flank = int(input("Choose left flank (0) or right flank (1, default):  "))
@@ -220,18 +259,30 @@ class Game():
                         pass
                 # left flank
                 if self.activePlayer.hand[chosen].type != "Upgrade" and flank == 0:
+                    # save the cardType so I can use it after I've removed the card from the hand
                     # print("playCard area 1.4") # test line
-                    self.activePlayer.board[self.activePlayer.hand[chosen].type].insert(0, self.activePlayer.hand.pop(chosen))
+                    self.activePlayer.board[cardType].insert(0, self.activePlayer.hand.pop(chosen))
+                    # set a variable with the index of the card in board
+                    location = self.activePlayer.board[cardType][0]
                     self.numPlays -= 1
                 # default case: right flank
                 elif self.activePlayer.hand[chosen].type != "Upgrade":
                     # print("playCard area 1.5") # test line
-                    self.activePlayer.board[self.activePlayer.hand[chosen].type].append(self.activePlayer.hand.pop(chosen))
+                    print(cardType)
+                    self.activePlayer.board[cardType].append(self.activePlayer.hand.pop(chosen))
+                    # set a variable with the index of the card in board
+                    location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType])]
                     self.numPlays -= 1
                     print([x.title for x in self.activePlayer.board["Action"]])
                 else:
                     # print("playCard area 1.6") # test line
                     self.upgrade()
+                #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
+                if location.play:
+                    # find the appropriate play function. how?
+                    funcString = "key" + location.number
+                    playFunc = globals()[funcString]
+                    playFunc(self)
                 self.activePlayer.printShort(self.activePlayer.hand, False)
             else:
                 print("\nYou can only play cards from the active house.")
@@ -264,6 +315,7 @@ class Game():
                     print("playCard area 2.5") # test line
                     self.upgrade()
                 self.activePlayer.printShort(self.activePlayer.hand, False)
+        return
 
 
 
@@ -371,36 +423,38 @@ class Game():
             elif distance(choice, "OppHand") <= 1:
                 print("Your opponent's hand has " + str(len(self.inactivePlayer.hand)) + " cards.")
             elif distance(choice, "Fight") <= 1:
-                # Shows board, then prompts to choose attacker and defender
-                print(self)
-                while True:
-                    try:
-                        attacker = int(input("Choose a minion to fight with: "))
-                        # next line basically checks if they've listed a valid option
-                        if self.activePlayer.board["Creature"][attacker].house != self.activeHouse:
-                            print("\nYou can only use cards from the active house.")
-                        str(self.activePlayer.board["Creature"][attacker].type)
-                        break
-                    except:
-                        print("Your entry was invalid. Try again.")
-                # self.checkFightStates(attacker) also checks before fight abilities, stuns, and exhaustion
-                if self.checkFightStates(self.activePlayer.board["Creature"][attacker]):
-                    while True:
-                        try:
-                            defender = int(input("Choose a minion to fight against: "))
-                            str(self.inactivePlayer.board["Creature"][defender].type)
-                            break
-                        except:
-                            pass
-                else:
-                    print("You cannot fight with that minion.")
-                # Checks card is viable to fight or be fought (taunt)
-                try:
-                    print("Trying to fight.")
-                    self.activePlayer.board["Creature"][attacker].fightCard(self.inactivePlayer.board["Creature"][defender])
-                except:
-                    print("Fight failed.")
-                    pass
+                # hands off the info to the "Fight" function
+                self.fightCard()
+                # # Shows board, then prompts to choose attacker and defender
+                # print(self)
+                # while True:
+                #     try:
+                #         attacker = int(input("Choose a minion to fight with: "))
+                #         # next line basically checks if they've listed a valid option
+                #         if self.activePlayer.board["Creature"][attacker].house != self.activeHouse:
+                #             print("\nYou can only use cards from the active house.")
+                #         str(self.activePlayer.board["Creature"][attacker].type)
+                #         break
+                #     except:
+                #         print("Your entry was invalid. Try again.")
+                # # self.checkFightStates(attacker) also checks before fight abilities, stuns, and exhaustion
+                # if self.checkFightStates(self.activePlayer.board["Creature"][attacker]):
+                #     while True:
+                #         try:
+                #             defender = int(input("Choose a minion to fight against: "))
+                #             str(self.inactivePlayer.board["Creature"][defender].type)
+                #             break
+                #         except:
+                #             pass
+                # else:
+                #     print("You cannot fight with that minion.")
+                # # Checks card is viable to fight or be fought (taunt)
+                # try:
+                #     print("Trying to fight.")
+                #     self.activePlayer.board["Creature"][attacker].fightCard(self.inactivePlayer.board["Creature"][defender])
+                # except:
+                #     print("Fight failed.")
+                #     pass
             elif distance(choice, "Discard") <= 1:
                 if self.numPlays == 0:
                     break
@@ -449,7 +503,7 @@ class Game():
                     except:
                         pass
             elif distance(choice, "EndTurn") <= 1:
-                print("Ending Turn!")
+                print("\nEnding Turn!")
                 return
             elif distance(choice, "Concede") <= 1:
                 self.inactivePlayer.keys = 3
