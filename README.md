@@ -19,3 +19,16 @@ Current Goals:
    - <s>Draw Cards</s> - <b>Done</b>
 - Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.
 - Rewrite the base code to reflect the implementation of the cards
+
+
+Card notes: Cards I've implemented, w/ notes on implementation
+
+Play:
+1: Anger - tested
+2: Barehanded - needs retested after creating pending()
+3: Blood Money
+4: Brothers in Battle - made changes to Game.chooseHouse() for this
+5: Burn the Stockpile
+6: Champion's Challenge
+7: Cowards End
+8: Follow the Leader - also uses Game.chooseHouse()
