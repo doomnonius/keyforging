@@ -28,6 +28,7 @@ class Game():
         self.inactivePlayer = deck.Deck(deck.deckName(second - 1))
         self.endBool = True
         self.creaturesPlayed = 0
+        self.extraFightHouses = []
 
     def __repr__(self):
         s = ''
@@ -179,20 +180,34 @@ class Game():
         print("About to return True") # test line
         return True
 
-    def chooseHouse(self, varAsStr):
-        """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak.
+    def chooseHouse(self, varAsStr, num = 1):
+        """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak. Num is used for cards that allow extra houses to fight or be used.
         """
         if varAsStr == "activeHouse":
-            print("Your hand is: ")
+            print("\nYour hand is:\n")
             self.activePlayer.printShort(self.activePlayer.hand)
-            choice = input("Choose a house. Your deck's houses are " + self.activePlayer.houses[0] + ", " + self.activePlayer.houses[1] + ", " + self.activePlayer.houses[2] + ".\n>>>").title()
-            if choice in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-                self.activeHouse.append(choice.title())
-                return
-            else:
-                print("\nThat's not a valid choice!\n")
-                time.sleep(1)
-                self.chooseHouse("activeHouse")
+            while True:
+                choice = input("Choose a house. Your deck's houses are " + self.activePlayer.houses[0] + ", " + self.activePlayer.houses[1] + ", " + self.activePlayer.houses[2] + ".\n>>>").title()
+                if choice in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+                    self.activeHouse.append(choice.title())
+                    return
+                else:
+                    print("\nThat's not a valid choice!\n")
+                    time.sleep(1)
+                    break
+        elif varAsStr == "extraFight": #for brothers in battle, and probably others
+            print("\nYour board:\n")
+            self.activePlayer.printShort(self.activePlayer.board["Creature"], False)
+            if num == 1:
+                while True:
+                    extra = input("Choose another house to fight with:\n>>>").title()
+                    if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"] and extra != self.activeHouse:
+                        self.extraFightHouses.append(extra)
+                        break
+                    elif extra == self.activeHouse:
+                        print("\nThat's already your active house. Try again.\n")
+                    else:
+                        print("\nNot a valid input.\n")
 
     def fightCard(self, attacker = 100):
         """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.
@@ -203,12 +218,18 @@ class Game():
             print("Your opponent has no creatures for you to attack. Fight canceled.")
             return
         while True:
-            if attacker > 36:
+            if attacker > 28:
                 try:
                     attacker = int(input("Choose a minion to fight with: "))
                     # next line basically checks if they've listed a valid option
                     if self.activePlayer.board["Creature"][attacker].house not in self.activeHouse:
-                        print("\nYou can only use cards from the active house.")
+                        if len(self.extraFightHouses) > 0:
+                            if self.activePlayer.board["Creature"][attacker].house not in self.extraFightHouses:
+                                print("\nYou can only use cards from the active house or extra declared houses.")
+                                return
+                        else:
+                            print("\nYou can only use cards from the active house.")
+                            return
                     # next line will fail if answer is OOB
                     str(self.activePlayer.board["Creature"][attacker].type)
                     break
@@ -216,7 +237,7 @@ class Game():
                     print("Your entry was invalid. Try again.")
             else:
                 break
-        # self.checkFightStates(attacker) also checks before fight abilities, stuns, and exhaustion
+        # self.checkFightStates(attacker) also checks before fight abilities, stuns, and exhaustion/ready
         if self.checkFightStates(self.activePlayer.board["Creature"][attacker]):
             while True:
                 try:
@@ -241,16 +262,16 @@ class Game():
         """
         print(self.numPlays)
         if booly and self.numPlays > 0:
-            print("playCard area 1") # test line
+            # print("playCard area 1") # test line
             if self.activePlayer.hand[chosen].house in self.activeHouse and chosen < len(self.activePlayer.hand):
-                print("playCard area 1.1") # test line
+                # print("playCard area 1.1") # test line
                 # Increases amber, adds the card to the action section of the board, then calls the card's play function
                 self.checkPlayStates() # self-explanatory?
                 self.activePlayer.amber += self.activePlayer.hand[chosen].amber
                 flank = 1
                 cardType = self.activePlayer.hand[chosen].type
                 if self.activePlayer.hand[chosen].type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
-                    print("playCard area 1.3") # test line
+                    # print("playCard area 1.3") # test line
                     try:
                         flank = int(input("Choose left flank (0) or right flank (1, default):  "))
                         self.creaturesPlayed += 1
@@ -259,7 +280,7 @@ class Game():
                 # left flank
                 if self.activePlayer.hand[chosen].type != "Upgrade" and flank == 0:
                     # save the cardType so I can use it after I've removed the card from the hand
-                    print("playCard area 1.4") # test line
+                    # print("playCard area 1.4") # test line
                     self.activePlayer.board[cardType].insert(0, self.activePlayer.hand.pop(chosen))
                     # set a variable with the index of the card in board
                     location = self.activePlayer.board[cardType][0]
@@ -267,7 +288,7 @@ class Game():
                     print(self.numPlays)
                 # default case: right flank
                 elif self.activePlayer.hand[chosen].type != "Upgrade":
-                    print("playCard area 1.5") # test line
+                    # print("playCard area 1.5") # test line
                     print(cardType)
                     self.activePlayer.board[cardType].append(self.activePlayer.hand.pop(chosen))
                     # set a variable with the index of the card in board
@@ -406,7 +427,7 @@ class Game():
             elif distance(choice, "Hand") <= 1:
                 game.activePlayer.printShort(self.activePlayer.hand)
             elif distance(choice, "House") <= 1:
-                print(self.activeHouse)
+                [print(x) for x in self.activeHouse]
             elif distance(choice, "Board") <= 1:
                 print(self)
             elif distance(choice, "MyDiscard") <= 1:
@@ -455,7 +476,7 @@ class Game():
                     except:
                         pass
                 if disc:
-                    if self.activePlayer.hand[disc].house == self.activeHouse[0]:
+                    if self.activePlayer.hand[disc].house in self.activeHouse:
                         self.activePlayer.discard.append(self.activePlayer.hand.pop(disc))
                         self.numPlays -= 1
             elif distance(choice, "Action") <= 1:
@@ -469,7 +490,7 @@ class Game():
                         if len(actList) > 0:
                             act = int(input("Choose an artifact or minion to use: "))
                         # Checks card is viable to use
-                        if actList[act].ready and actList[act].ready and actList[act].house == self.activeHouse[0]:
+                        if actList[act].ready and actList[act].ready and actList[act].house in self.activeHouse:
                             # Trigger action
                             print("Doing this thing's action.")
                             break
@@ -485,7 +506,7 @@ class Game():
                 while True:
                     try:
                         act = int(input("Choose an artifact or minion to use: "))
-                        if actList[act].ready and actList[act].ready and actList[act].house == self.activeHouse[0]:
+                        if actList[act].ready and actList[act].ready and actList[act].house in self.activeHouse:
                             # Trigger reap
                             print("Doing this thing's reap.")
                             break
