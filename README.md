@@ -24,11 +24,11 @@ Current Goals:
 Card notes: Cards I've implemented, w/ notes on implementation
 
 Play:
-1: Anger - tested
-2: Barehanded - needs retested after creating pending()
-3: Blood Money
-4: Brothers in Battle - made changes to Game.chooseHouse() for this
-5: Burn the Stockpile
-6: Champion's Challenge
-7: Cowards End
-8: Follow the Leader - also uses Game.chooseHouse()
+- 1: Anger - tested
+- 2: Barehanded - needs retested after creating pending()
+- 3: Blood Money
+- 4: Brothers in Battle - made changes to Game.chooseHouse() for this
+- 5: Burn the Stockpile
+- 6: Champion's Challenge
+- 7: Cowards End
+- 8: Follow the Leader - also uses Game.chooseHouse()
