@@ -1,6 +1,6 @@
-import cards.board as board
 import time
 import random
+from functools import reduce
 # I think it makes more sense to add these to the cardsAsClass file, which means that the only function here is addToBoard
 
 # This is a list of functions for all the play effects on cards, including creature, upgrades, action cards
@@ -9,9 +9,7 @@ import random
 def backwardsList(input_L, actionstring, compstring, result_L = []):
 	""" A list comprehension that goes through a list backwards. Action is a string which goes before the "for", compstring after the "if".
 	"""
-	action = eval(actionstring)
-	condition = eval(compstring)
-	[action for x in range(len(input_L)) if condition]
+	[eval(actionstring) for x in range(len(input_L)) if eval(compstring)]
 	# not sure if this needs a return
 
 def makeChoice(stringy, L = []):
@@ -30,7 +28,7 @@ def makeChoice(stringy, L = []):
 			pass
 
 def passFunc(game, card):
-	pass
+	return
 
 def pending(game, L, destination):
 	""" A function that deals with pending piles of cards.
@@ -480,8 +478,9 @@ def key030(game, card):
 	"""
 	victim = game.inactivePlayer.amber
 	if victim > 0: 
-		print("Your opponent had " + str(victim) + " amber. They now have " + str(victim -1) + " amber.")
-		victim -= 1
+		print("Your opponent had " + str(victim) + " amber.")
+		game.inactivePlayer.amber -= 1
+		print("They now have " + str(game.inactivePlayer.amber) + " amber.")
 		return
 	print("Your opponent had no amber to lose.")
 
@@ -540,7 +539,7 @@ def key040(game, card):
 	victim = game.inactivePlayer.amber
 	if victim >= 7:
 		print("Your opponent had " + str(victim) + " amber. They now have " + str(victim - 2) + " amber.")
-		victim -= 2
+		game.inactivePlayer.amber -= 2
 		return
 	print("Your opponent only had " + str(victim) + " amber. They don't lose anything.")
 
@@ -892,7 +891,83 @@ def key069(game, card):
 def key070(game, card):
 	""" Red-Hot Armor: Each enemy creature with armor loses all of its armor until the end of the turn and is dealt 1 for each point of armor it lost this way.
 	"""
-	
+	inactive = game.inactivePlayer.board["Creature"]
+	pendingDiscard = []
+	armorList = [inactive[abs(x - len(inactive) + 1)].armor for x in range(len(inactive))]
+	[(inactive[abs(x - len(inactive) + 1)].armor.__sub__(armorList[x]), inactive[abs(x - len(inactive) + 1)].damageCalc(armorList[x])) for x in range(len(inactive)) if armorList[x] > 0]
+	backwardsList(inactive, "result_L", "input_L[abs(x- len(input_L) + 1)].update()", pendingDiscard)
+	pending(game, pendingDiscard, game.inactivePlayer.discard)
+
+def key071(game, card):
+	""" Three Fates: Destroy the three most powerful creatures.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pendingDiscardA = []
+	pendingDiscardI = []
+	# check # of creatures
+	if len(active) + len(inactive) <= 3:
+		# active
+		pendingDiscardA.extend(active)
+		game.activePlayer.board["Creature"] = []
+		pending(game, pendingDiscardA, game.activePlayer.discard)
+		# discard
+		pendingDiscardI.extend(inactive)
+		game.inactivePlayer.board["Creature"] = []
+		pending(game, pendingDiscardI, game.inactivePlayer.discard)
+		return
+	# find highest power on board
+	left = 3
+	while left > 0:
+		high = max([x.power for x in active] + [x.power for x in inactive])
+		highList = []
+		[highList.append(x) for x in active if x.power == high]
+		[highList.append(x) for x in inactive if x.power == high]
+		count = len(highList)
+		if count == left: # add all to relevant discards and done
+			backwardsList(active, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L))].power == " + str(high), pendingDiscardA)
+			pending(game, pendingDiscardA, game.activePlayer.discard)
+			backwardsList(inactive, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L))].power == " + str(high), pendingDiscardI)
+			pending(game, pendingDiscardI, game.inactivePlayer.discard)
+			return
+		elif count < left: # add all to relevant discards and continue
+			backwardsList(active, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L))].power == " + str(high), pendingDiscardA)
+			backwardsList(inactive, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L))].power == " + str(high), pendingDiscardI)
+			left -= count
+		else: #if count > left, choose which card to discard
+			print("Your minions at specified power: ")
+			[print(highList.index(x) + ": " + str(x)) for x in highList if x.deck == game.activePlayer.name]
+			print("Opponent minions at specified power: ")
+			[print(highList.index(x) + ": " + str(x)) for x in highList if x.deck == game.inactivePlayer.name]
+			choice = makeChoice("Choose which minion to destroy: ", highList)
+			# active
+			if highList[choice].deck == game.activePlayer.name:
+				pendingDiscardA.append(active.pop(active.index(highList[choice])))
+			# inactive
+			else:
+				pendingDiscardI.append(inactive.pop(active.index(highList[choice])))
+			left -= 1
+	pending(game, pendingDiscardA, game.activePlayer.discard)
+	pending(game, pendingDiscardI, game.inactivePlayer.discard)
+
+def key081(game, card):
+	""" Charette: Capture 3 amber.
+	"""
+	card.capture(game, 3)
+
+def key082(game, card):
+	""" Drumble: if your opponent has 7 amber or more, capture all of it.
+	"""
+	if game.inactivePlayer.amber >= 7:
+		card.capture(game, game.inactivePlayer.amber)
+
+def key088(game, card):
+	""" Guardian Demon: Heal up to 2 damage from a creature. Deal that amount of damage to another creature
+	"""
+	# easy case: no damage
+	if reduce(lambda x, y: x + y, [x.damage for x in game.activePlayer.board["Creature"]] + [x.damage for x in game.inactivePlayer.board["Creature"]]) == 0:
+		return
+
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

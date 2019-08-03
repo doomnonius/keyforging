@@ -98,7 +98,7 @@ class Card():
             except:
                 self.play = play.passFunc
         else:
-            self.play = play.passFunc("Throwaway")
+            self.play = play.passFunc("Throwaway", "Throwaway")
         if "Action:" in self.text:
             self.action = True
         else:
@@ -229,7 +229,7 @@ class Card():
             print("This card wasn't in either deck.")
 
     def update(self):
-        if self.health <= 0:
+        if self.health() <= 0:
             # print(self.title + " is dead.")
             return True
         return False

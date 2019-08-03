@@ -250,7 +250,6 @@ class Game():
         else:
           print("\nThat's not a valid choice!\n")
           time.sleep(1)
-          break
     elif varAsStr == "extraFight": #for brothers in battle, and probably others
       print("\nYour board:\n")
       self.activePlayer.printShort(self.activePlayer.board["Creature"], False)
@@ -521,12 +520,14 @@ class Game():
             side = play.chooseSide(self)
             if side == 0:
               self.activePlayer.printShort(self.activePlayer.board["Creature"])
-              target = makeChoice("Choose a creature to target: ", self.activePlayer.board["Creature"])self.activePlayer.board["Creature"][target].damageCalc(4)
+              target = makeChoice("Choose a creature to target: ", self.activePlayer.board["Creature"])
+              self.activePlayer.board["Creature"][target].damageCalc(4)
               if self.activePlayer.board["Creature"][target].update():
                 self.activePlayer.discard.append(self.activePlayer.board["Creature"].pop(target))
             else:
               self.activePlayer.printShort(self.inactivePlayer.board["Creature"])
-              target = makeChoice("Choose a creature to target: ", self.inactivePlayer.board["Creature"])self.inactivePlayer.board["Creature"][target].damageCalc(4)
+              target = makeChoice("Choose a creature to target: ", self.inactivePlayer.board["Creature"])
+              self.inactivePlayer.board["Creature"][target].damageCalc(4)
               if self.inactivePlayer.board["Creature"][target].update():
                 self.inactivePlayer.discard.append(self.inactivePlayer.board["Creature"].pop(target))
           if turn == 1:
