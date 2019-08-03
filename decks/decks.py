@@ -91,6 +91,7 @@ class Deck:
         while full != '':
             try:
                 print(repr(listt[int(full)]))
+                print(str(listt[int(full)]))
             except:
                 print("Error: input was not a number.")
             if booly:

@@ -90,17 +90,15 @@ class Card():
         if self.type == "Artifact":
             self.captured = False
             self.ready = False
-        # these will refer to dictionaries of functions
-        # maybe dest.basic will return the right function
-        # we're going to need to first create the deck with all these as false, and then go through the deck and change it for each item. It's a bit crazy.
-        destList = dir(dest)
-        for x in destList:
-            if str(x)[0:3] == "key" and str(x)[3:6] == self.number:
-                self.destroyed = destList.index(x)
         if "Play:" in self.text or "Play/" in self.text:
-            self.play = True
+            print("This card has an on play effect.") # test line
+            # find the appropriate play function. how?
+            try:
+                self.play = eval("play.key" + self.number)
+            except:
+                self.play = play.passFunc
         else:
-            self.play = False
+            self.play = play.passFunc("Throwaway")
         if "Action:" in self.text:
             self.action = True
         else:
@@ -173,29 +171,34 @@ class Card():
                 s += ", Stunned"
         return s
 
+    def damageCalc(self, num):
+        """ Calculates damage, considering armor only.
+        """
+        if num >= self.armor:
+            self.damage += (num - self.armor)
+            self.armor = 0
+        else:
+            self.armor -= num
+    
     def fightCard(self, other):
         print(self.title + " is fighting " + other.title + "!")
         # add hazardous and assault in here too
         if self.skirmish:
             print("The attacker has skirmish, and takes no damage.") # Test line
-            self.damage += 0
+            self.damageCalc(0)
         elif other.elusive:
             # print("skir elif") # Test line
-            self.damage += 0
+            self.damageCalc(0)
         else:
             # print("skir else") # Test line
-            self.damage += (other.power - self.armor)
-            self.armor -= other.power
-            if self.armor < 0: self.armor = 0
+            self.damageCalc(other.power)
         if other.elusive:
             print("The defender has elusive, so no damage is dealt.")
-            other.damage += 0 #other.power - self.armor
+            other.damageCalc(0) #other.power - self.armor
             other.elusive = False
         else:
             # print("elu else") # test line
-            other.damage += (self.power - other.armor)
-            other.armor -= self.power
-            if other.armor < 0: other.armor = 0
+            other.damageCalc(self.power)
         self.ready = False
         print(self)
         print(other)
@@ -204,10 +207,11 @@ class Card():
     def health(self):
         return self.power - self.damage
 
-    def update(self, game):
-        if self.damage >= self.power:
-            print(self.title + " is dead.")
-        #     self.destroyed(game)
+    def update(self):
+        if self.health <= 0:
+            # print(self.title + " is dead.")
+            return True
+        return False
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

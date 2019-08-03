@@ -1,9 +1,11 @@
-activeBoard = [20, 53, "Cheese", 234, "Money"]
-pendingDiscard = []
+discard = []
+deck = []
+hand = []
 
-for x in range(len(activeBoard)):
-	# so that i can work from right to left
-	x = abs(x - len(activeBoard) + 1)
-	pendingDiscard.append(activeBoard[x])
-
-print(pendingDiscard)
+if len(deck) > 0 and (deck[-1].house != "Brobnar" or deck[-1].type != "Creature"):
+	discard.append(deck.pop())
+	print(repr(deck[-1]))
+elif len(deck) == 0:
+	print("Your deck is empty, and you found no Brobnar creatures.")
+else: # House is brobnar and type is creature if we get here
+	hand.append(deck.pop())

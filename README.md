@@ -23,12 +23,40 @@ Current Goals:
 
 Card notes: Cards I've implemented, w/ notes on implementation
 
+Randoms (one-offs that get their own special checks):
+- 44: Rock-Hurling Giant - has a fake(?) error
+
 Play:
 - 1: Anger - tested
-- 2: Barehanded - needs retested after creating pending()
+- 2: Barehanded - needs retested after creating cards.pending()
 - 3: Blood Money
 - 4: Brothers in Battle - made changes to Game.chooseHouse() for this
 - 5: Burn the Stockpile
-- 6: Champion's Challenge
+- 6: Champion's Challenge - possily janky stuff here
 - 7: Cowards End
 - 8: Follow the Leader - also uses Game.chooseHouse()
+- 9: Lava Ball - uses Card.damageCalc()
+- 10: <u>Loot the Bodies</u> - skipped for now
+- 11: Take that, Smartypants - uses cards.stealAmber()
+- 12: Punch - also uses Card.damageCalc()
+- 13: Relentles Assault - pretty janky b/c I have to make sure they don't target the same minion more than once
+- 14: Smith - easy
+- 15: Sound the Horns
+- 16: Tremor
+- 17: Unguarded Camp
+- 18: Warsong - doesn't account for multiple copies
+- 30: Bumpsy - easy
+- 31: Earthshaker
+- 33: Ganger Chieftain
+- 36: Hebe the Huge
+- 40: Lomir Flamefist
+- 46: Smaaash
+- 49: Wardrummer - not sure won't return self to hand
+- 52: Yo Mama Mastery - only handles the healing part
+- 53: A Fair Game
+- 54: Arise
+- 55: Control the Weak - will need an EOT state reset
+- 56: Creeping Oblivion
+- 57: Dance of Doom
+- 58: 
+
