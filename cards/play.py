@@ -29,7 +29,7 @@ def makeChoice(stringy, L = []):
 		except:
 			pass
 
-def passFunc(game):
+def passFunc(game, card):
 	pass
 
 def pending(game, L, destination):
@@ -882,6 +882,17 @@ def key069(game, card):
 	inactive = game.inactivePlayer.board["Artifact"]
 	# don't need pendingDestroyed for artifacts
 	choice, side = chooseSide(game, "Artifact")
+	if side == 0: # friendly side
+		# active[choice].action(game, card)
+		game.activePlayer.discard.append(active.pop(choice))
+		return
+	# inactive[choice].action(game, card)
+	game.inactivePlayer.discard.append(inactive.pop(choice))
+
+def key070(game, card):
+	""" Red-Hot Armor: Each enemy creature with armor loses all of its armor until the end of the turn and is dealt 1 for each point of armor it lost this way.
+	"""
+	
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

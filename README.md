@@ -69,6 +69,6 @@ Play:
 - 66: Key Hammer
 - 67: Mind Barb
 - 68: Pandemonium - created self.capture(game, num) function in Card
-- 69: Poltergeist - modified choose side to work for artifacts too
+- 69: Poltergeist - modified chooseSide() to work for artifacts too
 - 
 
