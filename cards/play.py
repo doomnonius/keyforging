@@ -966,7 +966,9 @@ def key088(game, card):
 	"""
 	# easy case: no damage
 	if reduce(lambda x, y: x + y, [x.damage for x in game.activePlayer.board["Creature"]] + [x.damage for x in game.inactivePlayer.board["Creature"]]) == 0:
+		print("There are no damaged minions, so the play effect doesn't happen. The card is still played.")
 		return
+	
 
 
 if __name__ == '__main__':
