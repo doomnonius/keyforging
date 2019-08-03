@@ -107,6 +107,7 @@ class Card():
             self.omni = True
         else:
             self.omni = False
+        self.resetValues = {}
         
 
     def __repr__(self):
@@ -206,6 +207,26 @@ class Card():
 
     def health(self):
         return self.power - self.damage
+
+    def capture(self, game, num):
+        active = game.activePlayer.amber
+        inactive = game.inactivePlayer.amber
+        if self.deck == game.activePlayer.name:
+            if inactive > num:
+                self.captured += num
+                inactive -=  num
+                return
+            self.captured += inactive
+            inactive = 0
+        elif self.deck == game.inactivePlayer.name:
+            if active > num:
+                self.captured += num
+                active -= num
+                return
+            self.captured += active
+            active = 0
+        else:
+            print("This card wasn't in either deck.")
 
     def update(self):
         if self.health <= 0:

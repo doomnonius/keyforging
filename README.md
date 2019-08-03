@@ -58,5 +58,17 @@ Play:
 - 55: Control the Weak - will need an EOT state reset
 - 56: Creeping Oblivion
 - 57: Dance of Doom
-- 58: 
+- 58: Fear - need to implemenet a reset function to reset cards to default state when leave board
+- 59: Gateway to Dis - foreseen difficulties: Armageddon Cloak
+- 60: Gongoozle
+- 61: Guilty Hearts
+- 62: Hand of Dis
+- 63: Hecatomb
+- 64: Tendrils of Pain - added a self.forgedLastTurn value to game
+- 65: Hysteria
+- 66: Key Hammer
+- 67: Mind Barb
+- 68: Pandemonium - created self.capture(game, num) function in Card
+- 69: Poltergeist - modified choose side to work for artifacts too
+- 
 

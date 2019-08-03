@@ -59,6 +59,7 @@ class Game():
     self.endBool = True
     self.creaturesPlayed = 0
     self.extraFightHouses = []
+    self.forgedLastTurn = False, 0
 
   def __repr__(self):
     s = ''
@@ -134,6 +135,7 @@ class Game():
             self.activePlayer.amber -= self.activePlayer.keyCost
             self.activePlayer.keys += 1
             print("You forged a key for", self.activePlayer.keyCost, "amber. You now have", self.activePlayer.keys, "key(s) and", self.activePlayer.amber, "amber.\n") # it works!
+            forgedThisTurn = True, num
         else:
           print("Forging skipped this turn!")
         if self.activePlayer.keys >= 3:
@@ -151,7 +153,7 @@ class Game():
         self.responses(num)
       else:
         self.responses(num)
-      # step 4: ready cards and reset armor
+      # step 4: ready cards and reset things like armor
       # here b/c short
       for creature in self.activePlayer.board["Creature"]:
         creature.ready = True
@@ -160,6 +162,10 @@ class Game():
           creature.elusive = True
       for artifact in self.activePlayer.board["Artifact"]:
         artifact.ready = True
+      try:
+        self.forgedLastTurn = forgedThisTurn
+      except:
+        self.forgedLastTurn = False, num
       # step 5.1: draw cards
       self.activePlayer.drawEOT()
       # print("Checking draw:", self.activePlayer.handSize == len(self.activePlayer.hand)) # test line
