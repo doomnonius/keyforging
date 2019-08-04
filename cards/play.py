@@ -82,6 +82,7 @@ def stealAmber(thief, victim, num):
 	if victim.amber >= num:
 		victim.amber -= num
 		thief.amber += num
+		print(thief.name + " stole " + str(num) + " amber from " + victim.name + ".")
 	else:
 		thief.amber += victim.amber
 		if victim.amber == 0:
@@ -1006,10 +1007,27 @@ def key088(game, card):
 		pending(game, pendingDisc, game.inactivePlayer.discard)
 
 def key094(game, card):
+	""" Restringuntus: Choose a house. Your opponent cannot choose that house as their active house until Restringuntus leaves play.
+	"""
+	game.chooseHouse(card.title)
+
+def key096(game, card):
+	""" Shooler: if your opponent has 4 or more amber, steal 1.
+	"""
+	if game.inactivePlayer.amber >= 4:
+		stealAmber(game.activePlayer, game.inactivePlayer, 1)
 	
+def key101(game, card):
+	""" The Terror: If your opponent has no amber, gain 2.
+	"""
+	if game.inactivePlayer.amber == 0:
+		game.activePlayer.amber += 2
 
-		
-
+def key107(game, card):
+	""" Bouncing Deathquark: Destroy and enemy creature and a friendly creature. Repeat effect as many times as you want, as long as you can repeat entire effect.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
 	
 
 

@@ -245,7 +245,10 @@ class Game():
       while True:
         choice = input("Choose a house. Your deck's houses are " + self.activePlayer.houses[0] + ", " + self.activePlayer.houses[1] + ", " + self.activePlayer.houses[2] + ".\n>>>").title()
         if choice in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-          self.activeHouse.append(choice.title())
+          if "Restringuntus" in [x.title for x in game.inactivePlayer.board["Creature"]]:
+            self.activeHouse = self.activePlayer.restring
+          else:
+            self.activeHouse = choice
           return
         else:
           print("\nThat's not a valid choice!\n")
@@ -263,6 +266,14 @@ class Game():
             print("\nThat's already your active house. Try again.\n")
           else:
             print("\nNot a valid input.\n")
+    elif varAsStr == "Restringuntus":
+      while True:
+        extra = input("Choose another house to fight with:\n>>>").title()
+        if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+          self.inactivePlayer.restring = extra
+          break
+        else:
+          print("\nNot a valid input.\n")
 
   def fightCard(self, attacker = 100):
     """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.

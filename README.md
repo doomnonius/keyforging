@@ -76,4 +76,7 @@
 - 81: Charette - one line
 - 82: Drumble - two lines
 - 88: Guardian Demon
-- 94: 
+- 94: Restringuntus: added to game.chooseHouse
+- 96: Shooler
+- 101: The Terror
+- 107: 
