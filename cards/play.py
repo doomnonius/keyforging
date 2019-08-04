@@ -964,10 +964,52 @@ def key082(game, card):
 def key088(game, card):
 	""" Guardian Demon: Heal up to 2 damage from a creature. Deal that amount of damage to another creature
 	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pendingDisc = []
 	# easy case: no damage
 	if reduce(lambda x, y: x + y, [x.damage for x in game.activePlayer.board["Creature"]] + [x.damage for x in game.inactivePlayer.board["Creature"]]) == 0:
-		print("There are no damaged minions, so the play effect doesn't happen. The card is still played.")
+		print("There are no damaged creatures, so the play effect doesn't happen. The card is still played.")
 		return
+	print("Choose a target to heal: \n")
+	choice, side = chooseSide(game)
+	heal = makeChoice("How much damage would you like to heal?", [0, 1, 2])
+	if heal == 0:
+		return
+	if side == 0: # friendly
+		if 0 < active[choice].damage < heal: # aka heal == 2
+			print(active[choice].title + " only has 1 damage, so you only heal one damage.")
+			heal = 1
+			active[choice].damage -= heal
+		elif active[choice].damage >= heal: # aka heal == 2
+			print(active[choice].title + " now has only " + str(active[choice].damage - heal) + " damage.\n")
+			active[choice].damage -= heal
+	if side == 1: #enemy
+		if 0 < inactive[choice].damage < heal: # aka heal == 2
+			print(inactive[choice].title + " only has 1 damage, so you only heal 1 damage.")
+			heal = 1
+			inactive[choice].damage -= heal
+		elif inactive[choice].damage >= heal: # aka heal == 2
+			print(inactive[choice].title + " now has only " + str(inactive[choice].damage - heal) + " damage.\n")
+			inactive[choice].damage -= heal
+	print("Now, choose which creature to transfer the damage to: ")
+	choice, side = chooseSide(game)
+	if side == 0: # friendly
+		active[choice].damageCalc(heal)
+		if active[choice].update():
+			pendingDisc.append(active[choice])
+		pending(game, pendingDisc, game.activePlayer.discard)
+	if side == 1: #enemy
+		inactive[choice].damageCalc(heal)
+		if inactive[choice].update():
+			pendingDisc.append(inactive[choice])
+		pending(game, pendingDisc, game.inactivePlayer.discard)
+
+def key094(game, card):
+	
+
+		
+
 	
 
 

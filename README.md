@@ -1,6 +1,7 @@
-#This is a very complicated project
-##This project will attempt to create a text based version of keyforge. If things go real well, I may attempt online play, a simple ai, and a graphical version, but I've got a lot of work ahead of me.
-###Current Goals:
+<h1>This is a very complicated project</h1>
+
+<h2>This project will attempt to create a text based version of keyforge. If things go real well, I may attempt online play, a simple ai, and a graphical version, but I've got a lot of work ahead of me.<h2>
+<h3>Current Goals:</h3>
  - <s>Be able to import and save decks</s> - <b>Done</b>
  - <s>Create initial game setup:</s>
    - <s>Choosing which decks to play</s> - <b>Done</b>
@@ -21,12 +22,12 @@
 - Rewrite the base code to reflect the implementation of the cards
 
 
-##Card notes: (Cards I've implemented, w/ notes on implementation)
+<h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>
 
-###Randoms (one-offs that get their own special checks):
+<h3>Randoms (one-offs that get their own special checks):</h3>
 - 44: Rock-Hurling Giant - has a fake(?) error
 
-###Play:
+<h3>Play:</h3>
 - 1: Anger - tested
 - 2: Barehanded - needs retested after creating cards.pending() - passed retest
 - 3: Blood Money
@@ -74,4 +75,5 @@
 - 71: Three Fates - this one was surprisingly tough
 - 81: Charette - one line
 - 82: Drumble - two lines
-- 83: 
+- 88: Guardian Demon
+- 94: 
