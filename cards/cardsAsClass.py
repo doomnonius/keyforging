@@ -42,7 +42,7 @@ class Card():
             self.traits = ''
         if len(listOfWords(self.traits)[0]) > 0:
             self.traitList = listOfWords(self.traits)
-            print(self.traitList)
+            # print(self.traitList) # test line
         self.amber = cardInfo['amber']
         self.rarity = cardInfo["rarity"]
         self.flavor = cardInfo["flavor_text"]
@@ -91,11 +91,12 @@ class Card():
             self.captured = False
             self.ready = False
         if "Play:" in self.text or "Play/" in self.text:
-            print("This card has an on play effect.") # test line
+            # print("This card has an on play effect.") # test line
             # find the appropriate play function. how?
             try:
                 self.play = eval("play.key" + self.number)
             except:
+                print("The on play effect wasn't properly applied.")
                 self.play = play.passFunc
         else:
             self.play = play.passFunc("Throwaway", "Throwaway")
@@ -105,6 +106,7 @@ class Card():
             self.action = False
         if "Omni:" in self.text:
             self.omni = True
+            # self.action = self.omni (so that omnis can be triggered by calling action)
         else:
             self.omni = False
         self.resetValues = {}
@@ -214,23 +216,23 @@ class Card():
         if self.deck == game.activePlayer.name:
             if inactive > num:
                 self.captured += num
-                inactive -=  num
+                game.inactivePlayer.amber -=  num
                 return
             self.captured += inactive
-            inactive = 0
+            game.inactivePlayer.amber = 0
         elif self.deck == game.inactivePlayer.name:
             if active > num:
                 self.captured += num
-                active -= num
+                game.activePlayer.amber -= num
                 return
             self.captured += active
-            active = 0
+            game.activePlayer.amber = 0
         else:
             print("This card wasn't in either deck.")
 
     def update(self):
         if self.health() <= 0:
-            # print(self.title + " is dead.")
+            print(self.title + " is dead.")
             return True
         return False
 

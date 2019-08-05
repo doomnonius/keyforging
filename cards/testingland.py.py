@@ -1,6 +1,7 @@
-first = [1, 2, 3, 4, 5, 6, 7, 8]
-second = [9, 10, 11, 12, 13, 14, 15, 16]
-third = []
-fourth = []
-fifth = third
-print(first + second)
+dictionary = {"Happy":True}
+print(dictionary)
+dictionary.update({"Happy":False})
+print(dictionary)
+dictionary["Happy"] = True
+dictionary["Sad"] = False
+print(dictionary)

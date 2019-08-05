@@ -29,8 +29,8 @@ class Deck:
         self.keys = 0
         self.amber = 0
         self.keyCost = 6
-        # whenever a state-creating card is played, it will add its state to this dict (use .update(key=value))
-        self.states = {"Forge": {}, "House": {}, "Play": {}, "Fight": {}, "Buff": {}, "Destroyed":{}, "Reap": {}}
+        # whenever a state-creating card is played, it will add its state to this dict (use .update({key:value}) or [key]=value)
+        self.states = {"Forge": {"Interdimensional Graft":False}, "House": {"Control the Weak":False}, "Play": {"Library Access":False, "Phase Shift":[False], "Scrambler Storm":False}, "Fight": {"Warsong":[False], "Foggify":False}, "Buff": {}, "Destroyed":{"Loot the Bodies":[False]}, "Reap": {"Dimension Door":False}}
         self.pendingDest = []
         
     def __repr__(self):
@@ -75,9 +75,13 @@ class Deck:
     def shuffleDiscard(self):
         """ Deals with an empty deck.
         """
-        random.shuffle(self.discard)
-        self.deck = self.discard
-        self.discard = []
+        if self.deck == []:
+            self.deck = self.discard
+            self.discard = []
+        else:
+            self.deck.extend(self.discard)
+            self.discard = []
+        random.shuffle(self.deck)
 
     def printShort(self, listt, booly = True):
         """ Prints names and houses of cards in specified list (hand, discard, purge, etc.).

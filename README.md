@@ -25,7 +25,7 @@
 <h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>
 
 <h3>Randoms (one-offs that get their own special checks):</h3>
-- 44: Rock-Hurling Giant - has a fake(?) error
+- 44: Rock-Hurling Giant
 
 <h3>Play:</h3>
 - 1: Anger - tested
@@ -47,12 +47,12 @@
 - 17: Unguarded Camp
 - 18: Warsong - doesn't account for multiple copies
 - 30: Bumpsy - tested
-- 31: Earthshaker - <b><s>failed</b></s>
+- 31: Earthshaker - <b><s>failed</b></s> (Probably b/c of backwardsList)
 - 33: Ganger Chieftain
 - 36: Hebe the Huge
 - 40: Lomir Flamefist
 - 46: Smaaash
-- 49: Wardrummer - not sure won't return self to hand - <u><b>failed</u></b>
+- 49: Wardrummer - not sure won't return self to hand - <u><b>failed</u></b> (probably b/c of backwardsList)
 - 52: Yo Mama Mastery - only handles the healing part
 - 53: A Fair Game
 - 54: Arise
@@ -79,4 +79,25 @@
 - 94: Restringuntus: added to game.chooseHouse
 - 96: Shooler
 - 101: The Terror
-- 107: 
+- 107: Bouncing Death Quark
+- 108: Dimension Door - still need to update checkReapState to check for this
+- 109: Effervescent Principle
+- 110: Foggify - still need to update checkFightState
+- 111: Help from Future Self
+- 112: Interdimensional Graft
+- 113: Knowledge is Power
+- 114: Labwork
+- 115: Library Access
+- 116: Neuro Syphon
+- 117: Phase Shift
+- 118: Positron Bolt
+- 119: Random Access Archives
+- 120: Remote Access - waiting on implementation of actions
+- 121: Reverse Time
+- 122: Scrambler Storm
+- 123: Sloppy Labwork
+- 124: Twin Bolt Emission
+- 125: Wild Wormhole
+- 138: Dextre
+- 140: Dr. Escotera
+- 141: Dysania 

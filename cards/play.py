@@ -7,10 +7,9 @@ from functools import reduce
 # Basically any and all cards with "Play:" on them
 
 def backwardsList(input_L, actionstring, compstring, result_L = []):
-	""" A list comprehension that goes through a list backwards. Action is a string which goes before the "for", compstring after the "if".
+	""" [pendingDiscard.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].captured > 0]
 	"""
-	[eval(actionstring) for x in range(len(input_L)) if eval(compstring)]
-	# not sure if this needs a return
+	print("This function is deprecated.")
 
 def makeChoice(stringy, L = []):
 	""" Takes a string explaining the choice and a list, only accepts results within the length of the list, unless the list is empty, then it just returns the number.
@@ -30,10 +29,11 @@ def makeChoice(stringy, L = []):
 def passFunc(game, card):
 	return
 
-def pending(game, L, destination):
+def pending(game, L, destination, fromPlay = True):
 	""" A function that deals with pending piles of cards.
 	Arguments: game should be self-evident, it's needed to be able to modify the game, L is the list being emptied, and destination is the list being appended to.
 	"""
+	# need to update this, but if destination is discard and source is from play then check for annihilation ritual, etc
 	if L == []:
 		return
 	if (destination == game.activePlayer.discard or destination == game.inactivePlayer.discard) and ("Annihilation Ritual" in [x.title for x in game.activePlayer.board["Artifact"]] or "Annihilation Ritual" in [x.title for x in game.inactivePlayer.board["Artifact"]]):
@@ -52,8 +52,8 @@ def pending(game, L, destination):
 	if len(destination) != final:
 		raise ValueError("card.pending did not extend the destination the correct length")
 
-def chooseSide(game, stringy = "Creature"):
-	""" A return of 0 is friendly, 1 is enemy. Strings can make it deal with different lists.
+def chooseSide(game, stringy = "Creature", choices = True):
+	""" A return of 0 is friendly, 1 is enemy. Strings can make it deal with different lists. Choices set to true returns choice, side; set to false returns only side.
 	"""
 	activeBoard = game.activePlayer.board[stringy]
 	inactiveBoard = game.inactivePlayer.board[stringy]
@@ -61,22 +61,29 @@ def chooseSide(game, stringy = "Creature"):
 	side = ''
 	if len(inactiveBoard) == 0 and len(activeBoard) == 0:
 		print("There are no " + stringy.lower() + "s to target. The card is still played.")
+		return side, side
 	elif len(inactiveBoard) == 0:
 		game.activePlayer.printShort(activeBoard, True)
 		side = 0
-		choice = makeChoice("There are no enemy " + stringy.lower() + "s to target, so you must choose a friendly " + stringy.lower() + " to target: ", activeBoard)
+		if choices:
+			choice = makeChoice("There are no enemy " + stringy.lower() + "s to target, so you must choose a friendly " + stringy.lower() + " to target: ", activeBoard)
+			return choice, side
 	else:
 		while side != "Friendly" and side != "Enemy":
 			side = input("Would you like to target an [enemy] " + stringy.lower() + " or a [friendly] " + stringy.lower() + "?").title()
 		if side == "Friendly":
 			game.activePlayer.printShort(activeBoard, True)
 			side = 0
-			choice = makeChoice("Choose a target: ", activeBoard)
+			if choices:
+				choice = makeChoice("Choose a target: ", activeBoard)
+				return choice, side
 		elif side == "Enemy":
 			game.activePlayer.printShort(inactiveBoard, True)
 			side = 1
-			choice = makeChoice("Choose a target: ", inactiveBoard)
-	return choice, side
+			if choices:
+				choice = makeChoice("Choose a target: ", inactiveBoard)
+				return choice, side
+	return side
 
 def stealAmber(thief, victim, num):
 	if victim.amber >= num:
@@ -164,7 +171,7 @@ def key006 (game, card):
 	activeBoard = game.activePlayer.board["Creature"]
 	inactiveBoard = game.inactivePlayer.board["Creature"]
 
-	pendingDiscard = []	
+	pendingDiscard = []	# this one's fine b/c it does actually happen one at a time
 	# inactive board first
 	if len(inactiveBoard) > 1:
 		# find highest power
@@ -238,37 +245,35 @@ def key007 (game, card):
 	"""
 	activeBoard = game.activePlayer.board["Creature"]
 	inactiveBoard = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscardA = []
+	pendingDiscardI = []
 
 	# active player
-	damageList = [x.damage for x in activeBoard if x.damage > 0]
-	# easy case: everything damaged
-	if len(damageList) == len(activeBoard): pendingDiscard = activeBoard
+	undamageList = [x.damage for x in activeBoard if x.damage == 0]
+	# easy case: everything undamaged
+	if len(undamageList) == len(activeBoard): pendingDiscardA = activeBoard
 	else:
-		backwardsList(activeBoard, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[(x - len(input_L) + 1)].damage > 0", pendingDiscard)
-		# [pendingDiscard.append(activeBoard.pop(abs(x - len(activeBoard) + 1))) for x in range(len(activeBoard)) if activeBoard[(x - len(activeBoard) + 1)].damage > 0]
+		[pendingDiscardA.append(activeBoard.pop(abs(x - len(activeBoard) + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - len(activeBoard) + 1)].damage == 0]
 		# for x in range(len(activeBoard)):
 			# so that i can work from right to left
 			# x = abs(x - len(activeBoard) + 1)
 			# if activeBoard[x].damage > 0:
 			# 	pendingDiscard.append(activeBoard.pop(x))
 
-	pending(game, pendingDiscard, game.activePlayer.discard)
-
 	# inactive player
-	damageList = [x.damage for x in inactiveBoard if x.damage > 0]
-	# easy case: everything damaged
-	if len(damageList) == len(inactiveBoard): pendingDiscard = inactiveBoard
+	undamageList = [x.damage for x in inactiveBoard if x.damage == 0]
+	# easy case: everything undamaged
+	if len(undamageList) == len(inactiveBoard): pendingDiscardI = inactiveBoard
 	else:
-		backwardsList(inactiveBoard, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[(x - len(input_L) + 1)].damage > 0", pendingDiscard)
-		# [pendingDiscard.append(inactiveBoard.pop(abs(x - len(inactiveBoard) + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[(x - len(inactiveBoard) + 1)].damage > 0]
+		[pendingDiscardI.append(inactiveBoard.pop(abs(x - len(inactiveBoard) + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - len(inactiveBoard) + 1)].damage == 0]
 		# for x in range(len(inactiveBoard)):
 		# 	# so that i can work from right to left
 		# 	x = abs(x - len(inactiveBoard) + 1)
 		# 	if inactiveBoard[x].damage > 0:
 		# 		pendingDiscard.append(inactiveBoard.pop(x))
-
-	pending(game, pendingDiscard, game.inactivePlayer.discard)
+	
+	pending(game, pendingDiscardA, game.activePlayer.discard)
+	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 	
 	# finally, add chains
 	game.activePlayer.chains += 3
@@ -284,7 +289,7 @@ def key009 (game, card):
 	"""
 	activeBoard = game.activePlayer.board["Creature"]
 	inactiveBoard = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscard = [] # this one's fine because only one side is ever affected
 
 	choice, side = chooseSide(game)
 
@@ -331,7 +336,10 @@ def key009 (game, card):
 def key010(game, card):
 	""" Loot the Bodies: For the remainder of the turn, gain 1 amber each time an enemy creature is destroyed.
 	"""
-	game.activePlayer.states["Destroyed"].update({"Loot the Bodies": True})
+	if not game.activePlayer.states["Destroyed"]["Loot the Bodies"][0]:
+		game.activePlayer.states["Destroyed"].update({"Loot the Bodies": [True]})
+	else: # for handling multiples of a card
+		game.activePlayer.states["Destroyed"]["Loot the Bodies"].append(True)
 	# skipping the rest for now, until event emitters or etc are figured out
 
 def key011 (game, card):
@@ -351,7 +359,7 @@ def key012 (game, card):
 	"""
 	activeBoard = game.activePlayer.board["Creature"]
 	inactiveBoard = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscard = [] # fine b/c only one side ever affected
 
 	choice, side = chooseSide(game)
 	# side == 0, active board
@@ -471,8 +479,11 @@ def key017(game, card):
 def key018(game, card):
 	"""Warsong: For the remainder of the turn, gain 1 amber each time a friendly creature fights.
 	"""
-	game.activePlayer.states["Fight"].update({"Warsong":True})
-	# needs to be able to account for multiple instances of warsong
+	if not game.activePlayer.states["Fight"]["Warsong"][0]:
+		game.activePlayer.states["Fight"].update({"Warsong":[True]})
+	else:
+		game.activePlayer.states["Fight"]["Warsong"].append(True)
+	# should be able to account for multiple instances of warsong
 
 def key030(game, card):
 	"""Bumpsy: Your opponent loses one amber.
@@ -492,14 +503,15 @@ def key031(game, card):
 	"""
 	activeBoard = game.activePlayer.board["Creature"]
 	inactiveBoard = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscardA = []
+	pendingDiscardI = []
 
 	# active board: LC
-	backwardsList(activeBoard, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1].power <= 3", pendingDiscard)
-	pending(game, pendingDiscard, game.activePlayer.discard)
+	[pendingDiscardA.append(activeBoard.pop(abs(x - len(activeBoard) + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - len(activeBoard) + 1)].power <= 3]
+	pending(game, pendingDiscardA, game.activePlayer.discard)
 	# then inactive
-	backwardsList(inactiveBoard, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1].power <= 3", pendingDiscard)
-	pending(game, pendingDiscard, game.inactivePlayer.discard)
+	[pendingDiscardI.append(inactiveBoard.pop(abs(x - len(inactiveBoard) + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - len(inactiveBoard) + 1)].power <= 3]
+	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 
 def key033(game, card):
 	"""Ganger Chieftain: You may ready and fight with a neighboring creature.
@@ -527,12 +539,19 @@ def key036(game, card):
 	"""
 	activeBoard = game.activePlayer.board["Creature"]
 	inactiveBoard = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscardA = []
+	pendingDiscardI = []
 
+	# deal damage
 	[x.damageCalc(2) for x in activeBoard if x.damage == 0 and activeBoard.index(x) != activeBoard.index(card)]
-	backwardsList(activeBoard, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].update()", pendingDiscard)
+	# deal damage
 	[x.damageCalc(2) for x in inactiveBoard if x.damage == 0]
-	backwardsList(inactiveBoard, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].update()", pendingDiscard)
+	# check for deaths
+	[pendingDiscardA.append(activeBoard.pop(abs(x - len(activeBoard) + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - len(activeBoard) + 1)].update()]
+	pending(game, pendingDiscardA, game.activePlayer.discard)
+	# check for deaths
+	[pendingDiscardI.append(inactiveBoard.pop(abs(x - len(inactiveBoard) + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - len(inactiveBoard) + 1)].update()]
+	pending(game, pendingDiscardI, game.activePlayer.discard)
 
 def key040(game, card):
 	"""Lomir Flamefist: If your opponent has 7 or more amber, they lose 2.
@@ -561,7 +580,9 @@ def key049(game, card):
 	"""Wardrummer: Return each other friendly Brobnar creature to your hand.
 	"""
 	index = game.activePlayer.board["Creature"].index(card)
-	backwardsList(game.activePlayer.board["Creature"], "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].house == 'Brobnar' and abs(x - len(input_L) + 1) != " + str(index), game.activePlayer.hand)
+	activeBoard = game.activePlayer.board["Creature"]
+	
+	[game.activePlayer.hand.append(activeBoard.pop(abs(x - len(activeBoard) + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - len(activeBoard) + 1)].house == 'Brobnar' and abs(x - len(activeBoard) + 1) != index]
 
 def key052(game, card):
 	"""Yo Mama Mastery: Fully heal this creature
@@ -614,12 +635,14 @@ def key053(game, card):
 def key054(game, card):
 	"""Arise!: Choose a house. Return each creature of that house from your discard pile to your hand.
 	"""
+	active = game.activePlayer.discard
 	house = ''
 	while house == '':
 		house = input("Choose a house: ").title()
 		if house in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]: break
 		else: house = ''
-	backwardsList(game.activePlayer.discard, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].house == " + house, game.activePlayer.hand)
+	# return cards from discard pile
+	[game.activePlayer.hand.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].house == house and active[abs(x - len(active) + 1)].type == "Creature"]
 	# finally, add chains
 	game.activePlayer.chains += 1
 
@@ -685,10 +708,10 @@ def key057(game, card):
 	pendingDestroyed = []
 	choice = makeChoice("Choose a number. All creatures with power equal to this number will be destroyed: ")
 	# active player
-	backwardsList(active, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].power == " + str(choice), pendingDestroyed)
+	[pendingDestroyed.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].power == choice]
 	pending(game, pendingDestroyed, game.activePlayer.discard)
 	#inactive player
-	backwardsList(inactive, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].power == " + str(choice), pendingDestroyed)
+	[pendingDestroyed.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].power == choice]
 	pending(game, pendingDestroyed, game.inactivePlayer.discard)
 
 def key058(game, card):
@@ -705,17 +728,22 @@ def key058(game, card):
 	game.inactivePlayer.hand.append(inactive.pop(choice))
 
 def key059(game, card):
+	""" Gateway to Dis: Destroy each creature. Gain three gains.
+	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscardA = []
+	pendingDiscardI = []
 	# active player
 	while len(active) > 0:
-		pendingDiscard.append(active.pop())
-	pending(game, pendingDiscard, game.activePlayer.discard)
+		pendingDiscardA.append(active.pop())
 	# inactive player
 	while len(inactive) > 0:
-		pendingDiscard.append(inactive.pop())
-	pending(game, pendingDiscard, game.inactivePlayer.discard)
+		pendingDiscardI.append(inactive.pop())
+
+	pending(game, pendingDiscardA, game.activePlayer.discard)
+	pending(game, pendingDiscardI, game.inactivePlayer.discard)
+	
 	# add chains
 	game.activePlayer.chains += 3
 	
@@ -724,7 +752,7 @@ def key060(game, card):
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscard = [] # fine b/c only ever one side
 	choice, side = chooseSide(game)
 	if side == 0: # friendly side
 		active[choice].damageCalc(3)
@@ -748,20 +776,21 @@ def key061(game, card):
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscardA = []
+	pendingDiscardI = []
 	# active player
-	backwardsList(active, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].captured > 0", pendingDiscard)
-	pending(game, pendingDiscard, game.activePlayer.discard)
+	[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].captured > 0]
 	# inactive player
-	backwardsList(inactive, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].captured > 0", pendingDiscard)
-	pending(game, pendingDiscard, game.inactivePlayer.discard)
+	[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].captured > 0]
+	pending(game, pendingDiscardA, game.activePlayer.discard)
+	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 
 def key062(game, card):
 	""" Hand of Dis: Destroy a creature that is not on a flank.
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscard = [] # fine b/c only one target
 	# running a modified version of chooseSide because of the slightly different restrictions on this card
 	side = ''
 	if len(active) <= 2 and len(inactive) <= 2:
@@ -795,58 +824,57 @@ def key063(game, card):
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscardA = []
+	pendingDiscardI = []
 	# active player
-	backwardsList(active, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].house == 'Dis'", pendingDiscard)
-	count = len(pendingDiscard)
+	[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].house == "Dis"]
+	count = len(pendingDiscardA)
 	game.activePlayer.amber += count
-	pending(game, pendingDiscard, game.activePlayer.discard)
 	# inactive player
-	backwardsList(inactive, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L) + 1)].house == 'Dis'", pendingDiscard)
-	count = len(pendingDiscard)
+	[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].house == "Dis"]
+	count = len(pendingDiscardI)
 	game.inactivePlayer.amber += count
-	pending(game, pendingDiscard, game.inactivePlayer.discard)
+	pending(game, pendingDiscardA, game.activePlayer.discard)
+	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 
 def key064(game, card):
 	""" Tendrils of Pain: Deal 1 to each creature. Deal an additional 3 to each creature if your opponent forged a key on their previous turn.
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscardA = []
+	pendingDiscardI = []
 	# deal 1 damage to everything
 	# active
 	[x.damageCalc(1) for x in active]
-	[pendingDiscard.append(active.pop(abs(x - len(active) + 1))) for x in active if x.update()]
-	pending(game, pendingDiscard, game.activePlayer.discard)
+	[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in active if x.update()]
 	# inactive
 	[x.damageCalc(1) for x in inactive]
-	[pendingDiscard.append(inactive.pop(abs(x - len(inactive) + 1))) for x in inactive if x.update()]
-	pending(game, pendingDiscard, game.inactivePlayer.discard)
+	[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in inactive if x.update()]
+	pending(game, pendingDiscardA, game.activePlayer.discard)
+	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 
 	# potential extra 3 damage to everything
 	if not game.forgedLastTurn[0]:
 		return
 	# active
 	[x.damageCalc(3) for x in active]
-	[pendingDiscard.append(active.pop(abs(x - len(active) + 1))) for x in active if x.update()]
-	pending(game, pendingDiscard, game.activePlayer.discard)
+	[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in active if x.update()]
 	# inactive
 	[x.damageCalc(3) for x in inactive]
-	[pendingDiscard.append(inactive.pop(abs(x - len(inactive) + 1))) for x in inactive if x.update()]
-	pending(game, pendingDiscard, game.inactivePlayer.discard)
+	[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in inactive if x.update()]
+	pending(game, pendingDiscardA, game.activePlayer.discard)
+	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 
 def key065(game, card):
 	""" Hysteria: Return each creature to its owner's hand.
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingHand = []
 	# active
-	backwardsList(active, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "1 > 0", pendingHand)
-	pending(game, pendingHand, game.activePlayer.hand)
+	[game.activePlayer.hand.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active))]
 	# inactive
-	backwardsList(inactive, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "1 > 0", pendingHand)
-	pending(game, pendingHand, game.inactivePlayer.hand)
+	[game.inactivePlayer.hand.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive))]
 
 def key066(game, card):
 	""" Key Hammer: If your opponent forged a key on their previous turn, unforge it. Your opponent gains 6 amber.
@@ -893,10 +921,12 @@ def key070(game, card):
 	""" Red-Hot Armor: Each enemy creature with armor loses all of its armor until the end of the turn and is dealt 1 for each point of armor it lost this way.
 	"""
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDiscard = []
+	pendingDiscard = [] # fine b/c only hits one side
 	armorList = [inactive[abs(x - len(inactive) + 1)].armor for x in range(len(inactive))]
+	# deal damage
 	[(inactive[abs(x - len(inactive) + 1)].armor.__sub__(armorList[x]), inactive[abs(x - len(inactive) + 1)].damageCalc(armorList[x])) for x in range(len(inactive)) if armorList[x] > 0]
-	backwardsList(inactive, "result_L", "input_L[abs(x- len(input_L) + 1)].update()", pendingDiscard)
+	# check for deaths
+	[pendingDiscard.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
 	pending(game, pendingDiscard, game.inactivePlayer.discard)
 
 def key071(game, card):
@@ -926,14 +956,16 @@ def key071(game, card):
 		[highList.append(x) for x in inactive if x.power == high]
 		count = len(highList)
 		if count == left: # add all to relevant discards and done
-			backwardsList(active, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L))].power == " + str(high), pendingDiscardA)
+			# active
+			[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].power == high]
 			pending(game, pendingDiscardA, game.activePlayer.discard)
-			backwardsList(inactive, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L))].power == " + str(high), pendingDiscardI)
+			#inactive
+			[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].power == high]
 			pending(game, pendingDiscardI, game.inactivePlayer.discard)
 			return
 		elif count < left: # add all to relevant discards and continue
-			backwardsList(active, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L))].power == " + str(high), pendingDiscardA)
-			backwardsList(inactive, "result_L.append(input_L.pop(abs(x - len(input_L) + 1)))", "input_L[abs(x - len(input_L))].power == " + str(high), pendingDiscardI)
+			[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].power == high]
+			[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].power == high]
 			left -= count
 		else: #if count > left, choose which card to discard
 			print("Your minions at specified power: ")
@@ -998,17 +1030,18 @@ def key088(game, card):
 	if side == 0: # friendly
 		active[choice].damageCalc(heal)
 		if active[choice].update():
-			pendingDisc.append(active[choice])
+			pendingDisc.append(active.pop(choice))
 		pending(game, pendingDisc, game.activePlayer.discard)
 	if side == 1: #enemy
 		inactive[choice].damageCalc(heal)
 		if inactive[choice].update():
-			pendingDisc.append(inactive[choice])
+			pendingDisc.append(inactive.pop(choice))
 		pending(game, pendingDisc, game.inactivePlayer.discard)
 
 def key094(game, card):
 	""" Restringuntus: Choose a house. Your opponent cannot choose that house as their active house until Restringuntus leaves play.
 	"""
+	# no deck has more than one copy of this card
 	game.chooseHouse(card.title)
 
 def key096(game, card):
@@ -1028,8 +1061,309 @@ def key107(game, card):
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	
+	pendingDiscardA = []
+	pendingDiscardI = []
+	print(game)
+	choice = makeChoice("Choose an enemy creature to destroy: ", inactive)
+	pendingDiscardI.append(inactive.pop(choice))
+	if len(active) > 1:
+		choice2 = makeChoice("Choose a friendly creature to destroy: ", active)
+	elif len(active) == 1:
+		choice2 = 0
+	else:
+		print("You have no creatures. The card's effect ends.")
+		return
+	pendingDiscardA.append(active.pop(choice2))
+	pending(game, pendingDiscardI, game.inactivePlayer.discard)
+	pending(game, pendingDiscardA, game.activePlayer.discard)
+	while len(active) > 0 and len(inactive) > 0:
+		print(game)
+		choice = makeChoice("Choose an enemy creature to destroy: ")
+		choice2 = makeChoice("Choose a friendly creature to destroy: ")
+		pendingDiscardI.append(inactive.pop(choice))
+		pendingDiscardA.append(active.pop(choice))
+		pending(game, pendingDiscardI, game.inactivePlayer.discard)
+		pending(game, pendingDiscardA, game.activePlayer.discard)
+	if len(active) == 0:
+		print("You have no more creatures, so the effect cannot be repeated.")
+		return
+	print("Your opponent has no more creatures, so the effect cannot be repeated.")
 
+def key108(game, card):
+	""" Dimension Door: For the remainder of the turn, any amber you would gain from reaping is stolen from your opponent instead.
+	"""
+	# just set a state, effect doesn't stack from multiple copies
+	game.activePlayer.states["Reap"].update({card.title:True})
+
+def key109(game, card):
+	""" Effervescent Principle: Each player loses half their amber (rounding down the loss). Gain one chain.
+	"""
+	if game.activePlayer.amber % 2 == 0:
+		game.activePlayer.amber += 1
+	if game.inactivePlayer.amber % 2 == 0:
+		game.inactivePlayer.amber += 1
+	if game.activePlayer.amber > 0:
+		game.activePlayer.amber /= 2
+		print("After losing half your amber, you now have " + str(game.activePlayer.amber) + " amber.")
+	else:
+		print("You still have no amber.")
+	if game.inactivePlayer.amber > 0:
+		game.inactivePlayer.amber /= 2
+		print("After losing half their amber, your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+	else:
+		print("Your opponent still has no amber.")
+	game.activePlayer.chains += 1
+
+def key110(game, card):
+	""" Foggify: your opponent cannot use creatures to fight on their next turn.
+	"""
+	# states should always be in deck that they affect
+	game.inactivePlayer.states["Fight"].update({card.title:True})
+
+def key111(game, card):
+	""" Help from Future Self: Search your deck and discard pile for a Timetraveller, reveal it, and put it into your hand. Shuffle your discard pile into your deck.
+	"""
+	# multiples of these pairings is possible, but only come in pairs
+	# let's use an iterative function to search with
+	def search(hand, L):
+		# look at first item in deck
+		x = 0
+		while x < len(L):
+			if L[x].title == "Timetraveller":
+				hand.append(L.pop(x))
+				return True
+			else:
+				x += 1
+		return False
+	
+	if not search(game.activePlayer.hand, game.activePlayer.deck):
+		search(game.activePlayer.hand, game.activePlayer.discard)
+	game.activePlayer.shuffleDiscard()
+
+def key112(game, card):
+	""" Interdimensional Graft: If an opponent forges a key on their next turn, they must give you their remaining amber.
+	"""
+	# update state
+	game.inactivePlayer.states["Forge"].update({card.title:True})
+
+def key113(game, card):
+	""" Knowledge is Power: Choose one: Archive a card, or, for each archived card you have, gain 1 amber.
+	"""
+	# b/c this is only choose card in whole set, will give card text
+	while True:
+		choice = input(card.text + "\n[A]rchive/[G]ain\n>>>").title()
+		if len(game.activePlayer.hand) == 0 and choice[0] == "A":
+			print("You have no cards in hand to archive.")
+			choice = input("Would you like to gain amber instead [Y/n]? ").title()
+			if choice[0] == "Y":
+				choice = "G"
+			else:
+				return
+		if "A" in choice[0]:
+			archive = makeChoice("Choose a card from hand to archive: ", game.activePlayer.hand)
+			game.activePlayer.archive.append(game.activePlayer.hand.pop(archive))
+			print("Card archived! Type 'Archive' to view your archive.")
+			return
+		elif "G" in choice[0]:
+			print("You gain " + str(len(game.activePlayer.archive)) + " amber.")
+			game.activePlayer.amber += len(game.activePlayer.archive)
+			return
+
+def key114(game, card):
+	""" Labwork: Archive a card.
+	"""
+	archive = makeChoice("Choose a card from hand to archive: ", game.activePlayer.hand)
+	game.activePlayer.archive.append(game.activePlayer.hand.pop(archive))
+	print("Card archived! Type 'Archive' to view your archive.")
+
+def key115(game, card):
+	""" Library Access: Purge this card. For the remainder of the turn, each time you play another card, draw a card.
+	"""
+	print(card.title + " is played, then immediately purged.")
+	game.activePlayer.purge.append(game.activePlayer.board["Action"].pop()) # b/c library access will usually be only card, and if it isn't will definitely be last card
+	game.activePlayer.states["Play"].update({card.title:True})
+
+def key116(game, card):
+	""" Neuro Syphon: If your opponent has more amber than you, steal 1 amber and draw a card.
+	"""
+	if game.inactivePlayer.amber > game.activePlayer.amber:
+		print("Your opponent has more amber than you, so the effect triggers.")
+		stealAmber(game.activePlayer, game.inactivePlayer, 1)
+		print("You now have " + str(game.activePlayer.amber) + " amber.")
+		game.activePlayer += 1
+		print("Drawing a card.")
+		return
+	print("You have at least as much amber as your opponent. Nothing happens.")
+		
+def key117(game, card):
+	""" Phase Shift: You may play one non-Logos card this turn.
+	"""
+	# this is a tough one. effect can stack, so we'll use a list
+	game.activePlayer.states["Play"].update({card.title:[True]})
+
+def key118(game, card):
+	""" Positron Bolt: Deal 3 damage to a flank creature. Deal 2 damage to its neighbor. Deal 1 damage to the second creature's other neighbor.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pendingDisc = [] # fine b/c only one side
+
+	print(card.text)
+	side = chooseSide(game, choices = False) # only sides w/ at least one creature can be returned from this function
+	while True:
+		choice = input("Choose [L]eft flank or [R]ight flank: ")
+		if choice[0] == "L":
+			choice = 0
+			break
+		elif choice[0] == "R":
+			choice = 1
+			break
+	
+	if side == 0: # friendly
+		if choice != 0: choice = len(active) - 1
+		active[choice].damageCalc(3)
+		if choice == 0:
+			try: 
+				active[choice + 1].damageCalc(2)
+				try: active[choice + 2].damageCalc(1)
+				except: print("No second neighbor.")
+			except: print("No neighbor.")
+			[pendingDisc.append(active.pop(x)) for x in [choice + 2, choice + 1, choice] if active[x].update()]
+		else:
+			try: 
+				active[choice - 1].damageCalc(2)
+				try: active[choice - 2].damageCalc(1)
+				except: print("No second neighbor.")
+			except: print("No neighbor.")
+			[pendingDisc.append(active.pop(x)) for x in [choice, choice - 1, choice - 2] if active[x].update()]
+		pending(game, pendingDisc, game.activePlayer.discard)
+		return
+	if choice != 0: choice = len(inactive) - 1
+	inactive[choice].damageCalc(3)
+	if choice == 0:
+		try:
+			inactive[choice + 1].damageCalc(2)
+			try: inactive[choice + 2].damageCalc(1)
+			except: print("No second neighbor.")
+		except: print("No neighbor.")
+		[pendingDisc.append(inactive.pop(x)) for x in [choice + 2, choice + 1, choice] if inactive[x].update()]
+	else:
+		try:
+			inactive[choice - 1].damageCalc(2)
+			try: inactive[choice - 2].damageCalc(1)
+			except: print("No second neighbor.")
+		except: print("No neighbor.")
+		[pendingDisc.append(inactive.pop(x)) for x in [choice, choice - 1, choice - 2] if inactive[x].update()]
+	pending(game, pendingDisc, game.inactivePlayer.discard)
+
+def key119(game, self):
+	""" Random Access Archives: Archive the top card of your deck.
+	"""
+	# if deck is empty, don't shuffle
+	if len(game.activePlayer.deck) > 0:
+		game.activePlayer.archive.append(game.activePlayer.deck.pop())
+		print("The top card or your deck has been archived.")
+		return
+	print("Your deck is empty. Nothing happenss.")
+
+def key120(game, self):
+	""" Remote Access: use an opponent's artifact as if it were yours.
+	"""
+	if len(game.inactivePlayer.board["Artifact"]) > 1:
+		game.activePlayer.printShort(game.inactivePlayer.board["Artifact"])
+		choice = makeChoice("Choose one of your opponent's artifacts to use: ", game.inactivePlayer.board["Artifact"])
+		# game.inactivePlayer.board["Artifact"][choice].action(game, card) # waiting on implementation
+	elif len(game.inactivePlayer.board["Artifact"]) == 1:
+		pass
+		# game.inactivePlayer.board["Artifact"][0].action(game, card) # waiting on implementation
+	else:
+		print("Your opponent has no artifacts. The card is stil played.")
+
+def key121(game, card):
+	""" Reverse Time: Swap your deck and your discard pile. Then, shuffle your deck.
+	"""
+	game.activePlayer.deck, game.activePlayer.discard = game.activePlayer.discard, game.activePlayer.deck
+	random.shuffle(game.activePlayer.deck)
+
+def key122(game, card):
+	""" Scrambler Storm: Your opponent cannot play action cards on their next turn.
+	"""
+	game.inactivePlayer.states["Play"].update({card.title:True})
+
+def key123(game, card):
+	""" Sloppy Labwork: Archive a card. Discard a card.
+	"""
+	hand = game.activePlayer.hand
+	archive = game.activePlayer.archive
+	if len(hand) > 0:
+		game.activePlayer.printShort(hand)
+		choice = makeChoice("Choose a card to archive: ", hand)
+		archive.append(hand.pop(choice))
+		print("Card archived! Type 'Archive' to see your archived cards.")
+	if len(hand) > 0:
+		game.activePlayer.printShort(hand)
+		choice = makeChoice("Choose a card to discard: ", hand)
+		game.activePlayer.discard.append(hand.pop(choice))
+		print("Card discarded!")
+
+def key124(game, card):
+	""" Twin Bolt Emission: Deal 2 damage to a creature and deal 2 damage to a different creature.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pendingDiscA = []
+	pendingDiscI = []
+
+	left = 2
+	while left > 0:
+		print("Choose a target to deal 2 damage to:")
+		choice, side = chooseSide(game)
+		if side == 0: # friendly
+			active[choice].damageCalc(2)
+			if active[choice].update:
+				pendingDiscA.append(active.pop(choice))
+			left -= 1
+		elif side == 1: #enemy
+			inactive[choice].damageCalc(2)
+			if active[choice].update:
+				pendingDiscI.append(active.pop(choice))
+			left -= 1
+		else:
+			return
+	pending(game, pendingDiscA, game.activePlayer.discard)
+	pending(game, pendingDiscI, game.inactivePlayer.discard)
+
+def key125(game, card):
+	""" Wild Wormhole: Play the top card of your deck.
+	"""
+	game.playCard(100, False)
+
+def key138(game, card):
+	""" Dextre: Capture 1 amber.
+	"""
+	card.capture(game, 1)
+	print("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+
+def key140(game, card):
+	""" Dr. Escotera: Gain 1 amber for each key your opponent has.
+	"""
+	print(card.text)
+	game.activePlayer.amber += game.inactivePlayer.keys
+	print("You now have " + str(game.activePlayer.amber) + " amber")
+
+def key141(game, card):
+	""" Dysania: Your opponent discards each of their archived cards. You gain 1 amber for each card discarded this way.
+	"""
+	print(card.text)
+	if len(game.inactivePlayer.archive) > 0:
+		game.activePlayer.amber += len(game.inactivePlayer.archive)
+		print("You gained " + str(len(game.inactivePlayer.archive)) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
+		pendingDisc = game.inactivePlayer.archive
+		game.inactivePlayer.archive = []
+		pending(game, pendingDisc, game.inactivePlayer.discard)
+
+
+		
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')
