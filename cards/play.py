@@ -34,8 +34,14 @@ def pending(game, L, destination, fromPlay = True):
 	Arguments: game should be self-evident, it's needed to be able to modify the game, L is the list being emptied, and destination is the list being appended to.
 	"""
 	# need to update this, but if destination is discard and source is from play then check for annihilation ritual, etc
+	# also needs to confirm that it's putting cards in the right discard pile b/c creatures can be stolen
 	if L == []:
 		return
+	for x in range(len(L)):
+		if destination == game.activePlayer.discard and L[abs(x - len(L) + 1)].deck != game.activePlayer.name:
+			game.inactivePlayer.discard.append(L.pop(abs(x - len(L) + 1)))
+		elif destination == game.inactivePlayer.discard and L[abs(x - len(L) + 1)].deck != game.inactivePlayer.name:
+			game.activePlayer.discard.append(L.pop(abs(x - len(L) + 1)))
 	if (destination == game.activePlayer.discard or destination == game.inactivePlayer.discard) and ("Annihilation Ritual" in [x.title for x in game.activePlayer.board["Artifact"]] or "Annihilation Ritual" in [x.title for x in game.inactivePlayer.board["Artifact"]]):
 		if destination == game.activePlayer.discard:
 			destination = game.activePlayer.purge
@@ -1056,6 +1062,10 @@ def key101(game, card):
 	if game.inactivePlayer.amber == 0:
 		game.activePlayer.amber += 2
 
+#########
+# Logos #
+#########
+
 def key107(game, card):
 	""" Bouncing Deathquark: Destroy and enemy creature and a friendly creature. Repeat effect as many times as you want, as long as you can repeat entire effect.
 	"""
@@ -1362,8 +1372,95 @@ def key141(game, card):
 		game.inactivePlayer.archive = []
 		pending(game, pendingDisc, game.inactivePlayer.discard)
 
+def key143(game, card):
+	""" Harland Mindlock: Take control of an enemy flank creature until Harland Mindlock leaves play.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
 
+	print(card.text)
+	while True:
+		choice = input("Choose [L]eft flank or [R]ight flank enemy creature to target: ")
+		if choice[0] == "L":
+			choice = 0
+			break
+		elif choice[0] == "R":
+			choice = len(inactive) - 1
+			break
+
+	while True:
+		flank = input("Choose [L]eft flank or [R]ight flank to put stolen creature: ")
+		if choice[0] == "L":
+			flank = 0
+			break
+		elif choice[0] == "R":
+			flank = len(active)
+			break
+
+	active.insert(flank, inactive.pop(choice))
+
+def key146(game, card):
+	""" Neutron Shark: Destroy an enemy creature or artifact and a friendly creature or artifact. Discard the top card of your deck. If that card is not a Logos card, trigger this effect again.
+	"""
+	active = game.activePlayer.board
+	inactive = game.inactivePlayer.board
+	pendingDiscard = []
+
+	print(game)
+	logos = True
+	while logos:
+		while True:
+			if len(inactive["Creature"]) + len(inactive["Artifact"]) == 0:
+				print("Your opponent has nothing for you to target. The effect still continues.")
+				choice = "extra"
+			elif len(inactive["Creature"]) == 0:
+				print("Your opponent has no creatures to destroy, so you must target an artifact.")
+				choice = "Artifact"
+			elif len(inactive["Artifact"]) == 0:
+				print("Your opponent has no artifacts to destroy, so you must target a creature.")
+				choice = "Creature"
+			else:
+				choice = input("Target enemy [C]reature or enemy [A]rtifact?\n>>>")
+				if choice[0] == "C":
+					choice = "Creature"
+					break
+				elif choice[0] == "A":
+					choice = "Artifact"
+					break
+		if choice != "extra":
+			game.activePlayer.printShort(inactive[choice])
+			choice2 = makeChoice("Choose a target: ", inactive[choice])
+			pendingDiscard.append(inactive[choice].pop(choice2))
+			pending(game, pendingDiscard, game.inactivePlayer.discard)
+		while True:
+			if len(active["Creature"]) + len(active["Artifact"]) == 0:
+				print("You have nothing to target. The effect still continues.")
+				choice = "extra"
+			elif len(active["Creature"]) == 0:
+				print("You have no creatures to destroy, so you must target an artifact.")
+				choice = "Artifact"
+			elif len(active["Artifact"]) == 0:
+				print("You have no artifacts to destroy, so you must target a creature.")
+				choice = "Creature"
+			else:
+				choice = input("Target friendly [C]reature or friendly [A]rtifact?\n>>>")
+				if choice[0] == "C":
+					choice = "Creature"
+					break
+				elif choice[0] == "A":
+					choice = "Artifact"
+					break
+		if choice != "extra":
+			game.activePlayer.printShort(active[choice])
+			choice2 = makeChoice("Choose a target: ", active[choice])
+			pendingDiscard.append(active[choice].pop(choice2))
+			pending(game, pendingDiscard, game.activePlayer.discard)
+
+		game.activePlayer.discard.append(game.activePlayer.deck.pop())
+		if game.activePlayer.discard[-1].house == "Logos":
+			logos = False
 		
+
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

@@ -100,4 +100,10 @@
 - 125: Wild Wormhole
 - 138: Dextre
 - 140: Dr. Escotera
-- 141: Dysania 
+- 141: Dysania
+- 143: Harland Mindlock - update pending to make sure it puts cards in the right discard pile
+- 146: Neutron Shark - kind of complicated
+- 149:
+- 152: 
+- 153:
+- 157:

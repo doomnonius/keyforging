@@ -427,7 +427,7 @@ class Game():
         elif cardType != "Upgrade":
           print("playCard area 2.4") # test line
           self.activePlayer.board[cardType].append(self.activePlayer.deck.pop())
-          location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType]) - 1]
+          location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType])]
           self.numPlays -= 1
         else:
           print("playCard area 2.5") # test line
