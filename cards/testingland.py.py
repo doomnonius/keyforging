@@ -1,7 +1,5 @@
-lis = [1, 2, 3, 4]
-lis2 = [5, 6, 7, 8]
-lis.extend(lis2)
+lis = [0, 1, 0, 1, 0, 1]
+lis2 = [x for x in lis if x == 0]
 print(lis)
-
-lis2 = lis2[1:]
-print(lis2)
+lis = [lis + lis2]
+print(lis)

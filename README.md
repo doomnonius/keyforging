@@ -28,6 +28,7 @@
 - 44: Rock-Hurling Giant
 
 <h3>Play:</h3>
+<h4>Brobnar:</h4>
 - 1: Anger - tested
 - 2: Barehanded - needs retested after creating cards.pending() - passed retest
 - 3: Blood Money
@@ -54,6 +55,7 @@
 - 46: Smaaash
 - 49: Wardrummer - not sure won't return self to hand - <u><b>failed</u></b> (probably b/c of backwardsList)
 - 52: Yo Mama Mastery - only handles the healing part
+<h4>Dis:</h4>
 - 53: A Fair Game
 - 54: Arise
 - 55: Control the Weak - will need an EOT state reset
@@ -79,6 +81,7 @@
 - 94: Restringuntus: added to game.chooseHouse
 - 96: Shooler
 - 101: The Terror
+<h4>Logos:</h4>
 - 107: Bouncing Death Quark
 - 108: Dimension Door - still need to update checkReapState to check for this
 - 109: Effervescent Principle
@@ -103,7 +106,17 @@
 - 141: Dysania
 - 143: Harland Mindlock - update pending to make sure it puts cards in the right discard pile
 - 146: Neutron Shark - kind of complicated
-- 149:
-- 152: 
-- 153:
-- 157:
+- 149: Psychic Bug
+- 152: Skippy Timehog - created checkReapState and checkActionState
+- 153: Timetraveller
+- 157: Experimental Therapy
+<h4>Dis:</h4>
+- 160: Ammonia Clouds
+- 161: Battle Fleet
+- 162: Deep Probe - create an OppHouses option in responses
+- 163: EMP Blast
+- 164: Hypnotic Command
+- 165: Irradiated Aember
+- 166: Key Abduction
+- 167: Martian Hounds
+- 168: 

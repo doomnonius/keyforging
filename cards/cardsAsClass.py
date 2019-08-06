@@ -1,5 +1,4 @@
 import cards.destroyed as dest
-import cards.board as board
 import cards.fight as fight
 import cards.play as play
 import cards.actions as action
@@ -30,8 +29,10 @@ class Card():
         self.title = cardInfo['card_title']
         self.damage = 0
         self.power = int(cardInfo['power'])
+        self.extraPow = 0
         self.base_armor = int(cardInfo['armor'])
         self.armor = self.base_armor
+        self.extraArm = 0
         self.id = cardInfo['id']
         self.house = cardInfo["house"]
         self.type = cardInfo["card_type"]
@@ -121,7 +122,7 @@ class Card():
         else:
             s += self.house + ' ' + self.type + '\n'
         if self.type == "Creature":
-            s += "Power: " + str(self.power) + " (" + str(self.damage) + " damage )" + "; Armor: " + str(self.armor) + '\n'
+            s += "Power: " + str(self.power + self.extraPow) + " (" + str(self.damage) + " damage )" + "; Armor: " + str(self.armor + self.extraArm) + '\n'
         if self.traits != None:
             s += self.traits + '\n' + self.text + '\n'
         else:
@@ -134,7 +135,7 @@ class Card():
     def __str__(self):
         s = ''
         if self.type == "Creature":
-            s += self.title + " (" + self.house + "): (Power: " + str(self.power) + " Armor: " + str(self.armor) + " Damage: " + str(self.damage) + " Captured: " + str(self.captured) + ')'
+            s += self.title + " (" + self.house + "): (Power: " + str(self.power + self.extraPow) + " Armor: " + str(self.armor + self.extraArm) + " Damage: " + str(self.damage) + " Captured: " + str(self.captured) + ')'
             if self.elusive:
                 s += " E"
             if self.taunt:
@@ -177,6 +178,7 @@ class Card():
     def damageCalc(self, num):
         """ Calculates damage, considering armor only.
         """
+        self.armor += self.extraArm # this means that extra armor only actually ends being applied when damage actually happens, which will make the reset armor function easier
         if num >= self.armor:
             self.damage += (num - self.armor)
             self.armor = 0
@@ -194,41 +196,55 @@ class Card():
             self.damageCalc(0)
         else:
             # print("skir else") # Test line
-            self.damageCalc(other.power)
+            self.damageCalc(other.power + other.extraPow)
         if other.elusive:
             print("The defender has elusive, so no damage is dealt.")
             other.damageCalc(0) #other.power - self.armor
             other.elusive = False
         else:
             # print("elu else") # test line
-            other.damageCalc(self.power)
+            other.damageCalc(self.power + self.extraPow)
         self.ready = False
         print(self)
         print(other)
         return self, other
 
     def health(self):
-        return self.power - self.damage
+        return (self.power + self.extraPow) - self.damage
 
-    def capture(self, game, num):
+    def capture(self, game, num, own = False):
+        """ Num is number of amber to capture. Own is for if the amber is captured from its own side (a mars exclusive ability)
+        """
         active = game.activePlayer.amber
         inactive = game.inactivePlayer.amber
-        if self.deck == game.activePlayer.name:
-            if inactive > num:
-                self.captured += num
-                game.inactivePlayer.amber -=  num
+        if not own:
+            if self.deck == game.activePlayer.name:
+                if inactive > num:
+                    self.captured += num
+                    game.inactivePlayer.amber -=  num
+                    return
+                self.captured += inactive
+                game.inactivePlayer.amber = 0
                 return
-            self.captured += inactive
-            game.inactivePlayer.amber = 0
-        elif self.deck == game.inactivePlayer.name:
-            if active > num:
-                self.captured += num
-                game.activePlayer.amber -= num
+            elif self.deck == game.inactivePlayer.name:
+                if active > num:
+                    self.captured += num
+                    game.activePlayer.amber -= num
+                    return
+                self.captured += active
+                game.activePlayer.amber = 0
                 return
-            self.captured += active
-            game.activePlayer.amber = 0
-        else:
-            print("This card wasn't in either deck.")
+            else:
+                print("This card wasn't in either deck.")
+                return
+        # else: (but not needed b/c of earlier return statements)
+        if inactive > num:
+            self.captured += num
+            game.inactivePlayer.amber -= num
+            return
+        self.captured += inactive
+        game.inactivePlayer.amber = 0
+
 
     def update(self):
         if self.health() <= 0:

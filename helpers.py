@@ -78,11 +78,9 @@ class Game():
       s += str(x) + ': ' + str(self.activePlayer.board["Artifact"][x]) + '\n'
     return s
 
-  def switch(self):
-    """ Swaps active and inactive players.
-    """
-    self.activePlayer, self.inactivePlayer = self.inactivePlayer, self.activePlayer
-    # print(self) # test line: passed on 7/25
+##################
+# Turn functions #
+##################
 
   def startGame(self): #called by choosedecks()
     """Fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
@@ -151,23 +149,10 @@ class Game():
       else: self.chooseHouse("activeHouse")
       # step 3: call responses
       # outsourced b/c long
-      if num == 1:
-        self.responses(num)
-      else:
-        self.responses(num)
+      self.responses(num)
       # step 4: ready cards and reset things like armor
       # here b/c short
-      for creature in self.activePlayer.board["Creature"]:
-        creature.ready = True
-        creature.armor = creature.base_armor
-        if "Elusive" in creature.text:
-          creature.elusive = True
-      for artifact in self.activePlayer.board["Artifact"]:
-        artifact.ready = True
-      try:
-        self.forgedLastTurn = forgedThisTurn
-      except:
-        self.forgedLastTurn = False, num
+      self.reset(num, forgedThisTurn)
       # step 5.1: draw cards
       self.activePlayer.drawEOT()
       # print("Checking draw:", self.activePlayer.handSize == len(self.activePlayer.hand)) # test line
@@ -181,267 +166,11 @@ class Game():
       self.numPlays = 100
     self.endGame(self.endBool)
 
-  def checkForgeStates(self):
-    """ Checks if there is anything in Deck.states["Forge"]. Implementation for other things is still hazy.
+  def switch(self):
+    """ Swaps active and inactive players.
     """
-    if len(self.activePlayer.states["Forge"]) != 0:
-      for key in self.activePlayer.states["Forge"]:
-        # I don't see anything to do but have each possible card here, but for testing purposes I'm only going to include Miasma
-        if key == True:
-          if self.activePlayer.states["Forge"]["Miasma"]:
-            self.activePlayer.states["Forge"]["Miasma"] = False
-          return False
-    return True
-
-  def checkEOTStates(self):
-    """ Checks for end of turn effects. There aren't more than a couple in CotA.
-    """
-
-  def checkPlayStates(self):
-    """ Checks for play states (full moon, etc.). By the time this is called, I already know if house matches.
-    """
-    # lifeward and other things that might return False first
-    if self.activePlayer.states["Play"]["Scrambler Storm"]:
-      print("Your opponent played Scrambler Storm last turn, so you cannot play actions this turn.")
-      return False
-    # other play effects
-    if self.activePlayer.states["Play"]["Library Access"]:
-      self.activePlayer += 1
-      print("You draw a card because you played Library Access earlier this turn.")
-      return True # can play card
-
-
-  def checkFightStates(self, attacker = None):
-    """ Checks for fight states (warsong, etc) or before fight effects, or stun or exhaust.
-    """
-    # if we're here, we've already checked that there are enemy minions to attack
-    active = self.activePlayer.board["Creature"]
-    inactive = self.inactivePlayer.board["Creature"]
-    pendingDiscardA = []
-    pendingDiscardI = []
-    if attacker.stun == True:
-      attacker.stun = False
-      attacker.ready = False
-      print("About to return False") # test line
-      return False
-    if attacker.ready == False:
-      print("About to return False") # test line
-      return False
-    if game.activePlayer.states["Fight"]["Foggify"]:
-      return False
-    if "Before fight:" in attacker.text or "Before Fight:" in attacker.text:
-      # before fight effects here:
-
-      # will need to check for deaths *after* before fight, but still before the fight
-      [pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].update()]
-      [pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
-      play.pending(self, pendingDiscardA, self.activePlayer.discard)
-      play.pending(self, pendingDiscardI, self.inactivePlayer.discard)
-      if self.activePlayer.states["Fight"]["Warsong"][0]:
-        self.activePlayer.amber += len(self.activePlayer.states["Fight"]["Warsong"])
-      if len(self.inactivePlayer.board["Creature"]) == 0:
-        print("Your opponent no longer has any creatures to attack. Your creature is still exhausted.")
-      print("About to return True") # test line
-      return True
-    try:
-      if self.activePlayer.states["Fight"]["Warsong"]:
-        self.activePlayer.amber += 1
-    except:
-      pass
-    print("About to return True") # test line
-    return True
-
-  def chooseHouse(self, varAsStr, num = 1):
-    """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak. Num is used for cards that allow extra houses to fight or be used.
-    """
-    if varAsStr == "activeHouse":
-      print("\nYour hand is:\n")
-      self.activePlayer.printShort(self.activePlayer.hand)
-      while True:
-        choice = input("Choose a house. Your deck's houses are " + self.activePlayer.houses[0] + ", " + self.activePlayer.houses[1] + ", " + self.activePlayer.houses[2] + ".\n>>>").title()
-        if choice in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-          if "Restringuntus" in [x.title for x in game.inactivePlayer.board["Creature"]]:
-            self.activeHouse = self.activePlayer.restring # I was able to verify that there will never be more than one copy of Restringuntus in a deck
-          else:
-            self.activeHouse = choice
-          return
-        else:
-          print("\nThat's not a valid choice!\n")
-          time.sleep(1)
-    elif varAsStr == "extraFight": #for brothers in battle, and probably others
-      print("\nYour board:\n")
-      self.activePlayer.printShort(self.activePlayer.board["Creature"], False)
-      if num == 1:
-        while True:
-          extra = input("Choose another house to fight with:\n>>>").title()
-          if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"] and extra != self.activeHouse:
-            self.extraFightHouses.append(extra)
-            break
-          elif extra == self.activeHouse:
-            print("\nThat's already your active house. Try again.\n")
-          else:
-            print("\nNot a valid input.\n")
-    elif varAsStr == "Restringuntus":
-      while True:
-        extra = input("Choose another house to fight with:\n>>>").title()
-        if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-          self.inactivePlayer.restring = extra
-          break
-        else:
-          print("\nNot a valid input.\n")
-
-  def fightCard(self, attacker = 100):
-    """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.
-    """
-    # Shows board, then prompts to choose attacker and defender
-    print(self)
-    if len(self.inactivePlayer.board["Creature"]) == 0:
-      print("Your opponent has no creatures for you to attack. Fight canceled.")
-      return self, None
-    while True:
-      if attacker > 28:
-        try:
-          attacker = int(input("Choose a minion to fight with: "))
-          # next line basically checks if they've listed a valid option
-          if self.activePlayer.board["Creature"][attacker].house not in self.activeHouse:
-            if len(self.extraFightHouses) > 0:
-              if self.activePlayer.board["Creature"][attacker].house not in self.extraFightHouses:
-                print("\nYou can only use cards from the active house or extra declared houses.")
-                return self, None
-            else:
-              print("\nYou can only use cards from the active house.")
-              return self, None
-          # next line will fail if answer is OOB
-          str(self.activePlayer.board["Creature"][attacker].type)
-          break
-        except:
-          print("Your entry was invalid. Try again.")
-      else:
-        break
-    # self.checkFightStates(attacker) also checks before fight abilities, stuns, and exhaustion/ready
-    if self.checkFightStates(self.activePlayer.board["Creature"][attacker]):
-      defender = makeChoice("Choose a minion to fight against: ", self.inactivePlayer.board["Creature"])
-    else:
-      print("You cannot fight with that minion.")
-    # Checks card is viable to fight or be fought (taunt)
-    try:
-      print("Trying to fight.")
-      self.activePlayer.board["Creature"][attacker].fightCard(self.inactivePlayer.board["Creature"][defender])
-    except: print("Fight failed.")
-    pendingDiscard = []
-    if self.activePlayer.board["Creature"][attacker].update():
-      pendingDiscard.append(self.activePlayer.board["Creature"][attacker])
-      died = True
-    else:
-      died = False
-    play.pending(self, pendingDiscard, self.activePlayer.discard)
-    if self.inactivePlayer.board["Creature"][defender].update():
-      pendingDiscard.append(self.inactivePlayer.board["Creature"][defender])
-    play.pending(self, pendingDiscard, self.inactivePlayer.discard())
-    return self, died
-
-  def playCard(self, chosen, booly = True):
-    """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
-    """
-    print(self.numPlays)
-    if booly and self.numPlays > 0:
-      # print("playCard area 1") # test line
-      if (self.activePlayer.hand[chosen].house in self.activeHouse or self.activePlayer.states["Play"]["Phase Shift"]) and chosen < len(self.activePlayer.hand):
-        # print("playCard area 1.1") # test line
-        if self.activePlayer.states["Play"]["Phase Shift"] and self.activePlayer.hand[chosen].house != "Logos":
-          # then reset Phase Shift. And if the card being played is a mavericked phase shift, phase shift will be set to true again in a second
-          if len(self.activePlayer.states["Play"]["Phase Shift"]) > 1:
-            # remove last item
-            self.activePlayer.states["Play"]["Phase Shift"].pop()
-          else: self.activePlayer.states["Play"]["Phase Shift"] = [False] # reset to false
-        # Increases amber, adds the card to the action section of the board, then calls the card's play function
-        if not self.checkPlayStates():
-          return # checkPlayStates will print the reason
-        self.activePlayer.amber += self.activePlayer.hand[chosen].amber
-        flank = 1
-        cardType = self.activePlayer.hand[chosen].type
-        if self.activePlayer.hand[chosen].type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
-          # print("playCard area 1.3") # test line
-          try:
-            flank = int(input("Choose left flank [0] or right flank [1, default]:  "))
-            self.creaturesPlayed += 1
-          except:
-            pass
-        # left flank
-        if self.activePlayer.hand[chosen].type != "Upgrade" and flank == 0:
-          # save the cardType so I can use it after I've removed the card from the hand
-          # print("playCard area 1.4") # test line
-          self.activePlayer.board[cardType].insert(0, self.activePlayer.hand.pop(chosen))
-          # set a variable with the index of the card in board
-          location = self.activePlayer.board[cardType][0]
-          self.numPlays -= 1
-          print(self.numPlays) # test line
-        # default case: right flank
-        elif self.activePlayer.hand[chosen].type != "Upgrade":
-          # print("playCard area 1.5") # test line
-          print(cardType)
-          self.activePlayer.board[cardType].append(self.activePlayer.hand.pop(chosen))
-          # set a variable with the index of the card in board
-          location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType]) - 1]
-          self.numPlays -= 1
-          print(self.numPlays)
-          print([x.title for x in self.activePlayer.board["Action"]])
-        else:
-          print("playCard area 1.6") # test line
-          self.upgrade()
-        #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
-        try: location.play(self, location)
-        except:
-          print("this card's play action failed.")
-          pass
-        # if the card is an action, now add it to the discard pile
-        if cardType == "Action":
-          self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
-        self.activePlayer.printShort(self.activePlayer.hand, False)
-      else:
-        print("\nYou can only play cards from the active house.")
-    else:
-      print("playCard area 2") # test line
-      if "Wild Wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
-        print("playCard area 2.1") # test line
-        # Increases amber, adds the card to the action section of the board, then calls the card's play function
-        if not self.checkPlayStates():
-          return # checkPlayStates will explain why
-        self.activePlayer.amber += self.activePlayer.deck[-1].amber
-        flank = 1
-        cardType = self.activePlayer.deck[-1].type
-        if cardType == "Creature":
-          print("playCard area 2.2") # test line
-          try:
-            flank = int(input("Choose left flank [0] or right flank [1, default]:  "))
-            self.creaturesPlayed += 1
-          except:
-            pass
-        # left flank
-        if cardType != "Upgrade" and flank == 0:
-          print("playCard area 2.3") # test line
-          self.activePlayer.board[cardType].insert(0, self.activePlayer.deck.pop())
-          location = self.activePlayer.board[cardType][0]
-          self.numPlays -= 1
-        # default case: right flank
-        elif cardType != "Upgrade":
-          print("playCard area 2.4") # test line
-          self.activePlayer.board[cardType].append(self.activePlayer.deck.pop())
-          location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType])]
-          self.numPlays -= 1
-        else:
-          print("playCard area 2.5") # test line
-          self.upgrade()
-        #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
-        try: location.play(self, location)
-        except:
-          print("This card's play action failed.")
-          pass
-        # if the card is an action, now add it to the discard pile
-        if cardType == "Action":
-          self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
-
-
+    self.activePlayer, self.inactivePlayer = self.inactivePlayer, self.activePlayer
+    # print(self) # test line: passed on 7/25
 
   def responses(self, turn):
     """This is called during step 3 of the turn. Turn is so that players can ask what turn it is.
@@ -511,7 +240,7 @@ class Game():
           break
           # self.responses() # probably unnecessary line
       elif choice == "developer":
-        developer()
+        developer(self)
       elif distance(choice, "Turn") <= 1:
         print("Turn: " + str(turn))
       elif distance(choice, "Hand") <= 1:
@@ -616,20 +345,330 @@ class Game():
         break
       choice = input("\nWhat would you like to do? (h for help):\n>>>").title()
 
-  def upgrade(self):
-    """ A function for applying upgrades to minions.
+  def chooseHouse(self, varAsStr, num = 1):
+    """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak. Num is used for cards that allow extra houses to fight or be used.
     """
+    if varAsStr == "activeHouse":
+      print("\nYour hand is:\n")
+      self.activePlayer.printShort(self.activePlayer.hand)
+      while True:
+        choice = input("Choose a house. Your deck's houses are " + self.activePlayer.houses[0] + ", " + self.activePlayer.houses[1] + ", " + self.activePlayer.houses[2] + ".\n>>>").title()
+        if choice in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+          if "Restringuntus" in [x.title for x in game.inactivePlayer.board["Creature"]]:
+            self.activeHouse = self.activePlayer.restring # I was able to verify that there will never be more than one copy of Restringuntus in a deck
+          else:
+            self.activeHouse = choice
+          return
+        else:
+          print("\nThat's not a valid choice!\n")
+          time.sleep(1)
+    elif varAsStr == "extraFight": #for brothers in battle, and probably others
+      print("\nYour board:\n")
+      self.activePlayer.printShort(self.activePlayer.board["Creature"], False)
+      if num == 1:
+        while True:
+          extra = input("Choose another house to fight with:\n>>>").title()
+          if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"] and extra != self.activeHouse:
+            self.extraFightHouses.append(extra)
+            break
+          elif extra == self.activeHouse:
+            print("\nThat's already your active house. Try again.\n")
+          else:
+            print("\nNot a valid input.\n")
+    elif varAsStr == "Restringuntus":
+      while True:
+        extra = input("Choose another house to fight with:\n>>>").title()
+        if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+          self.inactivePlayer.restring = extra
+          break
+        else:
+          print("\nNot a valid input.\n")  
+  
+  def reset(self, num, forgedThisTurn):
+    """ Resets all things that need to be reset at EOT, like some states, armor, elusive, ready
+    """
+    for creature in self.activePlayer.board["Creature"]:
+      creature.ready = True
+      creature.armor = creature.base_armor
+      if "Elusive" in creature.text:
+        creature.elusive = True
+    for artifact in self.activePlayer.board["Artifact"]:
+      artifact.ready = True
+    if forgedThisTurn[1] == num:
+      self.forgedLastTurn = forgedThisTurn
+    else:
+      self.forgedLastTurn = False, num
 
   def endGame(self, booly):
-    """ Ends the game, with a winner if booly is true, or just ends it otherwise.
+    """ Ends the game, with a winner if someone has three keys.
     """
-    if booly:
+    if self.activePlayer.keys >= 3:
       print(self.activePlayer.name + " wins!\n")
+    elif self.inactivePlayer.keys >= 3:
+      print(self.inactivePlayer.name + " wins!\n")
     else:
       print("Game ended.")
-  
-###############################################
 
+############################
+# State Checking Functions #
+############################
+
+  def checkActionStates(self):
+    """ Checks for things that affect actions.
+    """
+    if self.activePlayer.states["Action"]["Skippy Timehog"]:
+      print("Your opponent played Skippy Timehog last turn, so you can't use your action.")
+      return False
+
+  def checkEOTStates(self):
+    """ Checks for end of turn effects. There aren't more than a couple in CotA.
+    """
+
+  def checkFightStates(self, attacker = None):
+    """ Checks for fight states (warsong, etc) or before fight effects, or stun or exhaust.
+    """
+    # if we're here, we've already checked that there are enemy minions to attack
+    active = self.activePlayer.board["Creature"]
+    inactive = self.inactivePlayer.board["Creature"]
+    pendingDiscardA = []
+    pendingDiscardI = []
+    if attacker.stun == True:
+      attacker.stun = False
+      attacker.ready = False
+      print("About to return False") # test line
+      return False
+    if attacker.ready == False:
+      print("About to return False") # test line
+      return False
+    if self.activePlayer.states["Fight"]["Foggify"]:
+      print("Your opponent played Foggify last turn, so you cannot fight.")
+      return False
+    if self.activePlayer.states["Fight"]["Skippy Timehog"]:
+      print("Your opponent played Skippy Timehog last turn, so you cannot fight.")
+      return False
+    if "Before fight:" in attacker.text or "Before Fight:" in attacker.text:
+      # before fight effects here:
+
+      # will need to check for deaths *after* before fight, but still before the fight
+      [pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].update()]
+      [pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
+      play.pending(self, pendingDiscardA, self.activePlayer.discard)
+      play.pending(self, pendingDiscardI, self.inactivePlayer.discard)
+      if self.activePlayer.states["Fight"]["Warsong"][0]:
+        self.activePlayer.amber += len(self.activePlayer.states["Fight"]["Warsong"])
+      if len(self.inactivePlayer.board["Creature"]) == 0:
+        print("Your opponent no longer has any creatures to attack. Your creature is still exhausted.")
+      print("About to return True") # test line
+      return True
+    try:
+      if self.activePlayer.states["Fight"]["Warsong"]:
+        self.activePlayer.amber += 1
+    except:
+      pass
+    print("About to return True") # test line
+    return True
+
+  def checkForgeStates(self):
+    """ Checks if there is anything in Deck.states["Forge"]. Implementation for other things is still hazy.
+    """
+    if len(self.activePlayer.states["Forge"]) != 0:
+      for key in self.activePlayer.states["Forge"]:
+        # I don't see anything to do but have each possible card here, but for testing purposes I'm only going to include Miasma
+        if key == True:
+          if self.activePlayer.states["Forge"]["Miasma"]:
+            self.activePlayer.states["Forge"]["Miasma"] = False
+          return False
+    return True
+
+  def checkPlayStates(self):
+    """ Checks for play states (full moon, etc.). By the time this is called, I already know if house matches.
+    """
+    # lifeward and other things that might return False first
+    if self.activePlayer.states["Play"]["Scrambler Storm"]:
+      print("Your opponent played Scrambler Storm last turn, so you cannot play actions this turn.")
+      return False
+    # other play effects
+    if self.activePlayer.states["Play"]["Library Access"]:
+      self.activePlayer += 1
+      print("You draw a card because you played Library Access earlier this turn.")
+      return True # can play card
+
+  def checkReapStates(self):
+    """ Checks for things that disallow reaping.
+    """
+    if self.activePlayer.states["Reap"]["Skippy Timehog"]:
+      print("Your opponent played Skippy Timehog last turn, so you cannot reap.")
+      return False
+
+##################
+# Card functions #
+##################
+
+  def actionCard(self):
+    """ Trigger a card's action.
+    """
+  
+  def fightCard(self, attacker = 100):
+    """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.
+    """
+    # Shows board, then prompts to choose attacker and defender
+    print(self)
+    if len(self.inactivePlayer.board["Creature"]) == 0:
+      print("Your opponent has no creatures for you to attack. Fight canceled.")
+      return self, None
+    while True:
+      if attacker > 28:
+        try:
+          attacker = int(input("Choose a minion to fight with: "))
+          # next line basically checks if they've listed a valid option
+          if self.activePlayer.board["Creature"][attacker].house not in self.activeHouse:
+            if len(self.extraFightHouses) > 0:
+              if self.activePlayer.board["Creature"][attacker].house not in self.extraFightHouses:
+                print("\nYou can only use cards from the active house or extra declared houses.")
+                return self, None
+            else:
+              print("\nYou can only use cards from the active house.")
+              return self, None
+          # next line will fail if answer is OOB
+          str(self.activePlayer.board["Creature"][attacker].type)
+          break
+        except:
+          print("Your entry was invalid. Try again.")
+      else:
+        break
+    # self.checkFightStates(attacker) also checks before fight abilities, stuns, and exhaustion/ready
+    if self.checkFightStates(self.activePlayer.board["Creature"][attacker]):
+      defender = makeChoice("Choose a minion to fight against: ", self.inactivePlayer.board["Creature"])
+    else:
+      print("You cannot fight with that minion.")
+    # Checks card is viable to fight or be fought (taunt)
+    try:
+      print("Trying to fight.")
+      self.activePlayer.board["Creature"][attacker].fightCard(self.inactivePlayer.board["Creature"][defender])
+    except: print("Fight failed.")
+    pendingDiscard = []
+    if self.activePlayer.board["Creature"][attacker].update():
+      pendingDiscard.append(self.activePlayer.board["Creature"][attacker])
+      died = True
+    else:
+      died = False
+    play.pending(self, pendingDiscard, self.activePlayer.discard)
+    if self.inactivePlayer.board["Creature"][defender].update():
+      pendingDiscard.append(self.inactivePlayer.board["Creature"][defender])
+    play.pending(self, pendingDiscard, self.inactivePlayer.discard())
+
+  def playCard(self, chosen, booly = True):
+    """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
+    """
+    print(self.numPlays)
+    if booly and self.numPlays > 0:
+      # print("playCard area 1") # test line
+      if (self.activePlayer.hand[chosen].house in self.activeHouse or self.activePlayer.states["Play"]["Phase Shift"]) and chosen < len(self.activePlayer.hand):
+        # print("playCard area 1.1") # test line
+        if self.activePlayer.states["Play"]["Phase Shift"] and self.activePlayer.hand[chosen].house != "Logos":
+          # then reset Phase Shift. And if the card being played is a mavericked phase shift, phase shift will be set to true again in a second
+          if len(self.activePlayer.states["Play"]["Phase Shift"]) > 1:
+            # remove last item
+            self.activePlayer.states["Play"]["Phase Shift"].pop()
+          else: self.activePlayer.states["Play"]["Phase Shift"] = [False] # reset to false
+        # Increases amber, adds the card to the action section of the board, then calls the card's play function
+        if not self.checkPlayStates():
+          return # checkPlayStates will print the reason
+        self.activePlayer.amber += self.activePlayer.hand[chosen].amber
+        flank = 1
+        cardType = self.activePlayer.hand[chosen].type
+        if self.activePlayer.hand[chosen].type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
+          # print("playCard area 1.3") # test line
+          try:
+            flank = int(input("Choose left flank [0] or right flank [1, default]:  "))
+            self.creaturesPlayed += 1
+          except:
+            pass
+        # left flank
+        if self.activePlayer.hand[chosen].type != "Upgrade" and flank == 0:
+          # save the cardType so I can use it after I've removed the card from the hand
+          # print("playCard area 1.4") # test line
+          self.activePlayer.board[cardType].insert(0, self.activePlayer.hand.pop(chosen))
+          # set a variable with the index of the card in board
+          location = self.activePlayer.board[cardType][0]
+          self.numPlays -= 1
+          print(self.numPlays) # test line
+        # default case: right flank
+        elif self.activePlayer.hand[chosen].type != "Upgrade":
+          # print("playCard area 1.5") # test line
+          print(cardType)
+          self.activePlayer.board[cardType].append(self.activePlayer.hand.pop(chosen))
+          # set a variable with the index of the card in board
+          location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType]) - 1]
+          self.numPlays -= 1
+          print(self.numPlays)
+          print([x.title for x in self.activePlayer.board["Action"]])
+        else:
+          print("playCard area 1.6") # test line
+          self.upgrade()
+        #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
+        try: location.play(self, location)
+        except:
+          print("this card's play action failed.")
+          pass
+        # if the card is an action, now add it to the discard pile
+        if cardType == "Action":
+          self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
+        self.activePlayer.printShort(self.activePlayer.hand, False)
+      else:
+        print("\nYou can only play cards from the active house.")
+    else:
+      print("playCard area 2") # test line
+      if "Wild Wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
+        print("playCard area 2.1") # test line
+        # Increases amber, adds the card to the action section of the board, then calls the card's play function
+        if not self.checkPlayStates():
+          return # checkPlayStates will explain why
+        self.activePlayer.amber += self.activePlayer.deck[-1].amber
+        flank = 1
+        cardType = self.activePlayer.deck[-1].type
+        if cardType == "Creature":
+          print("playCard area 2.2") # test line
+          try:
+            flank = int(input("Choose left flank [0] or right flank [1, default]:  "))
+            self.creaturesPlayed += 1
+          except:
+            pass
+        # left flank
+        if cardType != "Upgrade" and flank == 0:
+          print("playCard area 2.3") # test line
+          self.activePlayer.board[cardType].insert(0, self.activePlayer.deck.pop())
+          location = self.activePlayer.board[cardType][0]
+          self.numPlays -= 1
+        # default case: right flank
+        elif cardType != "Upgrade":
+          print("playCard area 2.4") # test line
+          self.activePlayer.board[cardType].append(self.activePlayer.deck.pop())
+          location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType])]
+          self.numPlays -= 1
+        else:
+          print("playCard area 2.5") # test line
+          self.upgrade()
+        #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
+        try: location.play(self, location)
+        except:
+          print("This card's play action failed.")
+          pass
+        # if the card is an action, now add it to the discard pile
+        if cardType == "Action":
+          self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
+
+  def playUpgrade(self, target):
+    """ Plays an upgrade on a creature.
+    """
+
+  def reapCard(self):
+    """ Triggers a card's reap effect.
+    """
+  
+                #####################
+                # End of Game Class #
+                #####################
 
 def distance(first, second):
   """Returns the edit distance between the strings first and second.
@@ -647,7 +686,7 @@ def distance(first, second):
     insertion = 1 + distance(first, second[1:])
     return min(substitution, deletion, insertion)
 
-def developer():
+def developer(game):
   """Developer functions for manually changing the game state.
   """
 

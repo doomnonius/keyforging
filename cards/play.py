@@ -353,7 +353,7 @@ def key011 (game, card):
 	"""
 	inactiveBoard = game.inactivePlayer.board
 	count = 0
-	[count.__add__(1) for x in [inactiveBoard["Creature"] + inactiveBoard["Artifact"]] if x.house == "Logos"]
+	[count.__add__(1) for x in (inactiveBoard["Creature"] + inactiveBoard["Artifact"]) if x.house == "Logos"]
 	if count >= 3:
 		stealAmber(game.activePlayer, game.inactivePlayer, 2)
 	else:
@@ -1460,6 +1460,181 @@ def key146(game, card):
 		if game.activePlayer.discard[-1].house == "Logos":
 			logos = False
 		
+def key149(game, card):
+	""" Psychic Bug: Look at your opponent's hand.
+	"""
+	print(card.text)
+	inhand = game.inactivePlayer.hand
+
+	game.activePlayer.printShort(inhand)
+
+def key152(game, card):
+	""" Skippy Timehog: Your opponent canot use any cards next turn.
+	"""
+	print(card.text)
+	game.inactivePlayer.states["Reap"].update({card.title:True})
+	game.inactivePlayer.states["Fight"].update({card.title:True})
+	game.inactivePlayer.states["Action"].update({card.title:True})
+
+def key153(game, card):
+	""" Timetraveller: Draw two cards.
+	"""
+	print(card.text)
+	game.activePlayer += 2
+
+def key157(game, card):
+	""" Experimental Therapy: Stun and exhaust this creature.
+	"""
+	card.stun = True
+	card.ready = False
+
+########
+# Mars #
+########
+
+def reveal(game, L):
+	""" A function to handle the Mars card revealing feature. Returns a list of revealed cards.
+	"""
+	hand = [x for x in L if x.house == "Mars"]
+	if len(hand) > 0:
+		original = len(hand)
+	else:
+		print("You have no Mars cards in your hand.")
+		return
+	reveal = []
+	print("The Mars cards in your hand are: ")
+	game.activePlayer.printShort(hand)
+	while len(reveal) < original:
+		choice = makeChoice("Choose a card to reveal: ", hand)
+		reveal.append(hand.pop(choice))
+		again = input("Would you like to reveal another card [Y/n]?").title()
+		if again[0] == "N":
+			break
+	return reveal
+
+def key160(game, card):
+	""" Ammonia Clouds: Deal 3 damage to each creature.
+	"""
+	print(card.text)
+	active = game.activePlayer.board["Creature"]
+	inactive = game.activePlayer.board["Creature"]
+	pendingDiscA = []
+	pendingDiscI = []
+	
+	[x.damageCalc(3) for x in active]
+	[x.damageCalc(3) for x in inactive]
+	[pendingDiscA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].update()]
+	[pendingDiscI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
+	pending(game, pendingDiscA, game.activePlayer.discard)
+	pending(game, pendingDiscI, game.inactivePlayer.discard)
+
+def key161(game, card):
+	""" Battle Fleet: Reveal any number of Mars cards from your hand. For each card revealed this way, draw 1 card.
+	"""
+	print(card.text)
+	revealed = reveal(game, game.activePlayer.hand)
+	game.activePlayer.printShort(revealed)
+	game.activePlayer += len(revealed)
+	print("You drew " + str(len(revealed)) + " cards.")
+
+def key162(game, card):
+	""" Deep Probe: Choose a house: Reveal your opponent's hand. Discard each creature of that house revealed this way.
+	"""
+	print(card.text)
+	discard = []
+	house = ''
+	while house == '':
+		house = input("Choose a house: ").title()
+		if house in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]: break
+		else: house = ''
+	[discard.append(game.inactivePlayer.hand.pop(abs(x - len(game.inactivePlayer.hand) + 1))) for x in len(game.inactivePlayer.hand) if game.inactivePlayer.hand[abs(x - len(game.inactivePlayer.hand) + 1)].house == house and game.inactivePlayer.hand[abs(x - len(game.inactivePlayer.hand) + 1)].type == "Creature"]
+	print("Your opponent discarded:")
+	game.activePlayer.printShort(discard)
+
+def key163(game, card):
+	""" EMP Blast: Each Mars creature and each Robot creature is stunned. Each artifact is destroyed.
+	"""
+	print(card.text)
+	activeC = game.activePlayer.board["Creature"]
+	activeA = game.activePlayer.board["Artifact"]
+	inactiveC = game.inactivePlayer.board["Creature"]
+	inactiveA = game.inactivePlayer.board["Artifact"]
+	
+	for x in [x for x in (activeC + inactiveC) if x.house == "Mars" or "Robot" in x.traits]:
+		x.stun = True
+	pendingDiscard = activeA
+	pending(game, pendingDiscard, game.activePlayer.discard)
+	pendingDiscard = inactiveA
+	pending(game, pendingDiscard, game.inactivePlayer.discard)
+	print(game)
+
+def key164(game, card):
+	""" Hypnotic Command: For each friendly Mars creature, choose an enemy creature to capture one from their own side.
+	"""
+	print(card.text)
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+
+	count = 0
+	[count.__add__(1) for x in active if x.house == "Mars" and x.type == "Creature"] # second part of if is for redundancy
+	print("You have " + str(count) + " Mars creatures.")
+	while count > 0:
+		choice = makeChoice("Choose an enemy creature to capture one amber from their own side: ", inactive)
+		# looks like they can choose the same minion each time
+		inactive[choice].capture(game, 1, True)
+		count -= 1
+	print("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+	
+def key165(game, card):
+	""" Irradiated Amber: If your opponent has 6 or more amber, deal 3 damage to each enemy creature.
+	"""
+	print(card.text)
+	inactive = game.inactivePlayer.board["Creature"]
+	pendingDisc = []
+
+	if game.inactivePlayer.amber >= 6:
+		[x.damageCalc(3) for x in inactive]
+		[pendingDisc.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
+
+def key166(game, card):
+	""" Key Abduction: Return each Mars creature to its owner's hand. Then you may forge a key at +9 current cost, reduced by 1 for each card in your hand.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	
+	[game.activePlayer.hand.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].house == "Mars" and active[abs(x - len(active) + 1)].type == "Creature"]
+	[game.inactivePlayer.hand.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].house == "Mars" and inactive[abs(x - len(inactive) + 1)].type == "Creature"]
+	if game.activePlayer.amber >= (game.activePlayer.keyCost + 9 - len(game.activePlayer.hand)):
+		print("You may now forge a key for " + str(game.activePlayer.keyCost + 9 - len(game.activePlayer.hand)) + " amber.")
+		forge = input("Would you like so to do [Y/n]? ").title()
+		if forge[0] == "N":
+			print("You have chosen not to forge a key.")
+			return
+		print("Forging key!")
+		game.activePlayer.amber -= (game.activePlayer.keyCost + 9 - len(game.activePlayer.hand))
+		game.activePlayer.keys += 1
+		if game.activePlayer.keys == 3:
+			game.endBool = False # This will make the game end.
+			return
+		print("You now have " + game.activePlayer.amber + " amber.")
+
+def key167(game, card):
+	""" Martian Hounds: Choose a creature. For each damaged creature, give the chosen creature two +1 power counters.
+	"""
+	count = 0
+	[count.__add__(1) for x in (game.activePlayer.board["Creature"] + game.activePlayer.board["Creature"]) if x.damage > 0]
+	choice, side = chooseSide(game)
+	if count == 0:
+		print("There are no damaged creatures, so no power will be gained. The card is still played.")
+		return
+	if side == 0: # friendly
+		choice = game.activePlayer.board["Creature"][choice]
+		choice.extraPow += (2 * count)
+		print(choice.title + " now has " + str(choice.power + choice.extraPow) + " power.")
+		return
+	choice = game.inactivePlayer.board["Creature"][choice]
+	choice.extraPow += (2 * count)
+	print(choice.title + " now has " + str(choice.power + choice.extraPow) + " power.")
 
 
 if __name__ == '__main__':

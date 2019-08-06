@@ -30,7 +30,7 @@ class Deck:
         self.amber = 0
         self.keyCost = 6
         # whenever a state-creating card is played, it will add its state to this dict (use .update({key:value}) or [key]=value)
-        self.states = {"Forge": {"Interdimensional Graft":False}, "House": {"Control the Weak":False}, "Play": {"Library Access":False, "Phase Shift":[False], "Scrambler Storm":False}, "Fight": {"Warsong":[False], "Foggify":False}, "Buff": {}, "Destroyed":{"Loot the Bodies":[False]}, "Reap": {"Dimension Door":False}}
+        self.states = {"Forge": {"Interdimensional Graft":False}, "House": {"Control the Weak":False}, "Play": {"Library Access":False, "Phase Shift":[False], "Scrambler Storm":False}, "Fight": {"Warsong":[False], "Foggify":False, "Skippy Timehog":False}, "Buff": {}, "Destroyed":{"Loot the Bodies":[False]}, "Reap": {"Dimension Door":False, "Skippy Timehog":False}, "Action": {"Skippy Timehog":False}}
         self.pendingDest = []
         
     def __repr__(self):

@@ -1,7 +1,3 @@
-__package__ = 'cards'
-
-from cards.board import MyBoard, OppBoard
-
 def fighting(attacker, target = False):
     """This fight function is called by a different fight function which gets user input to determine the target.
     """
