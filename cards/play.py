@@ -6,6 +6,9 @@ from functools import reduce
 # This is a list of functions for all the play effects on cards, including creature, upgrades, action cards
 # Basically any and all cards with "Play:" on them
 
+def absa(num, L):
+	return abs(num - len(L) + 1)
+
 def backwardsList(input_L, actionstring, compstring, result_L = []):
 	""" [pendingDiscard.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].captured > 0]
 	"""
@@ -37,11 +40,12 @@ def pending(game, L, destination, fromPlay = True):
 	# also needs to confirm that it's putting cards in the right discard pile b/c creatures can be stolen
 	if L == []:
 		return
+	length = len(L)
 	for x in range(len(L)):
-		if destination == game.activePlayer.discard and L[abs(x - len(L) + 1)].deck != game.activePlayer.name:
-			game.inactivePlayer.discard.append(L.pop(abs(x - len(L) + 1)))
-		elif destination == game.inactivePlayer.discard and L[abs(x - len(L) + 1)].deck != game.inactivePlayer.name:
-			game.activePlayer.discard.append(L.pop(abs(x - len(L) + 1)))
+		if destination == game.activePlayer.discard and L[abs(x - length + 1)].deck != game.activePlayer.name:
+			game.inactivePlayer.discard.append(L.pop(abs(x - length + 1)))
+		elif destination == game.inactivePlayer.discard and L[abs(x - length + 1)].deck != game.inactivePlayer.name:
+			game.activePlayer.discard.append(L.pop(abs(x - length + 1)))
 	if (destination == game.activePlayer.discard or destination == game.inactivePlayer.discard) and ("Annihilation Ritual" in [x.title for x in game.activePlayer.board["Artifact"]] or "Annihilation Ritual" in [x.title for x in game.inactivePlayer.board["Artifact"]]):
 		if destination == game.activePlayer.discard:
 			destination = game.activePlayer.purge
@@ -253,25 +257,25 @@ def key007 (game, card):
 	inactiveBoard = game.inactivePlayer.board["Creature"]
 	pendingDiscardA = []
 	pendingDiscardI = []
-
+	length = len(activeBoard)
 	# active player
 	undamageList = [x.damage for x in activeBoard if x.damage == 0]
 	# easy case: everything undamaged
 	if len(undamageList) == len(activeBoard): pendingDiscardA = activeBoard
 	else:
-		[pendingDiscardA.append(activeBoard.pop(abs(x - len(activeBoard) + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - len(activeBoard) + 1)].damage == 0]
+		[pendingDiscardA.append(activeBoard.pop(abs(x - length + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - length + 1)].damage == 0]
 		# for x in range(len(activeBoard)):
 			# so that i can work from right to left
 			# x = abs(x - len(activeBoard) + 1)
 			# if activeBoard[x].damage > 0:
 			# 	pendingDiscard.append(activeBoard.pop(x))
-
+	length = len(inactiveBoard)
 	# inactive player
 	undamageList = [x.damage for x in inactiveBoard if x.damage == 0]
 	# easy case: everything undamaged
 	if len(undamageList) == len(inactiveBoard): pendingDiscardI = inactiveBoard
 	else:
-		[pendingDiscardI.append(inactiveBoard.pop(abs(x - len(inactiveBoard) + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - len(inactiveBoard) + 1)].damage == 0]
+		[pendingDiscardI.append(inactiveBoard.pop(abs(x - length + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - length + 1)].damage == 0]
 		# for x in range(len(inactiveBoard)):
 		# 	# so that i can work from right to left
 		# 	x = abs(x - len(inactiveBoard) + 1)
@@ -353,7 +357,9 @@ def key011 (game, card):
 	"""
 	inactiveBoard = game.inactivePlayer.board
 	count = 0
-	[count.__add__(1) for x in (inactiveBoard["Creature"] + inactiveBoard["Artifact"]) if x.house == "Logos"]
+	for x in (inactiveBoard["Creature"] + inactiveBoard["Artifact"]):
+		if x.house == "Logos":
+			count += 1
 	if count >= 3:
 		stealAmber(game.activePlayer, game.inactivePlayer, 2)
 	else:
@@ -511,12 +517,13 @@ def key031(game, card):
 	inactiveBoard = game.inactivePlayer.board["Creature"]
 	pendingDiscardA = []
 	pendingDiscardI = []
-
+	length = len(activeBoard)
 	# active board: LC
-	[pendingDiscardA.append(activeBoard.pop(abs(x - len(activeBoard) + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - len(activeBoard) + 1)].power <= 3]
+	[pendingDiscardA.append(activeBoard.pop(abs(x - length + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - length + 1)].power <= 3]
 	pending(game, pendingDiscardA, game.activePlayer.discard)
 	# then inactive
-	[pendingDiscardI.append(inactiveBoard.pop(abs(x - len(inactiveBoard) + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - len(inactiveBoard) + 1)].power <= 3]
+	length = len(inactiveBoard)
+	[pendingDiscardI.append(inactiveBoard.pop(abs(x - length + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - length + 1)].power <= 3]
 	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 
 def key033(game, card):
@@ -553,10 +560,12 @@ def key036(game, card):
 	# deal damage
 	[x.damageCalc(2) for x in inactiveBoard if x.damage == 0]
 	# check for deaths
-	[pendingDiscardA.append(activeBoard.pop(abs(x - len(activeBoard) + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - len(activeBoard) + 1)].update()]
+	length = len(activeBoard)
+	[pendingDiscardA.append(activeBoard.pop(abs(x - length + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - length + 1)].update()]
 	pending(game, pendingDiscardA, game.activePlayer.discard)
 	# check for deaths
-	[pendingDiscardI.append(inactiveBoard.pop(abs(x - len(inactiveBoard) + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - len(inactiveBoard) + 1)].update()]
+	length = len(inactiveBoard)
+	[pendingDiscardI.append(inactiveBoard.pop(abs(x - length + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - length + 1)].update()]
 	pending(game, pendingDiscardI, game.activePlayer.discard)
 
 def key040(game, card):
@@ -587,8 +596,8 @@ def key049(game, card):
 	"""
 	index = game.activePlayer.board["Creature"].index(card)
 	activeBoard = game.activePlayer.board["Creature"]
-	
-	[game.activePlayer.hand.append(activeBoard.pop(abs(x - len(activeBoard) + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - len(activeBoard) + 1)].house == 'Brobnar' and abs(x - len(activeBoard) + 1) != index]
+	length = len(activeBoard)
+	[game.activePlayer.hand.append(activeBoard.pop(abs(x - length + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - length + 1)].house == 'Brobnar' and abs(x - length + 1) != index]
 
 def key052(game, card):
 	"""Yo Mama Mastery: Fully heal this creature
@@ -620,7 +629,9 @@ def key053(game, card):
 		print(repr(game.inactivePlayer.deck[-1]) + "\n")
 		house = game.inactivePlayer.deck[-1].house
 		[print(x + ": " + str(x)) for x in game.inactivePlayer.hand]
-		[(count.__add__(1)) for x in game.inactivePlayer.hand if x.house == house]
+		for x in game.inactivePlayer.hand:
+			if x.house == house:
+				count += 1
 		print("Your opponent has " + str(count) + " cards in their hand of the same house as the discarded card. You gain that much amber.")
 	else:
 		print("Your opponent has no cards to discard, so you gain no amber. The card is still played.")
@@ -632,7 +643,9 @@ def key053(game, card):
 		print(repr(game.activePlayer.deck[-1]) + "\n")
 		house = game.activePlayer.deck[-1].house
 		[print(x + ": " + str(x)) for x in game.activePlayer.hand]
-		[(count.__add__(1)) for x in game.activePlayer.hand if x.house == house]
+		for x in game.activePlayer.hand:
+			if x.house == house:
+				count += 1
 		print("You have " + str(count) + " cards in your hand of the same house as the discarded card. Your opponent gains that much amber.")
 	else:
 		print("You have no cards to discard, so your opponent gains no amber. The card is still played.")
@@ -648,7 +661,8 @@ def key054(game, card):
 		if house in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]: break
 		else: house = ''
 	# return cards from discard pile
-	[game.activePlayer.hand.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].house == house and active[abs(x - len(active) + 1)].type == "Creature"]
+	length = len(active)
+	[game.activePlayer.hand.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].house == house and active[abs(x - length + 1)].type == "Creature"]
 	# finally, add chains
 	game.activePlayer.chains += 1
 
@@ -714,10 +728,12 @@ def key057(game, card):
 	pendingDestroyed = []
 	choice = makeChoice("Choose a number. All creatures with power equal to this number will be destroyed: ")
 	# active player
-	[pendingDestroyed.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].power == choice]
+	length = len(active)
+	[pendingDestroyed.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].power == choice]
 	pending(game, pendingDestroyed, game.activePlayer.discard)
 	#inactive player
-	[pendingDestroyed.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].power == choice]
+	length = len(inactive)
+	[pendingDestroyed.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].power == choice]
 	pending(game, pendingDestroyed, game.inactivePlayer.discard)
 
 def key058(game, card):
@@ -785,9 +801,11 @@ def key061(game, card):
 	pendingDiscardA = []
 	pendingDiscardI = []
 	# active player
-	[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].captured > 0]
+	length = len(active)
+	[pendingDiscardA.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].captured > 0]
 	# inactive player
-	[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].captured > 0]
+	length = len(inactive)
+	[pendingDiscardI.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].captured > 0]
 	pending(game, pendingDiscardA, game.activePlayer.discard)
 	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 
@@ -833,11 +851,13 @@ def key063(game, card):
 	pendingDiscardA = []
 	pendingDiscardI = []
 	# active player
-	[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].house == "Dis"]
+	length = len(active)
+	[pendingDiscardA.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length+ 1)].house == "Dis"]
 	count = len(pendingDiscardA)
 	game.activePlayer.amber += count
 	# inactive player
-	[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].house == "Dis"]
+	length = len(inactive)
+	[pendingDiscardI.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].house == "Dis"]
 	count = len(pendingDiscardI)
 	game.inactivePlayer.amber += count
 	pending(game, pendingDiscardA, game.activePlayer.discard)
@@ -852,11 +872,13 @@ def key064(game, card):
 	pendingDiscardI = []
 	# deal 1 damage to everything
 	# active
+	length = len(active)
 	[x.damageCalc(1) for x in active]
-	[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in active if x.update()]
+	[pendingDiscardA.append(active.pop(abs(x - length + 1))) for x in active if active[abs(x - length + 1)].update()]
 	# inactive
+	length = len(inactive)
 	[x.damageCalc(1) for x in inactive]
-	[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in inactive if x.update()]
+	[pendingDiscardI.append(inactive.pop(abs(x - length + 1))) for x in inactive if inactive[abs(x - length + 1)].update()]
 	pending(game, pendingDiscardA, game.activePlayer.discard)
 	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 
@@ -864,11 +886,13 @@ def key064(game, card):
 	if not game.forgedLastTurn[0]:
 		return
 	# active
+	length = len(active)
 	[x.damageCalc(3) for x in active]
-	[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in active if x.update()]
+	[pendingDiscardA.append(active.pop(abs(x - length + 1))) for x in active if active[abs(x - length + 1)].update()]
 	# inactive
+	length = len(inactive)
 	[x.damageCalc(3) for x in inactive]
-	[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in inactive if x.update()]
+	[pendingDiscardI.append(inactive.pop(abs(x - length + 1))) for x in inactive if inactive[abs(x - length + 1)].update()]
 	pending(game, pendingDiscardA, game.activePlayer.discard)
 	pending(game, pendingDiscardI, game.inactivePlayer.discard)
 
@@ -878,9 +902,11 @@ def key065(game, card):
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
 	# active
-	[game.activePlayer.hand.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active))]
+	length = len(active)
+	[game.activePlayer.hand.append(active.pop(abs(x - length + 1))) for x in range(len(active))]
 	# inactive
-	[game.inactivePlayer.hand.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive))]
+	length = len(inactive)
+	[game.inactivePlayer.hand.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive))]
 
 def key066(game, card):
 	""" Key Hammer: If your opponent forged a key on their previous turn, unforge it. Your opponent gains 6 amber.
@@ -928,11 +954,15 @@ def key070(game, card):
 	"""
 	inactive = game.inactivePlayer.board["Creature"]
 	pendingDiscard = [] # fine b/c only hits one side
-	armorList = [inactive[abs(x - len(inactive) + 1)].armor for x in range(len(inactive))]
+	length = len(inactive)
+	armorList = [inactive[abs(x - length + 1)].armor for x in range(len(inactive))]
 	# deal damage
-	[(inactive[abs(x - len(inactive) + 1)].armor.__sub__(armorList[x]), inactive[abs(x - len(inactive) + 1)].damageCalc(armorList[x])) for x in range(len(inactive)) if armorList[x] > 0]
+	for x in range(len(inactive)):
+		if armorList[x] > 0:
+			inactive[abs(x - length + 1)].armor -= armorList[x]
+			inactive[abs(x - length + 1)].damageCalc(armorList[x])
 	# check for deaths
-	[pendingDiscard.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
+	[pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
 	pending(game, pendingDiscard, game.inactivePlayer.discard)
 
 def key071(game, card):
@@ -963,15 +993,19 @@ def key071(game, card):
 		count = len(highList)
 		if count == left: # add all to relevant discards and done
 			# active
-			[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].power == high]
+			length = len(active)
+			[pendingDiscardA.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].power == high]
 			pending(game, pendingDiscardA, game.activePlayer.discard)
 			#inactive
-			[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].power == high]
+			length = len(inactive)
+			[pendingDiscardI.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].power == high]
 			pending(game, pendingDiscardI, game.inactivePlayer.discard)
 			return
 		elif count < left: # add all to relevant discards and continue
-			[pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].power == high]
-			[pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].power == high]
+			length = len(active)
+			[pendingDiscardA.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].power == high]
+			length = len(inactive)
+			[pendingDiscardI.append(inactive.pop(abs(x - length+ 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].power == high]
 			left -= count
 		else: #if count > left, choose which card to discard
 			print("Your minions at specified power: ")
@@ -1523,8 +1557,10 @@ def key160(game, card):
 	
 	[x.damageCalc(3) for x in active]
 	[x.damageCalc(3) for x in inactive]
-	[pendingDiscA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].update()]
-	[pendingDiscI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
+	length = len(active)
+	[pendingDiscA.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].update()]
+	length = len(inactive)
+	[pendingDiscI.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
 	pending(game, pendingDiscA, game.activePlayer.discard)
 	pending(game, pendingDiscI, game.inactivePlayer.discard)
 
@@ -1547,7 +1583,8 @@ def key162(game, card):
 		house = input("Choose a house: ").title()
 		if house in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]: break
 		else: house = ''
-	[discard.append(game.inactivePlayer.hand.pop(abs(x - len(game.inactivePlayer.hand) + 1))) for x in len(game.inactivePlayer.hand) if game.inactivePlayer.hand[abs(x - len(game.inactivePlayer.hand) + 1)].house == house and game.inactivePlayer.hand[abs(x - len(game.inactivePlayer.hand) + 1)].type == "Creature"]
+	length = len(game.inactivePlayer.hand)
+	[discard.append(game.inactivePlayer.hand.pop(abs(x - length + 1))) for x in len(game.inactivePlayer.hand) if game.inactivePlayer.hand[abs(x - length + 1)].house == house and game.inactivePlayer.hand[abs(x - length + 1)].type == "Creature"]
 	print("Your opponent discarded:")
 	game.activePlayer.printShort(discard)
 
@@ -1576,7 +1613,9 @@ def key164(game, card):
 	inactive = game.inactivePlayer.board["Creature"]
 
 	count = 0
-	[count.__add__(1) for x in active if x.house == "Mars" and x.type == "Creature"] # second part of if is for redundancy
+	for x in active:
+		if x.house == "Mars" and x.type == "Creature": # second part of if is for redundancy
+			count += 1
 	print("You have " + str(count) + " Mars creatures.")
 	while count > 0:
 		choice = makeChoice("Choose an enemy creature to capture one amber from their own side: ", inactive)
@@ -1593,17 +1632,19 @@ def key165(game, card):
 	pendingDisc = []
 
 	if game.inactivePlayer.amber >= 6:
+		length = len(inactive)
 		[x.damageCalc(3) for x in inactive]
-		[pendingDisc.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
+		[pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
 
 def key166(game, card):
 	""" Key Abduction: Return each Mars creature to its owner's hand. Then you may forge a key at +9 current cost, reduced by 1 for each card in your hand.
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	
-	[game.activePlayer.hand.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].house == "Mars" and active[abs(x - len(active) + 1)].type == "Creature"]
-	[game.inactivePlayer.hand.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].house == "Mars" and inactive[abs(x - len(inactive) + 1)].type == "Creature"]
+	length = len(active)
+	[game.activePlayer.hand.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].house == "Mars" and active[abs(x - length + 1)].type == "Creature"]
+	length = len(inactive)
+	[game.inactivePlayer.hand.append(inactive.pop(abs(x - length+ 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].house == "Mars" and inactive[abs(x - length + 1)].type == "Creature"]
 	if game.activePlayer.amber >= (game.activePlayer.keyCost + 9 - len(game.activePlayer.hand)):
 		print("You may now forge a key for " + str(game.activePlayer.keyCost + 9 - len(game.activePlayer.hand)) + " amber.")
 		forge = input("Would you like so to do [Y/n]? ").title()
@@ -1621,8 +1662,11 @@ def key166(game, card):
 def key167(game, card):
 	""" Martian Hounds: Choose a creature. For each damaged creature, give the chosen creature two +1 power counters.
 	"""
+	print(card.text)
 	count = 0
-	[count.__add__(1) for x in (game.activePlayer.board["Creature"] + game.activePlayer.board["Creature"]) if x.damage > 0]
+	for x in (game.activePlayer.board["Creature"] + game.activePlayer.board["Creature"]):
+		if x.damage > 0:
+			count += 1
 	choice, side = chooseSide(game)
 	if count == 0:
 		print("There are no damaged creatures, so no power will be gained. The card is still played.")
@@ -1636,6 +1680,52 @@ def key167(game, card):
 	choice.extraPow += (2 * count)
 	print(choice.title + " now has " + str(choice.power + choice.extraPow) + " power.")
 
+def key168(game, card):
+	""" Martians Make Bad Allies: Reveal your hand. Purge each revealed non-Mars creature and gain 1 amber for each card purged this way.
+	"""
+	print(card.text)
+	active = game.activePlayer.hand
+	game.activePlayer.printShort(active)
+	length = len(active)
+	count = 0 
+	for x in range(len(active)):
+		if active[abs(x - length + 1)].house != "Mars" and active[abs(x - length + 1)].type == "Creature":
+			count += 1
+			print("Purging " + active[abs(x - length + 1)].title + ".")
+			game.activePlayer.purge.append(active.pop(abs(x - length + 1)))
+	if count > 0:
+		game.activePlayer.amber += count
+		print("You gained " + str(count) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
+		return
+	print("You had no creatures in hand. You gain no amber. The card is still played.")
+
+def key169(game, card):
+	""" Mass Abduction: Put up to 3 damaged enemy creatures into your archives. If any of these creatures leave your archives, they are put into their owner's hand instead.
+	"""
+	print(card.text)
+	inactive = game.inactivePlayer.board["Creature"]
+	count = len([x for x in inactive if x.damage > 0])
+	if count == 0:
+		print("There are no damaged enemy creatures. The card is still played.")
+	else:
+		while count > 0:
+			[print(x + ": " + str(x)) for x in range(len(inactive))]
+			choice = makeChoice("Choose a damaged enemy creature to target: ")
+			if inactive[choice].damage > 0:
+				game.activePlayer.archive.append(inactive.pop(choice))
+				count -= 1
+			else:
+				print("You can only target damaged creatures.")
+			if count > 0:
+				again = input("Would you like to archive another enemy creature [Y/n]?\n>>>")
+				if again[0] == "N":
+					return
+
+def key170(game, card):
+	""" Mating Season: Shuffle each Mars creature into its owner's deck. Each player gains 1 amber for each creature shuffled into their deck this way.
+	"""
+	print(card.text)
+	
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')
