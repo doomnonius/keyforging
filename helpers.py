@@ -510,7 +510,14 @@ class Game():
       location = [game.activePlayer.board["Creature"].index(x) for x in game.activePlayer.board["Creature"] if x.title == "Tunk"]
       for x in location:
         game.activePlayer.board["Creature"][x].damage = 0
-    
+    if game.activePlayer.states["Play"]["Charge"] and card.type == "Creature":
+      choice = makeChoice("Choose an enemy minion to deal 2 damage to: ", game.inactivePlayer.board["Creature"])
+      game.inactivePlayer.board["Creature"][choice].damageCalc(2)
+      pending = []
+      [pending.append(game.inactivePlayer.board["Creature"].pop(choice)) for x in range(1) if self.inactivePlayer.board["Creature"][choice].update()]
+      play.pending(game, pending, self.inactivePlayer.discard)
+
+
 
 
 

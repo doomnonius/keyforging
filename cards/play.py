@@ -1603,9 +1603,9 @@ def key163(game, card):
 	inactiveC = game.inactivePlayer.board["Creature"]
 	inactiveA = game.inactivePlayer.board["Artifact"]
 	
-	for x in [x for x in (activeC + inactiveC) if x.house == "Mars" or "Robot" in x.traits]:
+	for x in [x for x in (activeC + inactiveC) if x.house == "Mars" or "Robot" in x.traitList]:
 		x.stun = True
-	pendingDiscard = activeA
+	pendingDiscard = activeA # fine because Artifacts don't have destroyed effects
 	pending(game, pendingDiscard, game.activePlayer.discard)
 	pendingDiscard = inactiveA
 	pending(game, pendingDiscard, game.inactivePlayer.discard)
@@ -1635,7 +1635,7 @@ def key165(game, card):
 	"""
 	
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDisc = []
+	pendingDisc = [] # fine because only one side
 
 	if game.inactivePlayer.amber >= 6:
 		length = len(inactive)
@@ -1723,7 +1723,7 @@ def key169(game, card):
 			else:
 				print("You can only target damaged creatures.")
 			if count > 0:
-				again = input("Would you like to archive another enemy creature [Y/n]?\n>>>")
+				again = input("Would you like to archive another enemy creature [Y/n]?\n>>>").title()
 				if again[0] == "N":
 					return
 
@@ -1756,7 +1756,7 @@ def key171(game, card):
 	
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDisc = []
+	pendingDisc = [] # fine because one target at a time
 	count = 0
 	for x in range(len(active)):
 		if x.house == "Mars" and x.ready == True:
@@ -1788,7 +1788,7 @@ def key172(game, card):
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	pendingDisc = []
+	pendingDisc = [] # fine because only one side
 	revealed = reveal(game, game.activePlayer.hand)
 	count = len(revealed)
 	if count == 0:
@@ -1912,8 +1912,159 @@ def key179(game, card):
 	pending(game, pendingHand, game.activePlayer.hand, ask = False)
 
 def key203(game, card):
-	""" Yxili Marauder: 
+	""" Yxili Marauder: Capture 1 amber for each friendly ready Mars creature.
 	"""
+	active = game.activePlayer.board["Creature"]
+	count = 0
+	for x in active:
+		if x.ready == True and x.house == "Mars":
+			count += 1
+	if count == 0:
+		print("You have no friendly ready Mars creatures. " + card.title + " captures no amber.")
+		return
+	while count > 0 and game.inactivePlayer.amber > 0:
+		card.capture(1)
+		count -= 1
+	print("Yxili Marauder captured " + str(card.captured) + " amber.")
+	card.extraPow = card.captured
+
+
+###########
+# Sanctum #
+###########
+
+
+def key212(game, card):
+	""" Begone!: Choose one: destroy each Dis creature, or gain 1 amber.
+	"""
+	while True:
+		choice = input("Would you like to [D]estroy each Dis creature, or [G]ain 1 amber?").title()
+		if choice[0] == "D":
+			active = game.activePlayer.board["Creature"]
+			inactive = game.inactivePlayer.board["Creature"]
+			pendingA = []
+			pendingI = []
+			length = len(active)
+			[pendingA.append(active.pop(absa(x, length))) for x in range(length) if active[absa(x, length)].house == "Dis"]
+			length = len(inactive)
+			[pendingA.append(inactive.pop(absa(x, length))) for x in range(length) if inactive[absa(x, length)].house == "Dis"]
+			pending(game, pendingA, game.activePlayer.discard)
+			pending(game, pendingI, game.inactivePlayer.discard)
+			return
+		if choice[0] == "G":
+			game.activePlayer.amber += 1
+			print("You now have " + str(game.activePlayer.amber) + " amber.")
+			return
+		print("Not a valid input. Try again.")
+
+def key213(game, card):
+	""" Blinding Light: Choose a house. Stun each creature of that house.
+	"""
+	while True:
+		house = input("Choose a house. For handy reference, your opponent's houses are " + game.inactivePlayer.houses[0] + ", " + game.inactivePlayer.houses[1] + ", and " + game.inactivePlayer.houses[2] + ".\n>>>").title()
+		if house in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]: break
+		print("Not a valid input. Try again.")
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	count = 0
+	for x in (active + inactive):
+		if x.house == house:
+			x.stun = True
+			count += 1
+	print("You stunned " + str(count) + " minions.")
+
+def key214(game, card):
+	""" Charge!: For the remainder of the turn, each creature you play gains, "Play: Deal 2 to an enemy creature."
+	"""
+	game.activePlayer.states["Play"].update({card.title:True})
+
+def key215(game, card):
+	""" Cleansing Wave: Heal 1 damage from each creature. Gain 1 amber for each creature healed this way.
+	"""
+	inactive = game.inactivePlayer.board["Creature"]
+	active = game.activePlayer.board["Creature"]
+	count = 0
+	for x in (active + inactive):
+		if x.damage > 0:
+			x.damage -= 1
+			count += 1
+	print("You healed " + str(count) + " damage. You gain that much amber.")
+
+def key216(game, card):
+	""" Clear Mind: Unstun each friendly creature.
+	"""
+	active = game.activePlayer.board["Creature"]
+	for x in active:
+		if x.stun == True:
+			print(x.title + " is no longer stunned.")
+			x.stun = False
+
+def key217(game, card):
+	""" Doorstep to Heaven: Each player with 6 or more amber is reduced to five amber.
+	"""
+	if game.activePlayer.amber >= 6:
+		game.activePlayer.amber = 5
+	if game.inactivePlayer.amber >= 6:
+		game.inactivePlayer.amber = 5
+
+def key218(game, card):
+	""" Glorious Few: For each creature your opponent controls in excess of you, gain 1 amber.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	if len(inactive) > len(active):
+		game.activePlayer.amber += (len(inactive) - len(active))
+		print("You gained " + str(len(inactive) - len(active)) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
+		return
+	print("Your opponent does not have more creatures than you, so you gain no amber. The card is still played.")
+
+def key219(game, card):
+	""" Honorable Claim: Each friendly knight creature captures 1.
+	"""
+	active = game.activePlayer.board["Creature"]
+	count = 0
+	knights = []
+	for x in active:
+		if "Knight" in x.traitList:
+			count += 1
+			knights.append(x)
+	if count > game.inactivePlayer.amber and game.inactivePlayer.amber > 0:
+		print("You have more knights than your opponent has amber.")
+		while game.inactivePlayer.amber > 0:
+			choice = makeChoice("Choose a knight to capture 1 amber: ", knights)
+			knights[choice].capture(1)
+			knights.pop(choice)
+		print("You captured all of your opponent's amber.")
+		return
+	if count < game.inactivePlayer.amber:
+		[x.capture(1) for x in knights]
+		return
+	print("Your opponent has no amber to capture.")
+
+def key220(game, card):
+	""" Inspiration: Ready and use a friendly creature.
+	"""
+	active = game.activePlayer.board["Creature"]
+	choice = makeChoice("Choose a friendly creature to ready and use: ", active)
+	active[choice].ready = True
+	uses =  ["Reap", "Fight"]
+	if active[choice].action: uses.append("Action")
+	while True:
+		use = input("How would you like to use this creature? Your options are " + str(uses) + "\n>>>").title()
+		if use in uses:
+			break
+	if use[0] == "R":
+		if game.checkReapStates:
+			active[choice].reap(game, active[choice])
+		return
+	if use[0] == "F":
+		if game.checkFightStates:
+			game.fightCard(choice)
+		return
+	if use[0] == "A":
+		if game.checkActionStates:
+			active[choice].action(game, active[choice])
+
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

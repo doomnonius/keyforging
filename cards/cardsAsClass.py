@@ -75,9 +75,19 @@ class Card():
             # check for taunt in self.text
             if "Taunt" in self.text: self.taunt = True
             else: self.taunt = False
-            if "Reap:" in self.text: self.reap = True
-            else: self.reap = False
-            if "Fight:" in self.text or "Fight/" in self.text: self.fight = True
+            if "Reap:" in self.text:
+                try:
+                    self.reap = eval("reap.key" + self.number)
+                except:
+                    print("The reap effect wasn't properly applied.")
+                    self.reap = reap.basicReap
+            else: self.reap = reap.basicReap
+            if "Fight:" in self.text or "Fight/" in self.text:
+                try:
+                    self.reap = eval("fight.key" + self.number)
+                except:
+                    print("The fight effect wasn't properly applied.")
+                    self.fight = False
             else: self.fight = False
             if "Assault" in self.text: self.assault = True
             else: self.assault = False
@@ -91,8 +101,7 @@ class Card():
         if self.type == "Artifact":
             self.captured = False
             self.ready = False
-        playDir = dir(play)
-        if "key" + self.number in playDir:
+        if "Play:" in self.text or "Play/" in self.text:
             try:
                 self.play = eval("play.key" + self.number)
             except:
@@ -100,8 +109,7 @@ class Card():
                 self.play = play.passFunc
         else:
             self.play = play.passFunc("Throwaway", "Throwaway")
-        actDir = dir(action)
-        if "key" + self.number in actDir:
+        if "Action:" in self.text:
             try:
                 self.action = eval("action.key" + self.number)
             except:
@@ -110,7 +118,7 @@ class Card():
         else:
             self.action = False
         # Omni abilities will be in actDir
-        if "omni" + self.number in actDir:
+        if "Omni:" in self.text:
             try:
                 self.action = eval("action.omni" + self.number)
             except:
