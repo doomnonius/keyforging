@@ -6,8 +6,8 @@ from functools import reduce
 # This is a list of functions for all the play effects on cards, including creature, upgrades, action cards
 # Basically any and all cards with "Play:" on them
 
-def absa(num, L):
-	return abs(num - len(L) + 1)
+def absa(num, length):
+	return abs(num - length + 1)
 
 def backwardsList(input_L, actionstring, compstring, result_L = []):
 	""" [pendingDiscard.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].captured > 0]
@@ -38,6 +38,7 @@ def pending(game, L, destination, fromPlay = True):
 	"""
 	# need to update this, but if destination is discard and source is from play then check for annihilation ritual, etc
 	# also needs to confirm that it's putting cards in the right discard pile b/c creatures can be stolen
+	# will also reset cards when putting them anywhere (dealing with captured amber, losing extra power, extra armor, upgrades, etc.)
 	if L == []:
 		return
 	length = len(L)
