@@ -2065,6 +2065,86 @@ def key220(game, card):
 		if game.checkActionStates:
 			active[choice].action(game, active[choice])
 
+def key221(game, card):
+	""" Mighty Lance: Deal 3 damage to a creature and 3 damage to a neighbor of that creature.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	choice, side = chooseSide(game)
+	pendingD = []
+	
+	if side == 0: # friendly
+		neigh = active[choice].neighbors(game)
+		if neigh == 0:
+			print("This card has no neighbors. No extra damage is dealt.")
+		elif neigh == 1:
+			if choice == 0:
+				other = choice + 1
+		else:
+			while True:
+				other = makeChoice("Choose which neighbor to damage: ", active[choice-1:choice+2])
+				if other == 1:
+					print("You must select a neighbor of that minion. Try again.")
+					continue
+			if other == 0:
+				other = choice - 1
+			else:
+				other = choice + 1
+		active[choice].damageCalc(3)
+		active[other].damageCalc(3)
+		if choice > other:
+			[pendingD.append(active.pop(x)) for x in [choice, other] if active[x].update()]
+			pending(game, pendingD, game.activePlayer.discard)
+			return
+		[pendingD.append(active.pop(x)) for x in [other, choice] if active[x].update()]
+		pending(game, pendingD, game.activePlayer.discard)
+		return
+	if side == 1: # enemy
+		neigh = inactive[choice].neighbors(game)
+		if neigh == 0:
+			print("This card has no neighbors. No extra damage is dealt.")
+		elif neigh == 1:
+			if choice == 0: other = choice + 1
+			else: other = choice - 1
+		else:
+			while True:
+				other = makeChoice("Choose which neighbor to damage: ", inactive[choice-1:choice+2])
+				if other == 1:
+					print("You must select a neighbor of that minion. Try again.")
+					continue
+			if other == 0:
+				other = choice - 1
+			else:
+				other = choice + 1
+		inactive[choice].damageCalc(3)
+		inactive[other].damageCalc(3)
+		if choice > other:
+			[pendingD.append(inactive.pop(x)) for x in [choice, other] if inactive[x].update()]
+			pending(game, pendingD, game.inactivePlayer.discard)
+			return
+		[pendingD.append(inactive.pop(x)) for x in [other, choice] if inactive[x].update()]
+		pending(game, pendingD, game.inactivePlayer.discard)
+		return
+	if side == '':
+		return # chooseSide will tell the player that the board is empty
+
+def key222(game, card):
+	""" Oath of Poverty: Destroy each of your artifacts. Gain 2 amber for each artifact destroyed this way.
+	"""
+	active = game.activePlayer.board["Artifact"]
+	count = len(active)
+	if count == 0:
+		print("You have no artifacts, so no extra amber is gained. The card is still played.")
+		return
+	game.activePlayer.discard.extend(active)
+	active = []
+	game.activePlayer.amber += (count * 2)
+	print("You destroyed " + str(count) + " artifacts, so you gain " + str(count * 2) + " amber.")
+
+def key223(game, card):
+	""" One Stood Against Many: Ready and fight with a friendly creature 3 times, each time against a different enemy creature. Resolve these fights one at a time.
+	"""
+
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

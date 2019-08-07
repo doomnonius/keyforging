@@ -260,6 +260,38 @@ class Card():
         self.captured += inactive
         game.inactivePlayer.amber = 0
 
+    def neighbors(self, game):
+        """ Returns the number of neighbors a card has.
+        """
+        count = 0
+        active = game.activePlayer.board["Creature"]
+        inactive = game.inactivePlayer.board["Creature"]
+        
+        if self in active:
+            index = active.index(self)
+            try:
+                active[index + 1]
+                count += 1
+            except: print("This unit has no right-hand neighbor.")
+            try:
+                active[index - 1]
+                count += 1
+            except: print("This unit has no left-hand neighbor.")
+            return count
+        elif self in inactive:
+            index = inactive.index(self)
+            try:
+                inactive[index + 1]
+                count += 1
+            except: print("This unit has no right-hand neighbor.")
+            try:
+                inactive[index - 1]
+                count += 1
+            except: print("This unit has no left-hand neighbor.")
+            return count
+        else: print("This unit is not on the board, so it has no neighbors.")
+
+    
     def reset(self):
         """ Resets a card after it leaves the board.
         """
