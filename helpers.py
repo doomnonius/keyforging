@@ -128,7 +128,7 @@ class Game():
         time.sleep(1)
         # step 1: check if a key is forged, then forge it
         # all code is here because it's short
-        if self.checkForgeStates():
+        if self.checkForgeStates(): # maybe this function will determine key cost
           if self.activePlayer.amber >= self.activePlayer.keyCost:
             self.activePlayer.amber -= self.activePlayer.keyCost
             self.activePlayer.keys += 1
@@ -480,18 +480,42 @@ class Game():
           return False
     return True
 
-  def checkPlayStates(self):
+  def checkPlayStates(self, card):
     """ Checks for play states (full moon, etc.). By the time this is called, I already know if house matches.
     """
     # lifeward and other things that might return False first
     if self.activePlayer.states["Play"]["Scrambler Storm"]:
-      print("Your opponent played Scrambler Storm last turn, so you cannot play actions this turn.")
+      if card.type == "Action":
+        print("Your opponent played Scrambler Storm last turn, so you cannot play actions this turn.")
+        return False
+    if card.title == "Truebaru":
+      if self.activePlayer.amber < 3:
+        print("You must have 3 amber to sacrifice in order to play Truebaru.")
+        return False
+      self.activePlayer.amber -= 3
+    if "Grommid" in [x.title for x in self.activePlayer.board["Creature"]] and card.type == "Creature":
+      print("You can't play creatures with Grommid in play.")
       return False
-    # other play effects
+
+    
+    # other play effects - things that don't want returns
     if self.activePlayer.states["Play"]["Library Access"]:
       self.activePlayer += 1
       print("You draw a card because you played Library Access earlier this turn.")
-      return True # can play card
+    if self.activePlayer.states["Play"]["Soft Landing"]:
+      card.ready = True
+      print(card.title + " enters play ready!")
+      self.activePlayer.states["Play"]["Soft Landing"]
+    if card.house == "Mars" and card.type == "Creature" and "Tunk" in [x.title for x in game.activePlayer.board["Creature"]]:
+      location = [game.activePlayer.board["Creature"].index(x) for x in game.activePlayer.board["Creature"] if x.title == "Tunk"]
+      for x in location:
+        game.activePlayer.board["Creature"][x].damage = 0
+    
+
+
+
+    # only return True at the very end
+    return True
 
   def checkReapStates(self):
     """ Checks for things that disallow reaping.
@@ -563,7 +587,7 @@ class Game():
     print(self.numPlays)
     if booly and self.numPlays > 0:
       # print("playCard area 1") # test line
-      if (self.activePlayer.hand[chosen].house in self.activeHouse or self.activePlayer.states["Play"]["Phase Shift"]) and chosen < len(self.activePlayer.hand):
+      if (self.activePlayer.hand[chosen].house in self.activeHouse or self.activePlayer.states["Play"]["Phase Shift"][0]) and chosen < len(self.activePlayer.hand):
         # print("playCard area 1.1") # test line
         if self.activePlayer.states["Play"]["Phase Shift"] and self.activePlayer.hand[chosen].house != "Logos":
           # then reset Phase Shift. And if the card being played is a mavericked phase shift, phase shift will be set to true again in a second
@@ -572,10 +596,11 @@ class Game():
             self.activePlayer.states["Play"]["Phase Shift"].pop()
           else: self.activePlayer.states["Play"]["Phase Shift"] = [False] # reset to false
         # Increases amber, adds the card to the action section of the board, then calls the card's play function
-        if not self.checkPlayStates():
+        if not self.checkPlayStates(self.activePlayer.hand[chosen]):
           return # checkPlayStates will print the reason
         self.activePlayer.amber += self.activePlayer.hand[chosen].amber
         flank = 1
+        print(self.activePlayer.hand[chosen].title + " gave you " + self.activePlayer.hand[chosen].amber + " amber. You now have " + self.activePlayer.amber + " amber.")
         cardType = self.activePlayer.hand[chosen].type
         if self.activePlayer.hand[chosen].type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
           # print("playCard area 1.3") # test line
@@ -607,6 +632,7 @@ class Game():
           print("playCard area 1.6") # test line
           self.upgrade()
         #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
+        print(location.text)
         try: location.play(self, location)
         except:
           print("this card's play action failed.")

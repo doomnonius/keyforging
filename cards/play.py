@@ -17,6 +17,8 @@ def backwardsList(input_L, actionstring, compstring, result_L = []):
 def makeChoice(stringy, L = []):
 	""" Takes a string explaining the choice and a list, only accepts results within the length of the list, unless the list is empty, then it just returns the number.
 	"""
+	if L != 0:
+		[print(str(x) + ": " + str(L[x])) for x in range(len(L))]
 	while True:
 		try:
 			choice = int(input(stringy))
@@ -32,7 +34,7 @@ def makeChoice(stringy, L = []):
 def passFunc(game, card):
 	return
 
-def pending(game, L, destination, fromPlay = True):
+def pending(game, L, destination, fromPlay = True, ask = False):
 	""" A function that deals with pending piles of cards.
 	Arguments: game should be self-evident, it's needed to be able to modify the game, L is the list being emptied, and destination is the list being appended to.
 	"""
@@ -54,6 +56,9 @@ def pending(game, L, destination, fromPlay = True):
 			destination = game.inactivePlayer.purge
 	final = len(L) + len(destination)
 	game.activePlayer.printShort(L, False)
+	if not ask:
+		destination.extend(L) # list will be reset in higher order function
+		return
 	while len(L) > 1:
 		choice = makeChoice("Choose which card to add to the top of your deck next: ", L)
 		destination.append(L.pop(choice))
@@ -64,7 +69,7 @@ def pending(game, L, destination, fromPlay = True):
 		raise ValueError("card.pending did not extend the destination the correct length")
 
 def chooseSide(game, stringy = "Creature", choices = True):
-	""" A return of 0 is friendly, 1 is enemy. Strings can make it deal with different lists. Choices set to true returns choice, side; set to false returns only side.
+	""" A return of 0 is friendly, 1 is enemy. Strings can make it deal with different lists. Choices set to true returns choice, side; set to false returns only side. Returns two empty strings if both sides are empty.
 	"""
 	activeBoard = game.activePlayer.board[stringy]
 	inactiveBoard = game.inactivePlayer.board[stringy]
@@ -1253,7 +1258,7 @@ def key118(game, card):
 	inactive = game.inactivePlayer.board["Creature"]
 	pendingDisc = [] # fine b/c only one side
 
-	print(card.text)
+	
 	side = chooseSide(game, choices = False) # only sides w/ at least one creature can be returned from this function
 	while True:
 		choice = input("Choose [L]eft flank or [R]ight flank: ")
@@ -1392,14 +1397,14 @@ def key138(game, card):
 def key140(game, card):
 	""" Dr. Escotera: Gain 1 amber for each key your opponent has.
 	"""
-	print(card.text)
+	
 	game.activePlayer.amber += game.inactivePlayer.keys
 	print("You now have " + str(game.activePlayer.amber) + " amber")
 
 def key141(game, card):
 	""" Dysania: Your opponent discards each of their archived cards. You gain 1 amber for each card discarded this way.
 	"""
-	print(card.text)
+	
 	if len(game.inactivePlayer.archive) > 0:
 		game.activePlayer.amber += len(game.inactivePlayer.archive)
 		print("You gained " + str(len(game.inactivePlayer.archive)) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
@@ -1413,7 +1418,7 @@ def key143(game, card):
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
 
-	print(card.text)
+	
 	while True:
 		choice = input("Choose [L]eft flank or [R]ight flank enemy creature to target: ")
 		if choice[0] == "L":
@@ -1498,7 +1503,7 @@ def key146(game, card):
 def key149(game, card):
 	""" Psychic Bug: Look at your opponent's hand.
 	"""
-	print(card.text)
+	
 	inhand = game.inactivePlayer.hand
 
 	game.activePlayer.printShort(inhand)
@@ -1506,7 +1511,7 @@ def key149(game, card):
 def key152(game, card):
 	""" Skippy Timehog: Your opponent canot use any cards next turn.
 	"""
-	print(card.text)
+	
 	game.inactivePlayer.states["Reap"].update({card.title:True})
 	game.inactivePlayer.states["Fight"].update({card.title:True})
 	game.inactivePlayer.states["Action"].update({card.title:True})
@@ -1514,7 +1519,7 @@ def key152(game, card):
 def key153(game, card):
 	""" Timetraveller: Draw two cards.
 	"""
-	print(card.text)
+	
 	game.activePlayer += 2
 
 def key157(game, card):
@@ -1550,7 +1555,7 @@ def reveal(game, L):
 def key160(game, card):
 	""" Ammonia Clouds: Deal 3 damage to each creature.
 	"""
-	print(card.text)
+	
 	active = game.activePlayer.board["Creature"]
 	inactive = game.activePlayer.board["Creature"]
 	pendingDiscA = []
@@ -1568,7 +1573,7 @@ def key160(game, card):
 def key161(game, card):
 	""" Battle Fleet: Reveal any number of Mars cards from your hand. For each card revealed this way, draw 1 card.
 	"""
-	print(card.text)
+	
 	revealed = reveal(game, game.activePlayer.hand)
 	game.activePlayer.printShort(revealed)
 	game.activePlayer += len(revealed)
@@ -1577,7 +1582,7 @@ def key161(game, card):
 def key162(game, card):
 	""" Deep Probe: Choose a house: Reveal your opponent's hand. Discard each creature of that house revealed this way.
 	"""
-	print(card.text)
+	
 	discard = []
 	house = ''
 	while house == '':
@@ -1592,7 +1597,7 @@ def key162(game, card):
 def key163(game, card):
 	""" EMP Blast: Each Mars creature and each Robot creature is stunned. Each artifact is destroyed.
 	"""
-	print(card.text)
+	
 	activeC = game.activePlayer.board["Creature"]
 	activeA = game.activePlayer.board["Artifact"]
 	inactiveC = game.inactivePlayer.board["Creature"]
@@ -1609,7 +1614,7 @@ def key163(game, card):
 def key164(game, card):
 	""" Hypnotic Command: For each friendly Mars creature, choose an enemy creature to capture one from their own side.
 	"""
-	print(card.text)
+	
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
 
@@ -1628,7 +1633,7 @@ def key164(game, card):
 def key165(game, card):
 	""" Irradiated Amber: If your opponent has 6 or more amber, deal 3 damage to each enemy creature.
 	"""
-	print(card.text)
+	
 	inactive = game.inactivePlayer.board["Creature"]
 	pendingDisc = []
 
@@ -1663,7 +1668,7 @@ def key166(game, card):
 def key167(game, card):
 	""" Martian Hounds: Choose a creature. For each damaged creature, give the chosen creature two +1 power counters.
 	"""
-	print(card.text)
+	
 	count = 0
 	for x in (game.activePlayer.board["Creature"] + game.activePlayer.board["Creature"]):
 		if x.damage > 0:
@@ -1684,7 +1689,7 @@ def key167(game, card):
 def key168(game, card):
 	""" Martians Make Bad Allies: Reveal your hand. Purge each revealed non-Mars creature and gain 1 amber for each card purged this way.
 	"""
-	print(card.text)
+	
 	active = game.activePlayer.hand
 	game.activePlayer.printShort(active)
 	length = len(active)
@@ -1703,7 +1708,7 @@ def key168(game, card):
 def key169(game, card):
 	""" Mass Abduction: Put up to 3 damaged enemy creatures into your archives. If any of these creatures leave your archives, they are put into their owner's hand instead.
 	"""
-	print(card.text)
+	
 	inactive = game.inactivePlayer.board["Creature"]
 	count = len([x for x in inactive if x.damage > 0])
 	if count == 0:
@@ -1725,8 +1730,190 @@ def key169(game, card):
 def key170(game, card):
 	""" Mating Season: Shuffle each Mars creature into its owner's deck. Each player gains 1 amber for each creature shuffled into their deck this way.
 	"""
-	print(card.text)
+	actDeck = game.activePlayer.deck
+	inactDeck = game.inactivePlayer.deck
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
 	
+	if "Mars" in [x.house for x in active]:
+		length = len(active)
+		[actDeck.append(active.pop(absa(x, length))) for x in range(len(active)) if active[absa(x, length)].house == "Mars"]
+		random.shuffle(actDeck)
+		game.activePlayer.amber += (length - len(active))
+		return
+	print("You have no Mars creatures, so you gain no amber.")
+	if "Mars" in [x.house for x in inactive]:
+		length = len(inactive)
+		[inactDeck.append(inactive.pop(absa(x, length))) for x in range(len(inactive)) if inactive[absa(x, length)].house == "Mars"]
+		random.shuffle(inactDeck)
+		game.inactivePlayer.amber += (length - len(inactive))
+		return
+	print("Your opponent has no Mars creatures, so they gain no amber.")
+
+def key171(game, card):
+	""" Mothership Support: For each friendly ready Mars creature, deal 2 damage to a creature. (You may choose a different creature each time.)
+	"""
+	
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pendingDisc = []
+	count = 0
+	for x in range(len(active)):
+		if x.house == "Mars" and x.ready == True:
+			count += 1
+	if count == 0:
+		print("You have no Mars creatures, so no damage is dealt. The card is still played.")
+		return
+	while count > 0:
+		choice, side = chooseSide(game)
+		if side == 0: # friendly
+			active[choice].damageCalc(2)
+			if active[choice].update():
+				pendingDisc.append(active.pop(choice))
+				pending(game, pendingDisc, game.activePlayer.discard)
+				count -= 1
+				continue
+		if side == 1: # enemy
+			inactive[choice].damageCalc(2)
+			if active[choice].update():
+				pendingDisc.append(active.pop(choice))
+				pending(game, pendingDisc, game.activePlayer.discard)
+				count -= 1
+				continue
+		if side == '':
+			break # side will tell them that they are no more targets
+
+def key172(game, card):
+	""" Orbital Bombardment: Reveal any number of Mars cards from your hand. For each card revealed this way, deal 2 damage to a creature. (you may choose a different creature each time.)
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pendingDisc = []
+	revealed = reveal(game, game.activePlayer.hand)
+	count = len(revealed)
+	if count == 0:
+		print("You have no Mars creatures, so no damage is dealt. The card is still played.")
+		return
+	while count > 0:
+		choice, side = chooseSide(game)
+		if side == 0: # friendly
+			active[choice].damageCalc(2)
+			if active[choice].update():
+				pendingDisc.append(active.pop(choice))
+				pending(game, pendingDisc, game.activePlayer.discard)
+				count -= 1
+				continue
+		if side == 1: # enemy
+			inactive[choice].damageCalc(2)
+			if active[choice].update():
+				pendingDisc.append(active.pop(choice))
+				pending(game, pendingDisc, game.activePlayer.discard)
+				count -= 1
+				continue
+		if side == '':
+			break # side will tell them that they are no more targets
+	
+def key173(game, card):
+	""" Phosphorous Stars: Stun each non-Mars creature. Gain 2 chains.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+
+	for x in (active + inactive):
+		if x.house != "Mars":
+			x.stun = True
+
+	game.activePlayer.chains += 2
+
+def key174(game, card):
+	""" Psychic Network: Steal 1 amber for each friendly ready Mars creature.
+	"""
+	active = game.activePlayer.board["Creature"]
+	count = 0
+	for x in active:
+		if x.house == "Mars" and x.ready == True:
+			count += 1
+	if count == 0:
+		print("You have no friendly ready Mars creatures, so you don't steal any amber. The card is still played.")
+		return
+	stealAmber(game.activePlayer, game.inactivePlayer, count)
+
+def key175(game, card):
+	""" Sample Collection: Put an enemy creature into your archives for each key your opponent has forged. If any of these creatures leave your archives, they are put into their owner's hand instead.
+	"""
+	count = game.inactivePlayer.keys
+	inactive = game.inactivePlayer.board["Creature"]
+	archive = game.activePlayer.archive
+	if count == 0:
+		print("Your opponent has forged no keys, so you archive no enemy creatures. The card is still played.")
+		return
+	while count > 0 and len(inactive) > 0:
+		[print(str(x) + ": " + str(inactive[x])) for x in range(len(inactive))]
+		choice = makeChoice("Choose an enemy creature to archive: ", inactive)
+		archive.append(inactive.pop(choice))
+
+def key176(game, choice):
+	""" Shatter Storm: Lose all your amber. Then, your opponent loses triple the amount of amber you lost this way.
+	"""
+	count = game.activePlayer.amber
+	if count == 0:
+		print("You have no amber to lose, so your opponent loses no amber. The card is still played.")
+		return
+	game.activePlayer.amber -= count
+	game.inactivePlayer.amber -= (count * 3)
+	if game.inactivePlayer.amber < 0:
+		game.inactivePlayer.amber = 0
+
+def key177(game, choice):
+	""" Soft Landing: The next creature or artifact you play this turn enters play ready.
+	"""
+	game.activePlayer.states["Play"].update({"Soft Landing":True})
+
+def key178(game, choice):
+	""" Squawker: Ready a Mars creature or stun a non-Mars creature.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	choice, side = chooseSide(game)
+	if side == 0: # friendly
+		if active[choice].house == "Mars":
+			active[choice].ready = True
+			print(active[choice].title + " is now ready!")
+		else:
+			active[choice].stun = True
+			print(active[choice].title + " is now stunned!")
+		return
+	if side == 1: # friendly
+		if inactive[choice].house == "Mars":
+			inactive[choice].ready = True
+			print(active[choice].title + " is now ready!")
+		else:
+			inactive[choice].stun = True
+			print(inactive[choice].title + " is now stunned!")
+		return
+	return # because chooseSide will tell them about the empty board
+
+def key179(game, card):
+	""" Total Recall: For each friendly ready creature, gain 1 amber. Return each friendly creature to your hand.
+	"""
+	active = game.activePlayer.board["Creature"]
+	pendingHand = []
+	count = 0
+	if len(active) == 0:
+		print("You have no friendly creatures, so nothing happens. The card is still played.")
+		return
+	for x in active:
+		if x.ready == True:
+			count += 1
+	if count == 0:
+		print("You have no ready creatures, so you gain no amber.")
+	pendingHand.extend(active)
+	active = []
+	pending(game, pendingHand, game.activePlayer.hand, ask = False)
+
+def key203(game, card):
+	""" Yxili Marauder: 
+	"""
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

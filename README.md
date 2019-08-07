@@ -20,12 +20,15 @@
    - <s>Draw Cards</s> - <b>Done</b>
 - Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.
 - Rewrite the base code to reflect the implementation of the cards
+- update the play card function to tell the player how much amber they got for playing the card. Also, update it to make it more succinct (hint: use return statements?).
 
 
 <h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>
 
 <h3>Randoms (one-offs that get their own special checks):</h3>
-- 44: Rock-Hurling Giant
+- 44: Rock-Hurling Giant - not sure I implemented this well
+- 192: Ether Spider - won't have a state, will just check for it everytime amber is gained (event emitter?)
+- 
 
 <h3>Play:</h3>
 <h4>Brobnar:</h4>
@@ -121,3 +124,14 @@
 - 167: Martian Hounds
 - 168: Martians Make Bad Allies - found a couple bugs that I had already implemented several times in my code. Think I fixed them all.
 - 169: Mass Abduction
+- 170: Mating Season
+- 171: Mothership Support
+- 172: Orbital Bombardment
+- 173: Phosphorous Stars
+- 174: Psychic Network
+- 175: Sample Collection
+- 176: Shatter Storm
+- 177: Soft Landing - another thing for states
+- 178: Squawker
+- 179: Total Recall
+- 203: 

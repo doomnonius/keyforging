@@ -91,9 +91,8 @@ class Card():
         if self.type == "Artifact":
             self.captured = False
             self.ready = False
-        if "Play:" in self.text or "Play/" in self.text:
-            # print("This card has an on play effect.") # test line
-            # find the appropriate play function. how?
+        playDir = dir(play)
+        if "key" + self.number in playDir:
             try:
                 self.play = eval("play.key" + self.number)
             except:
@@ -101,16 +100,24 @@ class Card():
                 self.play = play.passFunc
         else:
             self.play = play.passFunc("Throwaway", "Throwaway")
-        if "Action:" in self.text:
-            self.action = True
+        actDir = dir(action)
+        if "key" + self.number in actDir:
+            try:
+                self.action = eval("action.key" + self.number)
+            except:
+                print("The action effect wasn't properly applied.")
+                self.action = False
         else:
             self.action = False
-        if "Omni:" in self.text:
-            self.omni = True
-            # self.action = self.omni (so that omnis can be triggered by calling action)
+        # Omni abilities will be in actDir
+        if "omni" + self.number in actDir:
+            try:
+                self.action = eval("action.omni" + self.number)
+            except:
+                print("The omni effect wasn't properly applied.")
+                self.action = False
         else:
-            self.omni = False
-        self.resetValues = {}
+            self.action = False
         
 
     def __repr__(self):
@@ -245,6 +252,9 @@ class Card():
         self.captured += inactive
         game.inactivePlayer.amber = 0
 
+    def reset(self):
+        """ Resets a card after it leaves the board.
+        """
 
     def update(self):
         if self.health() <= 0:
