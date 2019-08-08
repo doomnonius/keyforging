@@ -21,6 +21,7 @@
 - Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.
 - Rewrite the base code to reflect the implementation of the cards
 - update the play card function to tell the player how much amber they got for playing the card. Also, update it to make it more succinct (hint: use return statements?).
+- need to implement hazardous and assault in fights
 
 
 <h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>
@@ -145,4 +146,14 @@
 - 218: Glorious Few
 - 219: Honorable Claim
 - 220: Inspiration
-- 221: 
+- 221: Mighty Lance
+- 222: Oath of Poverty
+- 223: One Stood Against Many
+- 224: Radiant Truth
+- 225: Shield of Justice
+- 226: Take Hostages
+- 227: Terms of Redress
+- 228: The Harder They Come
+- 229: The Spirit's Way
+- 231: Epic Quest
+- 246: Horseman of Death

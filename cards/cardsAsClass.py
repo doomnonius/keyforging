@@ -2,6 +2,7 @@ import cards.destroyed as dest
 import cards.fight as fight
 import cards.play as play
 import cards.actions as action
+import cards.reap as reap
 
 def listOfWords (S):
 	""" Builds from the back of the list. Either adds a new item
@@ -83,8 +84,15 @@ class Card():
                     self.reap = reap.basicReap
             else: self.reap = reap.basicReap
             if "Fight:" in self.text or "Fight/" in self.text:
-                try:
-                    self.reap = eval("fight.key" + self.number)
+                if "Before" in self.text:
+                    try: self.before = eval("fight.before" + self.number)
+                    except: 
+                        print("The before fight effect wasn't applied properly.")
+                        self.before = False
+                    return
+                else:
+                    self.before = False
+                try: self.fight = eval("fight.key" + self.number)
                 except:
                     print("The fight effect wasn't properly applied.")
                     self.fight = False
@@ -120,12 +128,12 @@ class Card():
         # Omni abilities will be in actDir
         if "Omni:" in self.text:
             try:
-                self.action = eval("action.omni" + self.number)
+                self.omni = eval("action.omni" + self.number)
             except:
                 print("The omni effect wasn't properly applied.")
-                self.action = False
+                self.omni = False
         else:
-            self.action = False
+            self.omni = False
         
 
     def __repr__(self):
@@ -190,50 +198,13 @@ class Card():
                 s += ", Stunned"
         return s
 
-    def damageCalc(self, num):
-        """ Calculates damage, considering armor only.
-        """
-        self.armor += self.extraArm # this means that extra armor only actually ends being applied when damage actually happens, which will make the reset armor function easier
-        if num >= self.armor:
-            self.damage += (num - self.armor)
-            self.armor = 0
-        else:
-            self.armor -= num
-    
-    def fightCard(self, other):
-        print(self.title + " is fighting " + other.title + "!")
-        # add hazardous and assault in here too
-        if self.skirmish:
-            print("The attacker has skirmish, and takes no damage.") # Test line
-            self.damageCalc(0)
-        elif other.elusive:
-            # print("skir elif") # Test line
-            self.damageCalc(0)
-        else:
-            # print("skir else") # Test line
-            self.damageCalc(other.power + other.extraPow)
-        if other.elusive:
-            print("The defender has elusive, so no damage is dealt.")
-            other.damageCalc(0) #other.power - self.armor
-            other.elusive = False
-        else:
-            # print("elu else") # test line
-            other.damageCalc(self.power + self.extraPow)
-        self.ready = False
-        print(self)
-        print(other)
-        return self, other
-
-    def health(self):
-        return (self.power + self.extraPow) - self.damage
-
     def capture(self, game, num, own = False):
         """ Num is number of amber to capture. Own is for if the amber is captured from its own side (a mars exclusive ability)
         """
         active = game.activePlayer.amber
         inactive = game.inactivePlayer.amber
         if not own:
-            if self.deck == game.activePlayer.name:
+            if self in game.activePlayer.board["Creature"]:
                 if inactive > num:
                     self.captured += num
                     game.inactivePlayer.amber -=  num
@@ -241,7 +212,7 @@ class Card():
                 self.captured += inactive
                 game.inactivePlayer.amber = 0
                 return
-            elif self.deck == game.inactivePlayer.name:
+            elif self in game.inactivePlayer.board["Creature"]:
                 if active > num:
                     self.captured += num
                     game.activePlayer.amber -= num
@@ -259,6 +230,45 @@ class Card():
             return
         self.captured += inactive
         game.inactivePlayer.amber = 0
+
+    def damageCalc(self, game, num):
+        """ Calculates damage, considering armor only.
+        """
+        if game.activePlayer.states["Fight"]["Shield of Justice"] and self in game.activePlayer.board["Creature"]:
+            print("No damage is dealt because of Shield of Justice.")
+            return
+        self.armor += self.extraArm # this means that extra armor only actually ends being applied when damage actually happens, which will make the reset armor function easier
+        if num >= self.armor:
+            self.damage += (num - self.armor)
+            self.armor = 0
+        else:
+            self.armor -= num
+    
+    def fightCard(self, other, game):
+        print(self.title + " is fighting " + other.title + "!")
+        # add hazardous and assault in here too
+        if self.skirmish:
+            print("The attacker has skirmish, and takes no damage.") # Test line
+            self.damageCalc(game, 0)
+        elif other.elusive:
+            # print("skir elif") # Test line
+            self.damageCalc(game, 0)
+        else:
+            # print("skir else") # Test line
+            self.damageCalc(game, other.power + other.extraPow)
+        if other.elusive:
+            print("The defender has elusive, so no damage is dealt.")
+            other.damageCalc(game, 0) #other.power - self.armor
+            other.elusive = False
+        else:
+            # print("elu else") # test line
+            other.damageCalc(game, self.power + self.extraPow)
+        self.ready = False
+        print(self)
+        print(other)
+
+    def health(self):
+        return (self.power + self.extraPow) - self.damage
 
     def neighbors(self, game):
         """ Returns the number of neighbors a card has.

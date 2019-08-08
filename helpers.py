@@ -287,17 +287,17 @@ class Game():
         if self.activePlayer.hand[disc].house == self.activeHouse[0]:
           self.activePlayer.discard.append(self.activePlayer.hand.pop(disc))
           if "Rock-Hurling Giant" in [x.title for x in self.activePlayer.board["Creature"]] and self.activePlayer.discard[-1].house == "Brobnar":
-            side = play.chooseSide(self)
+            side = play.chooseSide(self, choices = False)
             if side == 0:
               self.activePlayer.printShort(self.activePlayer.board["Creature"])
               target = makeChoice("Choose a creature to target: ", self.activePlayer.board["Creature"])
-              self.activePlayer.board["Creature"][target].damageCalc(4)
+              self.activePlayer.board["Creature"][target].damageCalc(game, 4)
               if self.activePlayer.board["Creature"][target].update():
                 self.activePlayer.discard.append(self.activePlayer.board["Creature"].pop(target))
             else:
               self.activePlayer.printShort(self.inactivePlayer.board["Creature"])
               target = makeChoice("Choose a creature to target: ", self.inactivePlayer.board["Creature"])
-              self.inactivePlayer.board["Creature"][target].damageCalc(4)
+              self.inactivePlayer.board["Creature"][target].damageCalc(game, 4)
               if self.inactivePlayer.board["Creature"][target].update():
                 self.inactivePlayer.discard.append(self.inactivePlayer.board["Creature"].pop(target))
           if turn == 1:
@@ -435,10 +435,10 @@ class Game():
     if attacker.stun == True:
       attacker.stun = False
       attacker.ready = False
-      print("About to return False") # test line
+      print("This creature is stunned and cannot fight.") # test line
       return False
     if attacker.ready == False:
-      print("About to return False") # test line
+      print("This creature is not ready to fight.") # test line
       return False
     if self.activePlayer.states["Fight"]["Foggify"]:
       print("Your opponent played Foggify last turn, so you cannot fight.")
@@ -446,10 +446,15 @@ class Game():
     if self.activePlayer.states["Fight"]["Skippy Timehog"]:
       print("Your opponent played Skippy Timehog last turn, so you cannot fight.")
       return False
-    if "Before fight:" in attacker.text or "Before Fight:" in attacker.text:
-      # before fight effects here:
+    if self.activePlayer.states["Fight"]["Warsong"]:
+      self.activePlayer.amber += 1
+    if self.activePlayer.states["Fight"]["Take Hostages"]:
+      attacker.capture(game, 1)
+    if "Before fight:" in attacker.text or "Before Fight:" in attacker.text: # this is actually going to be the last part of the checkFightStates function
+      # before fight effects triggered here:
 
       # will need to check for deaths *after* before fight, but still before the fight
+      # actually probably in the fight effect itself
       [pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].update()]
       [pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
       play.pending(self, pendingDiscardA, self.activePlayer.discard)
@@ -458,13 +463,6 @@ class Game():
         self.activePlayer.amber += len(self.activePlayer.states["Fight"]["Warsong"])
       if len(self.inactivePlayer.board["Creature"]) == 0:
         print("Your opponent no longer has any creatures to attack. Your creature is still exhausted.")
-      print("About to return True") # test line
-      return True
-    try:
-      if self.activePlayer.states["Fight"]["Warsong"]:
-        self.activePlayer.amber += 1
-    except:
-      pass
     print("About to return True") # test line
     return True
 
@@ -512,7 +510,7 @@ class Game():
         game.activePlayer.board["Creature"][x].damage = 0
     if game.activePlayer.states["Play"]["Charge"] and card.type == "Creature":
       choice = makeChoice("Choose an enemy minion to deal 2 damage to: ", game.inactivePlayer.board["Creature"])
-      game.inactivePlayer.board["Creature"][choice].damageCalc(2)
+      game.inactivePlayer.board["Creature"][choice].damageCalc(game, 2)
       pending = []
       [pending.append(game.inactivePlayer.board["Creature"].pop(choice)) for x in range(1) if self.inactivePlayer.board["Creature"][choice].update()]
       play.pending(game, pending, self.inactivePlayer.discard)
@@ -575,7 +573,7 @@ class Game():
     # Checks card is viable to fight or be fought (taunt)
     try:
       print("Trying to fight.")
-      self.activePlayer.board["Creature"][attacker].fightCard(self.inactivePlayer.board["Creature"][defender])
+      self.activePlayer.board["Creature"][attacker].fightCard(self.inactivePlayer.board["Creature"][defender], self)
     except: print("Fight failed.")
     pendingDiscard = []
     if self.activePlayer.board["Creature"][attacker].update():
