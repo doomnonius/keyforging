@@ -128,7 +128,7 @@ class Game():
         time.sleep(1)
         # step 1: check if a key is forged, then forge it
         # all code is here because it's short
-        if self.checkForgeStates(): # maybe this function will determine key cost
+        if self.checkForgeStates(): # maybe this function will calculate key cost. probably.
           if self.activePlayer.amber >= self.activePlayer.keyCost:
             self.activePlayer.amber -= self.activePlayer.keyCost
             self.activePlayer.keys += 1
@@ -147,6 +147,19 @@ class Game():
       if self.inactivePlayer.states["House"]["Control the Weak"] in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
         self.activeHouse = self.inactivePlayer.states["House"]["Control the Weak"]
       else: self.chooseHouse("activeHouse")
+      # step 2.5: the player may pick up their archive
+      if len(self.activePlayer.archive) > 0:
+        self.activePlayer.printShort(self.activePlayer.archive)
+        while True:
+          archive = input("Would you like to pick up your archive [y/n]?").title()
+          if archive[0] == "Y":
+            pending = game.activePlayer.archive
+            self.pending(pending, 'hand')
+            break
+          elif archive[0] == "N":
+            pass
+          else:
+            print("Not a valid response. Try again.")
       # step 3: call responses
       # outsourced b/c long
       self.responses(num)
@@ -430,8 +443,7 @@ class Game():
     # if we're here, we've already checked that there are enemy minions to attack
     active = self.activePlayer.board["Creature"]
     inactive = self.inactivePlayer.board["Creature"]
-    pendingDiscardA = []
-    pendingDiscardI = []
+    pendingDiscard = []
     if attacker.stun == True:
       attacker.stun = False
       attacker.ready = False
@@ -455,10 +467,9 @@ class Game():
 
       # will need to check for deaths *after* before fight, but still before the fight
       # actually probably in the fight effect itself
-      [pendingDiscardA.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].update()]
-      [pendingDiscardI.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
-      play.pending(self, pendingDiscardA, self.activePlayer.discard)
-      play.pending(self, pendingDiscardI, self.inactivePlayer.discard)
+      [pendingDiscard.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].update()]
+      [pendingDiscard.append(inactive.pop(abs(x - len(inactive) + 1))) for x in range(len(inactive)) if inactive[abs(x - len(inactive) + 1)].update()]
+      self.pending(pendingDiscard)
       if self.activePlayer.states["Fight"]["Warsong"][0]:
         self.activePlayer.amber += len(self.activePlayer.states["Fight"]["Warsong"])
       if len(self.inactivePlayer.board["Creature"]) == 0:
@@ -513,7 +524,7 @@ class Game():
       game.inactivePlayer.board["Creature"][choice].damageCalc(game, 2)
       pending = []
       [pending.append(game.inactivePlayer.board["Creature"].pop(choice)) for x in range(1) if self.inactivePlayer.board["Creature"][choice].update()]
-      play.pending(game, pending, self.inactivePlayer.discard)
+      self.pending(pending)
 
 
 
@@ -581,10 +592,98 @@ class Game():
       died = True
     else:
       died = False
-    play.pending(self, pendingDiscard, self.activePlayer.discard)
+    self.pending(pendingDiscard)
     if self.inactivePlayer.board["Creature"][defender].update():
       pendingDiscard.append(self.inactivePlayer.board["Creature"][defender])
-    play.pending(self, pendingDiscard, self.inactivePlayer.discard())
+    self.pending(pendingDiscard)
+
+  def pending(self, L, dest = "discard", fromPlay = True):
+    """ Pending is the function that handles when multiple cards leave play at the same time, whether it be to hand or to discard. It will trigger leaves play and destroyed effects. Allowable options for dest are 'purge', 'discard', 'hand', 'deck'.
+    """
+    active = self.activePlayer.board
+    inactive = self.inactivePlayer.board
+    
+    if L == []:
+      return # just in case we feed it an empty list
+    if dest not in ['purge', 'discard', 'hand', 'deck']:
+      print("Pending was given an invalid destination.")
+      return
+    if "Annihilation Ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Creature"]]) and fromPlay:
+      dest = "annihilate"
+    if dest == "purge":
+      length = len(L)
+      for x in range(length):
+        if L[play.absa(x, length)].deck == self.activePlayer.name:
+          self.activePlayer.purge.append(L.pop(play.absa(x, length)))
+        elif L[play.absa(x, length)].deck == self.inactivePlayer.name:
+          self.inactivePlayer.purge.append(L.pop(play.absa(x, length)))
+    if dest == "annihilate": # we'll do this one first to remove all creatures (b/c annihilation ritual only affects creatures)
+      length = len(L)
+      for x in range(length):
+        if L[play.absa(x, length)].deck == self.activePlayer.name and L[play.absa(x, length)].type == "Creature":
+          self.activePlayer.purge.append(L.pop(play.absa(x, length)))
+        elif L[play.absa(x, length)].deck == self.inactivePlayer.name and L[play.absa(x, length)].type == "Creature":
+          self.inactivePlayer.purge.append(L.pop(play.absa(x, length)))
+        dest = "discard" #now that all the creatures are out
+    if dest == "discard":
+      length = len(L)
+      pendingA = []
+      pendingI = []
+      for x in range(length):
+        if L[play.absa(x, length)].deck == self.activePlayer.name:
+          pendingA.append(L.pop(play.absa(x, length)))
+        elif L[play.absa(x, length)].deck == self.inactivePlayer.name:
+          pendingI.append(L.pop(play.absa(x, length)))
+        # now that they're sorted by owner
+      if len(pendingA) > 0:
+        while len(pendingA) > 1:
+          choice = makeChoice("Choose which card to add to your discard first: ", pendingA)
+          self.activePlayer.discard.append(pendingA.pop(choice))
+        self.activePlayer.discard.append(pendingA.pop())
+      if len(pendingI) > 0:
+        while len(pendingI) > 1:
+          choice = makeChoice("Choose which card to add to your opponent's discard first: ", pendingI)
+          if not fromPlay:
+            self.inactivePlayer.hand.append(pendingI.pop(choice))
+          else:
+            self.inactivePlayer.discard.append(pendingI.pop(choice))
+        # this is for the edge case of discarding cards from your opponents archive - if you have cards in your opponent's archive, they don't get discarded but added to your hand
+        if not fromPlay:
+          self.inactivePlayer.hand.append(pendingI.pop(choice))
+        else:
+          self.inactivePlayer.discard.append(pendingI.pop(choice))
+    if dest == "hand":
+      length = len(L)
+      for x in range(length):
+        if L[play.absa(x, length)].deck == self.activePlayer.name:
+          self.activePlayer.hand.append(L.pop(play.absa(x, length)))
+        elif L[play.absa(x, length)].deck == self.inactivePlayer.name:
+          self.inactivePlayer.hand.append(L.pop(play.absa(x, length)))
+      self.activePlayer.hand.sort(key = lambda x: x.house)
+      self.inactivePlayer.hand.sort(key = lambda x: x.house)
+    if dest == "deck":
+      length = len(L)
+      pendingA = []
+      pendingI = []
+      for x in range(length):
+        if L[play.absa(x, length)].deck == self.activePlayer.name:
+          pendingA.append(L.pop(play.absa(x, length)))
+        elif L[play.absa(x, length)].deck == self.inactivePlayer.name:
+          pendingI.append(L.pop(play.absa(x, length)))
+      if len(pendingA) > 0:
+        while len(pendingA) > 1:
+          choice = makeChoice("Choose which card to add to your deck first: ", pendingA)
+          self.activePlayer.deck.append(pendingA.pop(choice))
+        self.activePlayer.deck.append(pendingA.pop())
+      if len(pendingI) > 0:
+        while len(pendingI) > 1:
+          choice = makeChoice("Choose which card to add to your opponent's deck first: ", pendingI)
+          self.inactivePlayer.deck.append(pendingI.pop(choice))
+        self.inactivePlayer.deck.append(pendingI.pop())
+    # check that the list was emptied
+    if L != []:
+      print("Pending did not properly empty the list.")
+
 
   def playCard(self, chosen, booly = True):
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
@@ -751,10 +850,14 @@ def chooseDecks(): #called by startup()
 def makeChoice(stringy, L = []):
   """ Takes a string explaining the choice and a list, only accepts results within the length of the list.
   """
+  if L != []:
+    [print(str(x) + ": " + str(L[x])) for x in range(len(L))]
   while True:
     try:
       choice = int(input(stringy))
       if 0 <= choice < len(L):
+        return choice
+      elif L == []:
         return choice
       else:
         raise IndexError

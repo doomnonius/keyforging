@@ -99,12 +99,22 @@ class Card():
             else: self.fight = False
             if "Assault" in self.text: self.assault = True
             else: self.assault = False
-            if "Hazardous" in self.text: self.hazard = True, self.text[10]
+            if "Hazardous" in self.text: self.hazard = True, int(self.text[self.text.index("Hazardous") + 10])
             else: self.hazard = False
-            if "Destroyed:" in self.text: self.dest = True
+            if "Destroyed:" in self.text:
+                try:
+                    self.dest = eval("dest.key" + self.number)
+                except:
+                    print("The destroyed effect wasn't properly applied.")
+                    self.dest = False
             else: self.dest = False
-            if "Leaves Play:" in self.text: self.lp = True
-            else: self.lp = False
+            if "Leaves Play:" in self.text:
+                try:
+                    self.leaves = eval("dest.lp" + self.number)
+                except:
+                    print("The leaves play effect wasn't properly applied.")
+                    self.leaves = dest.basicDest
+            else: self.leaves = dest.basicDest
         # abilities
         if self.type == "Artifact":
             self.captured = False
@@ -169,13 +179,13 @@ class Card():
                 s += " S"
             if self.assault:
                 s += " As"            
-            if self.reap:
+            if "Reap:" in self.text:
                 s += " R"
             if self.fight:
                 s += " F"
             if self.dest:
                 s += " D"
-            if self.lp: s += " LP"     
+            if "Leaves Play" in self.text: s += " LP"     
         elif self.type == "Artifact":
             if not self.captured:
                 s += self.title + " (" + self.house + ")"
@@ -221,9 +231,9 @@ class Card():
                 game.activePlayer.amber = 0
                 return
             else:
-                print("This card wasn't in either deck.")
+                print("This card wasn't in either board.")
                 return
-        # else: (but not needed b/c of earlier return statements)
+        # else, aka if own == True: (but not needed b/c of earlier return statements)
         if inactive > num:
             self.captured += num
             game.inactivePlayer.amber -= num
@@ -238,6 +248,8 @@ class Card():
             print("No damage is dealt because of Shield of Justice.")
             return
         self.armor += self.extraArm # this means that extra armor only actually ends being applied when damage actually happens, which will make the reset armor function easier
+        # but it means that extraArm will always be applied, even when it shouldn't be
+        # I might even only calculate
         if num >= self.armor:
             self.damage += (num - self.armor)
             self.armor = 0
@@ -273,32 +285,29 @@ class Card():
     def neighbors(self, game):
         """ Returns the number of neighbors a card has.
         """
-        count = 0
         active = game.activePlayer.board["Creature"]
         inactive = game.inactivePlayer.board["Creature"]
         
         if self in active:
             index = active.index(self)
-            try:
-                active[index + 1]
-                count += 1
-            except: print("This unit has no right-hand neighbor.")
-            try:
-                active[index - 1]
-                count += 1
-            except: print("This unit has no left-hand neighbor.")
-            return count
+            if index == 0 and len(active) == 1:
+                return 0
+            elif index == 0:
+                return 1
+            elif index == len(active) - 1:
+                return 1
+            else:
+                return 2
         elif self in inactive:
             index = inactive.index(self)
-            try:
-                inactive[index + 1]
-                count += 1
-            except: print("This unit has no right-hand neighbor.")
-            try:
-                inactive[index - 1]
-                count += 1
-            except: print("This unit has no left-hand neighbor.")
-            return count
+            if index == 0 and len(inactive) == 1:
+                return 0
+            elif index == 0:
+                return 1
+            elif index == len(inactive) - 1:
+                return 1
+            else:
+                return 2
         else: print("This unit is not on the board, so it has no neighbors.")
 
     

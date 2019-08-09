@@ -19,17 +19,23 @@
    - <s>Ready Cards</s> - <b>Done</b>
    - <s>Draw Cards</s> - <b>Done</b>
 - Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.
-- Rewrite the base code to reflect the implementation of the cards
-- update the play card function to tell the player how much amber they got for playing the card. Also, update it to make it more succinct (hint: use return statements?).
+- Rewrite the base code to reflect the implementation of the cards (ie in responses())
+- update the play card function to tell the player how much amber they got for playing the card.
+- Also, update it to make it more succinct (hint: use return statements?).
 - need to implement hazardous and assault in fights
+- need to implement upgrades (and then figure out how to work them into pending)
+- figure out where destroyed abilities get called from <b>Answer can't be: from Card.update(). Why? Because sometimes cards can be destroyed other ways than damage.</b>
+- write one-offs for Krump and creatures of his ilk
+- the pending function will need to call card.dest, and definitely will need to call card.leaves
 
+Bugs: extra armor is always applied, even if it's been broken
 
 <h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>
 
 <h3>Randoms (one-offs that get their own special checks):</h3>
 - 44: Rock-Hurling Giant - not sure I implemented this well
 - 192: Ether Spider - won't have a state, will just check for it everytime amber is gained (event emitter?)
-- 
+- 261: The Vaultkeeper
 
 <h3>Play:</h3>
 <h4>Brobnar:</h4>
@@ -157,3 +163,11 @@
 - 229: The Spirit's Way
 - 231: Epic Quest
 - 246: Horseman of Death
+- 247: Horseman of Famine
+- 248: Horseman of Pestilence
+- 249: Horseman of War
+- 251: Lady Maxena
+- 253: Raiding Knight
+- 258: Sergeant Zakiel
+- 260: Gatekeeper
+- 262: Veemos Lightbringer

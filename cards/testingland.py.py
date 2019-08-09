@@ -8,9 +8,7 @@ class Test():
 		else:
 			self.four = False
 
-test = Test(True)
-other = Test(False)
-both = [test, other]
-for x in both:
-	if x.four:
-		print(x.four)
+L1 = "Hazardous 2"
+print(L1[L1.index("Hazardous") + 10])
+tuply = "game", "set"
+print(tuply[0])

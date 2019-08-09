@@ -5,47 +5,14 @@
 ## Basic ##
 ###########
 
-def basicDest(game, purge = False, archive = False, addDeck = False):
-    """ Basic function, decides which of these four to call. Needs to be fed the deck to check states to decide this. Optionals are for cards that explicitly purge or archive or add to deck but won't have states.
+def basicLeaves(game, card):
+    """ Called for when a card (almost only creatures, with a few unusual artifacts) leaves the board from play (not just destroyed, so to archive, hand, purge as well). It will reset the card, deal with upgrades staying behind or going away, deal with amber remaining on the card. All dest functions will call this function as their last step.
     """
-    
-    def addToDiscard(card, deck):
-        """Add a card to the discard pile.
-        """
-
-    def addToPurge(card, deck):
-        """Add a card to the purged pile.
-        """
-        deck.purged.append(card)
-        del card
-
-    # This only has a few states to look out for, at least. Only one state will affect purging.
-    for key, value in deck.states["Destroyed"].items():
-        if key == "Annihilation Ritual" and value:
-            addToPurge(card, deck)
-
-    def addToArchive(card, deck):
-        """Add a card to the archive.
-        """
-
-    def addToDeck(card, deck):
-        """Add a card to the deck.
-        """
-    
-    
-def sortDest(name):
-    """ Defines a lot of destroyed functions, and returns the relevant one. This will be a long function.
-    """
-    
 
 #############
 ## Brobnar ##
 #############
 
-def key001(game):
-    """ Anger: Ready and fight w/ a friendly creature.
-    """
-    basicDest(game)
 
 funcDict = {}
 
