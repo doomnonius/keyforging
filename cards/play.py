@@ -2718,8 +2718,10 @@ def key313(game, card):
 		inactive[choice].house = "Shadows"
 	active.append(inactive.pop(choice))
 
-
-
+def key315(game, card):
+	""" Urchin: Steal 1 amber.
+	"""
+	stealAmber(game.activePlayer, game.inactivePlayer, 1)
 
 
 
