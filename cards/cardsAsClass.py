@@ -54,6 +54,8 @@ class Card():
         # conditionals to add?
         # status effects
         if self.type == "Creature":
+            if self.title == "Giant Sloth":
+                self.usable = False
             if "enters play ready" in self.text:
                 self.ready = True
             else:
@@ -97,7 +99,7 @@ class Card():
                     print("The fight effect wasn't properly applied.")
                     self.fight = False
             else: self.fight = False
-            if "Assault" in self.text: self.assault = True
+            if "Assault" in self.text: self.assault = True, int(self.text[self.text.index("Assault") + 8])
             else: self.assault = False
             if "Hazardous" in self.text: self.hazard = True, int(self.text[self.text.index("Hazardous") + 10])
             else: self.hazard = False
@@ -135,7 +137,6 @@ class Card():
                 self.action = False
         else:
             self.action = False
-        # Omni abilities will be in actDir
         if "Omni:" in self.text:
             try:
                 self.omni = eval("action.omni" + self.number)

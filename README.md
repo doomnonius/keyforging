@@ -14,11 +14,11 @@
       <li><s>Forge a key</s>- <b>Done</b></li>
       <li><s>Choose a house</s> - <b>Done</b></li>
       <li><s>At this point they may pick up their archive</s></li>
-      <li><s>Play</s>, discard and use cards of the active house. Using includes:
+      <li><s>Play, discard and use cards of the active house.</s> Using includes:
         <ul>
-          <li>Fighting</li>
-          <li>Reaping</li>
-          <li>Actions</li>
+          <li>Fighting</li> Done, except for after fight effects
+          <li>Reaping</li> Implemented, but w/o effects
+          <li>Actions</li> Implemented, but w/o effects
         </ul>
       </li>
       <li><s>Ready Cards</s> - <b>Done</b></li>
@@ -26,12 +26,12 @@
    </ol>
  </li>
  <li>Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.</li>
- <li>Rewrite the base code to reflect the implementation of the cards (ie in responses())</li>
- <li>update the play card function to tell the player how much amber they got for playing the card.</li>
- <li>Also, update it to make it more succinct (hint: use return statements?).</li>
+ <li><s>Rewrite the base code to reflect the implementation of the cards (ie in responses())</s></li>
+ <li><s>update the play card function to tell the player how much amber they got for playing the card.</s></li>
+ <li>Also, update it to make it more succinct (hint: use return statements?). - I think its good enough as is for now</li>
  <li>need to implement hazardous and assault in fights</li>
  <li>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</li>
- <li>figure out where destroyed abilities get called from <b>Answer can't be: from Card.update(). Why? Because sometimes cards can be destroyed other ways than damage.</b></li>
+ <li>figure out where destroyed abilities get called from <b>Answer: from pending, if destroyed = True</b></li>
  <li>write one-offs for Krump and creatures of his ilk</li>
  <li>the pending function will need to call card.dest, and definitely will need to call card.leaves</li>
  <li>when do I check for taunt?</li>
@@ -42,7 +42,8 @@
 <h2>Bugs: </h2>
 <ol>
 <li>extra armor is always applied, even if it's been broken. Potential Solution: a calcExtraArmor() function, which needs to remember if a card has been hit yet this turn.</li>
-<li>if Sneklifter steals an artifact and it doesn't belong to one of the active player's houses, it gets changed to house Shadows. This is good. The bug is that if the artifact leaves play it doesn't get changed back.
+<li>if Sneklifter steals an artifact and it doesn't belong to one of the active player's houses, it gets changed to house Shadows. This is good. The bug is that if the artifact leaves play it doesn't get changed back.</li>
+<li>If scout gives a minion skirmish for a turn, it keeps skirmish until death. Might be fixed.
 </ol>
 
 <h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>
@@ -51,6 +52,9 @@
   <li>261: The Vaultkeeper</li>
   <li>295: The Sting</li>
   <li>298: Carlo Phantom</li>
+  <li>354: Giant Sloth - needs to be finished in card reset</li>
+  <li>366: Teliga</li>
+  <li>367: Hunting Witch
 </ul>
 
 <h3>Randoms (one-offs that will get their own special checks):</h3>
@@ -120,9 +124,9 @@
 <h4>Logos:</h4>
 <ul>
   <li>107: Bouncing Death Quark</li>
-  <li>108: Dimension Door - still need to update checkReapState to check for this</li>
+  <li>108: Dimension Door - still need to update the reaping function to deal check for this</li>
   <li>109: Effervescent Principle</li>
-  <li>110: Foggify - still need to update checkFightState</li>
+  <li>110: Foggify</li>
   <li>111: Help from Future Self</li>
   <li>112: Interdimensional Graft</li>
   <li>113: Knowledge is Power</li>
@@ -141,7 +145,7 @@
   <li>138: Dextre</li>
   <li>140: Dr. Escotera</li>
   <li>141: Dysania</li>
-  <li>143: Harland Mindlock - update pending to make sure it puts cards in the right discard pile</li>
+  <li>143: Harland Mindlock</li>
   <li>146: Neutron Shark - kind of complicated</li>
   <li>149: Psychic Bug</li>
   <li>152: Skippy Timehog - created checkReapState and checkActionState</li>
@@ -238,5 +242,25 @@
   <li>323: Full Moon</li>
   <li>324: Grasping Vines</li>
   <li>325: Key Charge</li>
-  <li>
+  <li>326: Lifeweb</li>
+  <li>327: Lost in the Woods</li>
+  <li>328: Mimicry</li>
+  <li>329: Nature's Call</li>
+  <li>330: Nocturnal Maneuver</li>
+  <li>331: Perilous Wild</li>
+  <li>332: Regrowth</li>
+  <li>333: Save the Pack</li>
+  <li>334: Scout</li>
+  <li>335: Stampede</li>
+  <li>336: The Common Cold</li>
+  <li>337: Troop Call</li>
+  <li>338: Vigor</li>
+  <li>339: Word of Returning</li>
+  <li>349: Chota Hazri</li>
+  <li>352: Flaxia</li>
+  <li>353: Fuzzy Gruen</li>
+  <li>356: Inka the Spider</li>
+  <li>359: Lupo the Scarred</li>
+  <li>360: Mighty Tiger</li>
+  <li>365: Piranha Monkeys</li>
 </ul>

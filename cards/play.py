@@ -557,9 +557,11 @@ def key046(game, card):
 	if side == 0:
 		game.activePlayer.printShort(activeBoard)
 		activeBoard[choice].stun = True
-	else:
+	elif side == 1:
 		game.inactivePlayer.printShort(inactiveBoard)
 		inactiveBoard[choice].stun = True
+	else:
+		return # board is empty
 
 def key049(game, card):
 	"""Wardrummer: Return each other friendly Brobnar creature to your hand.
@@ -751,16 +753,35 @@ def key060(game, card):
 		active[choice].damageCalc(game, 3)
 		if active[choice].update():
 			pendingDiscard.append(active.pop(choice))
+			game.pending(pendingDiscard)
 		else:
 			ran = random.choice([range(len(active))])
 			pendingDiscard.append(game.activePlayer.hand.pop(ran))
+			discardA = True
+	# enemy side
 	inactive[choice].damageCalc(game, 3)
-	if inactive[choice].update():
+	if inactive[choice].update(): 
 		pendingDiscard.append(inactive.pop(choice))
+		game.pending(pendingDiscard)
 	else:
 		ran = random.choice([range(len(inactive))])
 		pendingDiscard.append(game.inactivePlayer.hand.pop(ran))
-	game.pending(pendingDiscard)
+	game.pending(pendingDiscard, destroyed = False)
+	
+	if discardA and "Rock-Hurling Giant" in [x.title for x in active] and game.activePlayer.discard[-1].house == "Brobnar":
+		side = chooseSide(game, choices = False)
+		if side == 0:
+			target = makeChoice("Choose a creature to target: ", active)
+			active[target].damageCalc(game, 4)
+			if active[target].update():
+				pendingDiscard.append(active.pop(target))
+		else:
+			target = makeChoice("Choose a creature to target: ", inactive)
+			inactive[target].damageCalc(game, 4)
+			if inactive[target].update():
+				pendingDiscard.append(inactive.pop(target))
+		game.pending(pending)
+
 
 def key061(game, card):
 	""" Guilty Hearts: Destroy each creature with any amber on it.
@@ -1342,7 +1363,6 @@ def key138(game, card):
 def key140(game, card):
 	""" Dr. Escotera: Gain 1 amber for each key your opponent has.
 	"""
-	
 	game.activePlayer.amber += game.inactivePlayer.keys
 	print("You now have " + str(game.activePlayer.amber) + " amber")
 
@@ -1358,7 +1378,7 @@ def key141(game, card):
 		game.activePlayer.amber += count
 		print("You gained " + str(count) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
 		pendingDisc = game.inactivePlayer.archive
-		game.pending(pendingDisc, fromPlay = False)
+		game.pending(pendingDisc, destroyed = False)
 
 def key143(game, card):
 	""" Harland Mindlock: Take control of an enemy flank creature until Harland Mindlock leaves play.
@@ -1661,6 +1681,9 @@ def key169(game, card):
 	if count == 0:
 		print("There are no damaged enemy creatures. The card is still played.")
 	else:
+		again = input("Would you like to archive any enemy creatures [Y/n]?\n>>>").title()
+		if again[0] == "N":
+			return
 		while count > 0:
 			[print(x + ": " + str(x)) for x in range(len(inactive))]
 			choice = makeChoice("Choose a damaged enemy creature to target: ")
@@ -2140,7 +2163,11 @@ def key226(game, card):
 	""" Take Hostages: For the remainder of the turn, each time a friendly creature fights, it captures 1 amber.
 	"""
 	# creates a state to be checked in checkFightStates
-	game.activePlayer.states["Fight"].update({"Take Hostages":True})
+	if not game.activePlayer.states["Fight"][card.title][0]:
+		game.activePlayer.states["Fight"].update({card.title:[True]})
+	else:
+		game.activePlayer.states["Fight"][card.title].append(True)
+	# should be able to account for multiple instances of the card
 
 def key227(game, card):
 	""" Terms of Redress: Choose a friendly creature to capture 2.
@@ -2469,7 +2496,7 @@ def key272(game, card):
 	if "Sanctum" in [x.house for x in game.inactivePlayer.hand]:
 		choice = makeChoice("Choose a Sanctum card from your opponent's hand and purge it: ", game.inactivePlayer.hand)
 		pending.append(game.inactivePlayer.hand.pop(choice))
-		game.pending(pending, 'purge', fromPlay = False)
+		game.pending(pending, 'purge', destroyed = False)
 		return
 	print("Your opponent had no Sanctum cards in hand, so you don't get to purge anything.")
 
@@ -2793,6 +2820,9 @@ def key324(game, card):
 	inactive = game.inactivePlayer.board["Artifact"]
 	pending = []
 	count = 3
+	again = input("Would you like to return any artifacts to their owners' hands [Y/n]?\n>>>").title()
+	if again[0] == "N":
+		return
 	while count > 0:
 		print("Choose an artifact to return to its owner's hand: ")
 		choice, side = chooseSide(game, stringy = "Artifact")
@@ -2831,7 +2861,401 @@ def key326(game, card):
 	""" Lifeweb: If your opponent played 3 or more creatures on their previous turn, steal 2 amber.
 	"""
 	# implement tracking how many creatures opponent played last turn
-	# probably as a state
+	# if a deck has lifeweb in it, it will set Lifeweb in states to [True, 0]. Whenever the opponent plays a creature, it will be incremented.
+	if game.activePlayer.states["Play"][card.title] >= 3:
+		stealAmber(game.activePlayer, game.inactivePlayer, 2)
+		print("Your opponent played enough creatures last turn, so you stole 2 amber.")
+		return
+	print("Your opponent did not play enough creatures last turn, so you steal no amber. The card is still played.")
+
+def key327(game, card):
+	""" Lost in the Woods: Choose 2 friendly creatures and 2 enemy creatures. Shuffle each chosen creature into its owner's deck.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pending = []
+	if len(active) <= 2:
+		print("Shuffling all friendly creatures into owners' decks.")
+		pending.extend(active)
+		game.pending(pending, 'deck', False)
+	else:
+		count = 2
+		while count > 0:
+			choice = makeChoice("Choose a friendly creature to shuffle into its owner's deck: ", active)
+			pending.append(active.pop(choice))
+			count -= 1
+		game.pending(pending, 'deck', False)
+	if len(inactive) <= 2:
+		print("Shuffling all enemy creatures into owners' decks.")
+		pending.extend(inactive)
+		game.pending(pending, 'deck', False)
+	else:
+		count = 2
+		while count > 0:
+			choice = makeChoice("Choose an enemy creature to shuffle into its owner's deck: ", inactive)
+			pending.append(inactive.pop(choice))
+			count -= 1
+		game.pending(pending, 'deck', False)
+	
+	random.shuffle(game.activePlayer.deck)
+	random.shuffle(game.inactivePlayer.deck)
+
+def key328(game, card):
+	""" Mimicry: When you play this card, treat it as a copy of an action card in your opponent's discard pile.
+	"""
+	options = [(x, game.inactivePlayer.discard.index(x)) for x in range(len(game.inactivePlayer.discard)) if x.type == "Action"]
+	choice = makeChoice("Choose an action card to copy: ", [x[0] for x in options])
+	print(game.inactivePlayer.discard[options[choice][1]].text)
+	game.inactivePlayer.discard[options[choice][1]].play(game, game.inactivePlayer.discard[options[choice][1]])
+
+def key329(game, card):
+	""" Nature's Call: Return up to 3 creatures to their owners' hands.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pending = []
+	count = 3
+	again = input("Would you like to return any creatures to their owners' hands [Y/n]?\n>>>").title()
+	if again[0] == "N":
+		return
+	while count > 0:
+		print("Choose a creature to return to its owner's hand: ")
+		choice, side = chooseSide(game)
+		if side == 0: # friendly
+			pending.append(active.pop(choice))
+			game.pending(pending, 'hand')
+			count -= 1
+		elif side == 1: # enemy
+			pending.append(inactive.pop(choice))
+			game.pending(pending, 'hand')
+			count -= 1
+		else:
+			return # choose side will inform you that the board is empty
+		if count > 0:
+			again = input("Would you like to return another creature to its owner's hand [Y/n]?\n>>>").title()
+			if again[0] == "N":
+				return
+
+def key330(game, card):
+	""" Nocturnal Maneuver: Exhaust up to 3 creatures.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	count = 3
+	again = input("Would you like to exhaust any creatures [Y/n]?\n>>>").title()
+	if again[0] == "N":
+		return
+	while count > 0:
+		print("Choose a creature to exhaust: ")
+		choice, side = chooseSide(game)
+		if side == 0: # friendly
+			active[choice].ready = False
+			count -= 1
+		elif side == 1: # enemy
+			inactive[choice].ready = False
+			count -= 1
+		else:
+			return # choose side will inform you that the board is empty
+		if count > 0:
+			again = input("Would you like to exhaust another creature [Y/n]?\n>>>").title()
+			if again[0] == "N":
+				return
+
+def key331(game, card):
+	""" Perilous Wild: Destroy each elusive creature.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pending = []
+	length = len(active)
+	[pending.append(active.pop(absa(x, length))) for x in range(length) if active[absa(x, length)].elusive]
+	length = len(inactive)
+	[pending.append(inactive.pop(absa(x, length))) for x in range(length) if inactive[absa(x, length)].elusive]
+
+def key332(game, card):
+	""" Regrowth: Return a creature from your discard pile to your hand.
+	"""
+	active = game.activePlayer.discard
+	options = [(x, active.index(x)) for x in range(len(active)) if x.type == "Creature"]
+	choice = makeChoice("Choose a creature to return to your hand: ", [x[0] for x in options])
+	# I can skip pending b/c this card is guaranteed to belong to the active player
+	game.activePlayer.hand.append(active[options[choice][1]])
+
+def key333(game, card):
+	""" Save the Pack: Destroy each damaged creature. Gain 1 chain.
+	"""
+	activeBoard = game.activePlayer.board["Creature"]
+	inactiveBoard = game.inactivePlayer.board["Creature"]
+	pendingDiscard = []
+	length = len(activeBoard)
+	# active player
+	damageList = [x.damage for x in activeBoard if x.damage > 0]
+	# easy case: everything damaged
+	if len(damageList) == len(activeBoard): pendingDiscard = activeBoard
+	else:
+		[pendingDiscard.append(activeBoard.pop(abs(x - length + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - length + 1)].damage > 0]
+	length = len(inactiveBoard)
+	# inactive player
+	damageList = [x.damage for x in inactiveBoard if x.damage > 0]
+	# easy case: everything damaged
+	if len(damageList) == len(inactiveBoard): 
+		pendingDiscard.extend(inactiveBoard)
+		inactiveBoard = []
+	else:
+		[pendingDiscard.append(inactiveBoard.pop(abs(x - length + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - length + 1)].damage > 0]
+	
+	game.pending(pendingDiscard)
+
+	game.activePlayer.chains += 1
+
+def key334(game, card):
+	""" Scout: For the remainder of the turn, up to 2 friendly creatures gain skirmish. Then, fight with those creatures one at a time.
+	"""
+	active = game.activePlayer.board["Creature"]
+	count = 2
+	choices = []
+	again = input("Would you like to give any creatures skirmish [Y/n]?\n>>>").title()
+	if again[0] == "N":
+		return
+	while count > 0:
+		choice = makeChoice("Choose a creature to gain skirmish: ", active)
+		if choice in choices:
+			print("You already chose that minion. Try again.")
+			continue
+		active[choice].skirmish = True
+		choices.append(choice)
+		count -= 1
+		if count > 0:
+			again = input("Would you like to give another creature skirmish [Y/n]?\n>>>").title()
+			if again[0] == "N":
+				break
+	game.activePlayer.states["Fight"][card.title] = [active[x] for x in choices]
+	[game.fightCard(x) for x in choices]
+	# I need to find a way to make sure these cards lose skirmish at the end of the turn, but not sooner, so I can't make them lose skirmish here
+	# perhaps use states? store the cards I gave skirmish to, and at end of turn check
+
+def key335(game, card):
+	""" Stampede: If you used 3 or more creatures this turn, steal 2 amber.
+	"""
+	if game.activePlayer.states["Action"][card.title] >= 3:
+		print("You have used at least 3 creatures this turn, so you steal 2 amber.")
+		stealAmber(game.activePlayer, game.inactivePlayer, 2)
+		return
+	print("You have used less than 3 creatures this turn, so you steal no amber. The card is still played.")
+
+def key336(game, card):
+	""" The Common Cold: Deal 1 damage to each creature. You may destroy all Mars creatures.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pendingDiscard = []
+	# deal 1 damage to everything
+	# active
+	length = len(active)
+	[x.damageCalc(game, 1) for x in active]
+	[pendingDiscard.append(active.pop(abs(x - length + 1))) for x in active if active[abs(x - length + 1)].update()]
+	# inactive
+	length = len(inactive)
+	[x.damageCalc(game, 1) for x in inactive]
+	[pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in inactive if inactive[abs(x - length + 1)].update()]
+	game.pending(pendingDiscard)
+	# optional destroy Mars creatures
+	marsA = [active.index(x) for x in active if x.house == "Mars"]
+	marsA.sort(reverse = True)
+	marsI = [inactive.index(x) for x in inactive if x.house == "Mars"]
+	marsI.sort(reverse = True)
+	if len(marsA) == 0 and len(marsI) == 0:
+		print("There are no Mars creatures to destroy")
+		return
+	elif len(marsA) == 0: # so marsI has something
+		print("Enemy creatures:")
+		game.activePlayer.printShort(inactive)
+		choice = input("You have no Mars creatures. Would you like destroy all Mars creatures [Y/n]?\n>>>").title()
+		if choice[0] == "N":
+			return
+		else:
+			[pendingDiscard.append(inactive.pop(x)) for x in marsI]
+	elif len(marsI) == 0:
+		print("Friendly creatures:")
+		game.activePlayer.printShort(active)
+		choice = input("Your opponent has no Mars creatures. Would you like destroy all Mars creatures [y/N]?\n>>>").title()
+		if choice[0] == "Y":
+			[pendingDiscard.append(active.pop(x)) for x in marsA]
+		else:
+			return
+	else:
+		print("Enemy creatures:")
+		game.activePlayer.printShort(inactive)
+		print("Friendly creatures:")
+		game.activePlayer.printShort(active)
+		choice = input("Would you like destroy all Mars creatures [y/N]?\n>>>").title()
+		if choice[0] == "Y":
+			[pendingDiscard.append(active.pop(x)) for x in marsA]
+			[pendingDiscard.append(inactive.pop(x)) for x in marsI]
+		else:
+			return
+	game.pending(pendingDiscard)
+
+def key337(game, card):
+	""" Troop Call: Return each friendly Niffle creature from your discard pile and from play to your hand.
+	"""
+	disc = game.activePlayer.discard
+	active = game.activePlayer.board["Creature"]
+	pending = []
+	length = len(disc)
+	for x in range(length):
+		if "Niffle" in disc[absa(x, length)].traitList:
+			pending.append(disc.pop(absa(x, length)))
+	length = len(active)
+	for x in range(length):
+		if "Niffle" in active[absa(x, length)].traitList:
+			pending.append(disc.pop(absa(x, length)))
+	game.pending(pending, 'hand')
+	game.activePlayer.hand.sort(key = lambda x: x.house)
+
+def key338(game, card):
+	""" Vigor: Heal up to 3 damage from a creature. If you healed 3 damage, gain 1 amber.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	count = 3
+	again = input("Would you like to heal any damage[Y/n]?\n>>>").title()
+	if again[0] == "N":
+		return
+	print("Choose a creature to heal:")
+	choice, side = chooseSide(game)
+	if side == 0: # friendly
+		while count > 0 and active[choice].damage > 0:
+			active[choice].damage -= 1
+			count -= 1
+			if count > 0:
+				again = input("Would you like to heal another damage from this creature [Y/n]?\n>>>").title()
+				if again[0] == "N":
+					return
+	elif side == 1: # enemy
+		while count > 0 and inactive[choice].damage > 0:
+			inactive[choice].damage -= 1
+			count -= 1
+			if count > 0:
+				again = input("Would you like to heal another damage from this creature [Y/n]?\n>>>").title()
+				if again[0] == "N":
+					return
+	else:
+		return # choose side will inform you that the board is empty
+	if choice == 0:
+		game.activePlayer.amber += 1
+		print("You healed 3 damage, so you gain one amber. You now have " + str(game.activePlayer.amber) + " amber.")
+
+def key339(game, card):
+	""" Word of Returning: Deal 1 damage to each enemy for each amber on it. Return all amber from those creatures to your pool.
+	"""
+	inactive = game.inactivePlayer.board["Creature"]
+	pending = []
+	length = len(inactive)
+	for x in range(length):
+		if inactive[absa(x, length)].captured > 0:
+			inactive[absa(x, length)].damageCalc(game, inactive[absa(x, length)].captured)
+			game.activePlayer.amber += inactive[absa(x, length)].captured
+			inactive[absa(x, length)].captured = 0
+			if inactive[absa(x, length)].update():
+				pending.append(inactive.pop(absa(x, length)))
+	game.pending(pending)
+
+def key349(game, card):
+	""" Chota Hazri: Lose 1 amber, if you do, you may forge a key at current cost.
+	"""
+	game.activePlayer.amber -= 1
+	game.activePlayer.keyCost = game.calculateCost()
+	if game.activePlayer.amber >= game.activePlayer.keyCost:
+		forge = input("Would you like to forge a key for " + str(game.activePlayer.keyCost) + " [Y/n]?\n>>>").title()
+		if forge[0] == 'Y':
+			print("Key forged!")
+			game.activePlayer.keys += 1
+			game.activePlayer.amber -= game.activePlayer.keyCost
+			if game.activePlayer.keys >= 3:
+				game.endBool = False
+				return
+			print("You now have " + str(game.activePlayer.keys) + " keys and " + str(game.activePlayer.amber) + " amber.")
+
+def key352(game, card):
+	""" Flaxia: If you control more creatures than your opponent, gain 2 amber.
+	"""
+	inactive = game.inactivePlayer.board["Creature"]
+	active = game.activePlayer.board["Creature"]
+
+	if len(active) > len(inactive):
+		game.activePlayer.amber += 2
+		print("You control more creatures than your opponent, so you gain 2 amber. You now have " + str(game.activePlayer.amber) + " amber.")
+
+def key353(game, card):
+	""" Fuzzy Gruen: Your opponent gains 1 amber.
+	"""
+	game.inactivePlayer.amber += 1
+	print("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+
+def key356(game, card):
+	""" Inka the Spider: Stun a creature.
+	"""
+	activeBoard = game.activePlayer.board["Creature"]
+	inactiveBoard = game.inactivePlayer.board["Creature"]
+	choice, side = chooseSide(game)
+	if side == 0:
+		game.activePlayer.printShort(activeBoard)
+		activeBoard[choice].stun = True
+	elif side == 1:
+		game.inactivePlayer.printShort(inactiveBoard)
+		inactiveBoard[choice].stun = True
+	else:
+		return # board is empty
+
+def key359(game, card):
+	""" Lupo the Scarred: Deal 2 damage to an enemy creature.
+	"""
+	inactive = game.inactivePlayer.board["Creature"]
+	pending = []
+	if len(inactive) == 0:
+		print("There are no enemy creatures to damage. The card is still played.")
+		return
+	choice = makeChoice("Choose an enemy creature to damage: ", inactive)
+	inactive[choice].damageCalc(game, 2)
+	if inactive[choice].update():
+		pending.append(inactive.pop(choice))
+		game.pending(pending)
+
+def key360(game, card):
+	""" Mighty Tiger: Deal 4 damage to an enemy creature.
+	"""
+	inactive = game.inactivePlayer.board["Creature"]
+	pending = []
+	if len(inactive) == 0:
+		print("There are no enemy creatures to damage. The card is still played.")
+		return
+	choice = makeChoice("Choose an enemy creature to damage: ", inactive)
+	inactive[choice].damageCalc(game, 4)
+	if inactive[choice].update():
+		pending.append(inactive.pop(choice))
+		game.pending(pending)
+
+def key365(game, card):
+	""" Piranha Monkeys: Deal 2 damage to each other creature.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.activePlayer.board["Creature"]
+	pendingDisc = []
+	[x.damageCalc(game, 2) for x in active if x != card]
+	[x.damageCalc(game, 2) for x in inactive]
+	length = len(active)
+	[pendingDisc.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].update()]
+	length = len(inactive)
+	[pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
+	game.pending(pendingDisc)
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly') 

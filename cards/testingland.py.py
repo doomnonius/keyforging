@@ -8,7 +8,7 @@ class Test():
 		else:
 			self.four = False
 
-L1 = "Hazardous 2"
+L1 = "Hazardous, 2"
 print(L1[L1.index("Hazardous") + 10])
-tuply = "game", "set"
-print(tuply[0])
+tuply = tuple(L1)
+print(tuply)
