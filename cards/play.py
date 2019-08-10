@@ -2723,8 +2723,115 @@ def key315(game, card):
 	"""
 	stealAmber(game.activePlayer, game.inactivePlayer, 1)
 
+###########
+# Untamed #
+###########
 
+def key319(game, card):
+	""" Cooperative Hunting: Deal 1 damage for each friendly creature in play. You may divide this damage among any number of creatures.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pending = []
+	count = len(active)
+	while count > 0:
+		choice, side = chooseSide(game)
+		if side == 0: # friendly
+			active[choice].damageCalc(game, 1)
+			if active[choice].update():
+				pending.append(active.pop(choice))
+				game.pending(pending)
+				count -= 1
+				continue
+		if side == 1: # enemy
+			inactive[choice].damageCalc(game, 1)
+			if active[choice].update():
+				pending.append(active.pop(choice))
+				game.pending(pending)
+				count -= 1
+				continue
+		if side == '':
+			break # side will tell them that they are no more targets
 
+def key320(game, card):
+	""" Curiosity: Destroy each Scientist creature.
+	"""
+	active = game.activePlayer.board["Creature"]
+	inactive = game.inactivePlayer.board["Creature"]
+	pending = []
+	length = len(active)
+	[pending.append(active.pop(absa(x, length))) for x in range(length) if "Scientist" in active[absa(x, length)].traitList]
+	length = len(inactive)
+	[pending.append(inactive.pop(absa(x, length))) for x in range(length) if "Scientist" in inactive[absa(x, length)].traitList]
+	game.pending(pending)
+
+def key321(game, card):
+	""" Fertility Chant: Your opponent gains 2 amber.
+	"""
+	game.inactivePlayer.amber += 2
+	print("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+
+def key322(game, card):
+	""" Fogbank: Your opponent cannot use creatures to fight on their next turn.
+	"""
+	# states should always be in deck that they affect
+	game.inactivePlayer.states["Fight"].update({card.title:True})
+
+def key323(game, card):
+	""" Full Moon: For the remainder of the turn, gain 1 amber each time you play a creature.
+	"""
+	if not game.activePlayer.states["Play"][card.title][0]:
+		game.activePlayer.states["Play"].update({card.title:[True]})
+	else:
+		game.activePlayer.states["Play"][card.title].append(True)
+	# should be able to account for multiple instances of full 
+	
+def key324(game, card):
+	""" Grasping Vines: Return up to 3 artifacts to their owners' hands.
+	"""
+	active = game.activePlayer.board["Artifact"]
+	inactive = game.inactivePlayer.board["Artifact"]
+	pending = []
+	count = 3
+	while count > 0:
+		print("Choose an artifact to return to its owner's hand: ")
+		choice, side = chooseSide(game, stringy = "Artifact")
+		if side == 0: # friendly
+			pending.append(active.pop(choice))
+			game.pending(pending, 'hand')
+			count -= 1
+		elif side == 1: # enemy
+			pending.append(inactive.pop(choice))
+			game.pending(pending, 'hand')
+			count -= 1
+		else:
+			return # choose side will inform you that the board is empty
+		if count > 0:
+			again = input("Would you like to return another artifact to its owner's hand [Y/n]?\n>>>").title()
+			if again[0] == "N":
+				return
+
+def key325(game, card):
+	""" Key Charge: Lost 1 amber. If you do, you may forge a key at current cost.
+	"""
+	game.activePlayer.amber -= 1
+	game.activePlayer.keyCost = game.calculateCost()
+	if game.activePlayer.amber >= game.activePlayer.keyCost:
+		forge = input("Would you like to forge a key for " + str(game.activePlayer.keyCost) + " [Y/n]?\n>>>").title()
+		if forge[0] == 'Y':
+			print("Key forged!")
+			game.activePlayer.keys += 1
+			game.activePlayer.amber -= game.activePlayer.keyCost
+			if game.activePlayer.keys >= 3:
+				game.endBool = False
+				return
+			print("You now have " + str(game.activePlayer.keys) + " keys and " + str(game.activePlayer.amber) + " amber.")
+
+def key326(game, card):
+	""" Lifeweb: If your opponent played 3 or more creatures on their previous turn, steal 2 amber.
+	"""
+	# implement tracking how many creatures opponent played last turn
+	# probably as a state
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly') 

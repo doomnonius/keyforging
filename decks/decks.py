@@ -32,8 +32,8 @@ class Deck:
         # whenever a state-creating card is played, it will add its state to this dict (use .update({key:value}) or [key]=value)
         self.states = {"Forge": {"Interdimensional Graft":False, "Miasma":False}, \
         "House": {"Control the Weak":False}, \
-        "Play": {"Charge!":False, "Library Access":False, "Phase Shift":[False], "Scrambler Storm":False, "Soft Landing":False, "Treasure Map":False}, \
-        "Fight": {"Foggify":False, "Shield of Justice":False, "Skippy Timehog":False, "Take Hostages":False, "Warsong":[False]}, \
+        "Play": {"Charge!":False, "Full Moon":[False], "Library Access":False, "Phase Shift":[False], "Scrambler Storm":False, "Soft Landing":False, "Treasure Map":False}, \
+        "Fight": {"Fogbank":False, "Foggify":False, "Shield of Justice":False, "Skippy Timehog":False, "Take Hostages":False, "Warsong":[False]}, \
         "Buff": {}, \
         "Destroyed":{"Loot the Bodies":[False]}, \
         "Reap": {"Dimension Door":False, "Skippy Timehog":False}, \

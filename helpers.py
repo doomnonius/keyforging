@@ -465,11 +465,14 @@ class Game():
     if self.activePlayer.states["Fight"]["Foggify"]:
       print("Your opponent played 'Foggify' last turn, so you cannot fight.")
       return False
+    if self.activePlayer.states["Fight"]["Fogbank"]:
+      print("Your opponent played 'Fogbank' last turn, so you cannot fight.")
+      return False
     if self.activePlayer.states["Fight"]["Skippy Timehog"]:
       print("Your opponent played 'Skippy Timehog' last turn, so you cannot fight.")
       return False
-    if self.activePlayer.states["Fight"]["Warsong"]:
-      self.activePlayer.amber += 1
+    if self.activePlayer.states["Fight"]["Warsong"][0]:
+      self.activePlayer.amber += len(self.activePlayer.states["Fight"]["Warsong"])
     if self.activePlayer.states["Fight"]["Take Hostages"]:
       attacker.capture(game, 1)
     if "Before fight:" in attacker.text or "Before Fight:" in attacker.text: # this is actually going to be the last part of the checkFightStates function
@@ -521,6 +524,14 @@ class Game():
 
     
     # other play effects - things that don't want returns
+    if card.type == "Creature" and self.activePlayer.states["Play"]["Full Moon"][0]:
+      self.activePlayer.amber += len(self.activePlayer.states["Play"]["Full Moon"])
+    if card.type == "Creature" and "Hunting Witch" in [x.title for x in self.activePlayer.board["Creature"]]:
+      count = 0
+      for x in self.activePlayer.board["Creature"]:
+        if x.title == "Hunting Witch":
+          count += 1
+      self.activePlayer.amber += count
     if card.type == "Artifact" and "Carlo Phantom" in [x.title for x in self.activePlayer.board["Creature"]]:
       play.stealAmber(game.activePlayer, game.inactivePlayer, 1)
       print("'Carlo Phantom' stole 1 amber for you. You now have " + str(self.activePlayer.amber) + " amber.")

@@ -11,10 +11,10 @@
  <li><s>Playing the first turn (because it has its own special requirements)</s> - <b>Done</b></li>
  <li>Create the turn, including:
     <ol>
-      <li>Forge a key</s>- <b>Done</b></li>
+      <li><s>Forge a key</s>- <b>Done</b></li>
       <li><s>Choose a house</s> - <b>Done</b></li>
-      <li><u>At this point they may pick up their archive</u></li>
-      <li>Play, discard and use cards of the active house. Using includes:
+      <li><s>At this point they may pick up their archive</s></li>
+      <li><s>Play</s>, discard and use cards of the active house. Using includes:
         <ul>
           <li>Fighting</li>
           <li>Reaping</li>
@@ -228,4 +228,15 @@
   <li>307: Old Bruno</li>
   <li>313: Sneklifter</li>
   <li>315: Urchin</li>
+</ul>
+<h4>Untamed</h4>
+<ul>
+  <li>319: Cooperative Hunting</li>
+  <li>320: Curiosity</li>
+  <li>321: Fertility Chant</li>
+  <li>322: Fogbank</li>
+  <li>323: Full Moon</li>
+  <li>324: Grasping Vines</li>
+  <li>325: Key Charge</li>
+  <li>
 </ul>
