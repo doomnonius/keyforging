@@ -283,7 +283,7 @@ class Card():
         return (self.power + self.extraPow) - self.damage
 
     def neighbors(self, game):
-        """ Returns the number of neighbors a card has.
+        """ Returns a list of the indexes of a card's neighbors.
         """
         active = game.activePlayer.board["Creature"]
         inactive = game.inactivePlayer.board["Creature"]
@@ -291,23 +291,23 @@ class Card():
         if self in active:
             index = active.index(self)
             if index == 0 and len(active) == 1:
-                return 0
+                return []
             elif index == 0:
-                return 1
+                return [1]
             elif index == len(active) - 1:
-                return 1
+                return [index - 1]
             else:
-                return 2
+                return [index - 1, index + 1]
         elif self in inactive:
             index = inactive.index(self)
             if index == 0 and len(inactive) == 1:
-                return 0
+                return []
             elif index == 0:
-                return 1
+                return [1]
             elif index == len(inactive) - 1:
-                return 1
+                return [index - 1]
             else:
-                return 2
+                return [index - 1, index + 1]
         else: print("This unit is not on the board, so it has no neighbors.")
 
     

@@ -107,8 +107,9 @@ class Game():
       random.shuffle(self.inactivePlayer.deck)
       self.inactivePlayer.hand = []
       self.inactivePlayer += 5
-    self.numPlays = 1
-    self.turn(1)
+    self.numPlays = 0
+    self.turnNum = 1
+    self.turn(self.turnNum)
     # From here on should be in turn(), I think
 
   def turn(self, num):
@@ -120,7 +121,7 @@ class Game():
       self.lastCreaturesPlayed = self.creaturesPlayed
       self.creaturesPlayed = 0
       print("\nTurn: " + str(num))
-      if num > 1:
+      if self.turnNum > 1:
         time.sleep(1)
         print(self) # step 0: show the board state
         time.sleep(1)
@@ -128,16 +129,19 @@ class Game():
         time.sleep(1)
         # step 1: check if a key is forged, then forge it
         # all code is here because it's short
-        if self.checkForgeStates(): # maybe this function will calculate key cost. probably.
+        if self.checkForgeStates(): # returns True if you can forge, false if you can't (and why you can't), which in CotA is basically only Miasma
+          self.activePlayer.keyCost = self.calculateCost()
           if self.activePlayer.amber >= self.activePlayer.keyCost:
             self.activePlayer.amber -= self.activePlayer.keyCost
             self.activePlayer.keys += 1
             print("You forged a key for", self.activePlayer.keyCost, "amber. You now have", self.activePlayer.keys, "key(s) and", self.activePlayer.amber, "amber.\n") # it works!
             if game.activePlayer.states["Forge"]["Interdimensional Graft"] and game.activePlayer.amber > 0:
-              print("Your opponent played Interdimensional Graft last turn, so they gain your " + str(game.activePlayer.amber) + " leftover amber.")
-              play.stealAmber(game.inactivePlayer, game.activePlayer, game.activePlayer.amber)
-              print("They now have " + game.inactivePlayer.amber + " amber.")
-            forgedThisTurn = True, num
+              print("Your opponent played Interdimensional Graft last turn, so they gain your " + str(self.activePlayer.amber) + " leftover amber.")
+              # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
+              self.inactivePlayer.amber += self.activePlayer.amber
+              self.activePlayer.amber = 0
+              print("They now have " + self.inactivePlayer.amber + " amber.")
+            forgedThisTurn = True, self.turnNum
         else:
           print("Forging skipped this turn!")
         if self.activePlayer.keys >= 3:
@@ -153,8 +157,7 @@ class Game():
         while True:
           archive = input("Would you like to pick up your archive [y/n]?").title()
           if archive[0] == "Y":
-            pending = game.activePlayer.archive
-            self.pending(pending, 'hand')
+            self.pending(game.activePlayer.archive, 'hand')
             break
           elif archive[0] == "N":
             pass
@@ -162,10 +165,10 @@ class Game():
             print("Not a valid response. Try again.")
       # step 3: call responses
       # outsourced b/c long
-      self.responses(num)
+      self.responses(self.turnNum)
       # step 4: ready cards and reset things like armor
       # here b/c short
-      self.reset(num, forgedThisTurn)
+      self.reset(self.turnNum, forgedThisTurn)
       # step 5.1: draw cards
       self.activePlayer.drawEOT()
       # print("Checking draw:", self.activePlayer.handSize == len(self.activePlayer.hand)) # test line
@@ -175,8 +178,8 @@ class Game():
       # step 5.3: switch players
       self.switch()
       # step 5.4: increment num
-      num += 1
-      self.numPlays = 100
+      self.turnNum += 1
+      self.numPlays = 0
     self.endGame(self.endBool)
 
   def switch(self):
@@ -293,7 +296,7 @@ class Game():
         # hands off the info to the "Fight" function
         self.fightCard()
       elif distance(choice, "Discard") <= 1:
-        if self.numPlays == 0:
+        if self.numPlays == 1 and turn == 1:
           break
         self.activePlayer.printShort(self.activePlayer.hand)
         disc = makeChoice("Choose a card to discard: ", self.activePlayer.hand)
@@ -314,7 +317,7 @@ class Game():
               if self.inactivePlayer.board["Creature"][target].update():
                 self.inactivePlayer.discard.append(self.inactivePlayer.board["Creature"].pop(target))
           if turn == 1:
-            self.numPlays -= 1
+            self.numPlays += 1
       elif distance(choice, "Action") <= 1:
         # Shows friendly cards in play with "Action" keyword, prompts a choice
         actList = []
@@ -397,6 +400,13 @@ class Game():
         else:
           print("\nNot a valid input.\n")  
   
+  def calculateCost(self):
+    """ Calculates the cost of a key considering current board state.
+    """
+    # Things to check: That annoying Dis artifact, Murmook, Grabber Jammer, that Mars upgrade, Titan Mechanic
+    cost = 6
+    return cost
+
   def reset(self, num, forgedThisTurn):
     """ Resets all things that need to be reset at EOT, like some states, armor, elusive, ready
     """
@@ -430,7 +440,7 @@ class Game():
     """ Checks for things that affect actions.
     """
     if self.activePlayer.states["Action"]["Skippy Timehog"]:
-      print("Your opponent played Skippy Timehog last turn, so you can't use your action.")
+      print("Your opponent played 'Skippy Timehog' last turn, so you can't use your action.")
       return False
 
   def checkEOTStates(self):
@@ -453,10 +463,10 @@ class Game():
       print("This creature is not ready to fight.") # test line
       return False
     if self.activePlayer.states["Fight"]["Foggify"]:
-      print("Your opponent played Foggify last turn, so you cannot fight.")
+      print("Your opponent played 'Foggify' last turn, so you cannot fight.")
       return False
     if self.activePlayer.states["Fight"]["Skippy Timehog"]:
-      print("Your opponent played Skippy Timehog last turn, so you cannot fight.")
+      print("Your opponent played 'Skippy Timehog' last turn, so you cannot fight.")
       return False
     if self.activePlayer.states["Fight"]["Warsong"]:
       self.activePlayer.amber += 1
@@ -480,13 +490,13 @@ class Game():
   def checkForgeStates(self):
     """ Checks if there is anything in Deck.states["Forge"]. Implementation for other things is still hazy.
     """
-    if len(self.activePlayer.states["Forge"]) != 0:
-      for key in self.activePlayer.states["Forge"]:
-        # I don't see anything to do but have each possible card here, but for testing purposes I'm only going to include Miasma
-        if key == True:
-          if self.activePlayer.states["Forge"]["Miasma"]:
-            self.activePlayer.states["Forge"]["Miasma"] = False
-          return False
+    if self.activePlayer.states["Forge"]["Miasma"]:
+      self.activePlayer.states["Forge"]["Miasma"] = False
+      print("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
+      return False
+    if "The Sting" in [x.title for x in game.activePlayer.board["Artifact"]]:
+      print("You skip your forge a key step this turn because you have 'The Sting' in play.")
+      return False
     return True
 
   def checkPlayStates(self, card):
@@ -495,22 +505,28 @@ class Game():
     # lifeward and other things that might return False first
     if self.activePlayer.states["Play"]["Scrambler Storm"]:
       if card.type == "Action":
-        print("Your opponent played Scrambler Storm last turn, so you cannot play actions this turn.")
+        print("Your opponent played 'Scrambler Storm' last turn, so you cannot play actions this turn.")
         return False
+    if self.activePlayer.states["Play"]["Treasure Map"]:
+      print("You played 'Treasure Map' this turn and can no longer play cards.")
+      return False
     if card.title == "Truebaru":
       if self.activePlayer.amber < 3:
-        print("You must have 3 amber to sacrifice in order to play Truebaru.")
+        print("You must have 3 amber to sacrifice in order to play 'Truebaru'.")
         return False
       self.activePlayer.amber -= 3
     if "Grommid" in [x.title for x in self.activePlayer.board["Creature"]] and card.type == "Creature":
-      print("You can't play creatures with Grommid in play.")
+      print("You can't play creatures with 'Grommid' in play.")
       return False
 
     
     # other play effects - things that don't want returns
+    if card.type == "Artifact" and "Carlo Phantom" in [x.title for x in self.activePlayer.board["Creature"]]:
+      play.stealAmber(game.activePlayer, game.inactivePlayer, 1)
+      print("'Carlo Phantom' stole 1 amber for you. You now have " + str(self.activePlayer.amber) + " amber.")
     if self.activePlayer.states["Play"]["Library Access"]:
       self.activePlayer += 1
-      print("You draw a card because you played Library Access earlier this turn.")
+      print("You draw a card because you played 'Library Access' earlier this turn.")
     if self.activePlayer.states["Play"]["Soft Landing"]:
       card.ready = True
       print(card.title + " enters play ready!")
@@ -537,7 +553,7 @@ class Game():
     """ Checks for things that disallow reaping.
     """
     if self.activePlayer.states["Reap"]["Skippy Timehog"]:
-      print("Your opponent played Skippy Timehog last turn, so you cannot reap.")
+      print("Your opponent played 'Skippy Timehog' last turn, so you cannot reap.")
       return False
 
 ##################
@@ -689,7 +705,9 @@ class Game():
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
     print(self.numPlays)
-    if booly and self.numPlays > 0:
+    if self.numPlays == 1 and self.turnNum == 1:
+      return
+    if booly:
       # print("playCard area 1") # test line
       if (self.activePlayer.hand[chosen].house in self.activeHouse or self.activePlayer.states["Play"]["Phase Shift"][0]) and chosen < len(self.activePlayer.hand):
         # print("playCard area 1.1") # test line
@@ -720,7 +738,7 @@ class Game():
           self.activePlayer.board[cardType].insert(0, self.activePlayer.hand.pop(chosen))
           # set a variable with the index of the card in board
           location = self.activePlayer.board[cardType][0]
-          self.numPlays -= 1
+          self.numPlays += 1
           print(self.numPlays) # test line
         # default case: right flank
         elif self.activePlayer.hand[chosen].type != "Upgrade":
@@ -729,7 +747,7 @@ class Game():
           self.activePlayer.board[cardType].append(self.activePlayer.hand.pop(chosen))
           # set a variable with the index of the card in board
           location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType]) - 1]
-          self.numPlays -= 1
+          self.numPlays += 1
           print(self.numPlays)
           print([x.title for x in self.activePlayer.board["Action"]])
         else:
@@ -769,13 +787,13 @@ class Game():
           print("playCard area 2.3") # test line
           self.activePlayer.board[cardType].insert(0, self.activePlayer.deck.pop())
           location = self.activePlayer.board[cardType][0]
-          self.numPlays -= 1
+          self.numPlays += 1
         # default case: right flank
         elif cardType != "Upgrade":
           print("playCard area 2.4") # test line
           self.activePlayer.board[cardType].append(self.activePlayer.deck.pop())
           location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType])]
-          self.numPlays -= 1
+          self.numPlays += 1
         else:
           print("playCard area 2.5") # test line
           self.upgrade()

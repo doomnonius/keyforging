@@ -30,10 +30,12 @@ class Deck:
         self.amber = 0
         self.keyCost = 6
         # whenever a state-creating card is played, it will add its state to this dict (use .update({key:value}) or [key]=value)
-        self.states = {"Forge": {"Interdimensional Graft":False}, "House": {"Control the Weak":False}, \
-        "Play": {"Library Access":False, "Phase Shift":[False], "Scrambler Storm":False, "Soft Landing":False, "Charge!":False}, \
-        "Fight": {"Warsong":[False], "Foggify":False, "Skippy Timehog":False, "Shield of Justice":False, "Take Hostages":False}, \
-        "Buff": {}, "Destroyed":{"Loot the Bodies":[False]}, \
+        self.states = {"Forge": {"Interdimensional Graft":False, "Miasma":False}, \
+        "House": {"Control the Weak":False}, \
+        "Play": {"Charge!":False, "Library Access":False, "Phase Shift":[False], "Scrambler Storm":False, "Soft Landing":False, "Treasure Map":False}, \
+        "Fight": {"Foggify":False, "Shield of Justice":False, "Skippy Timehog":False, "Take Hostages":False, "Warsong":[False]}, \
+        "Buff": {}, \
+        "Destroyed":{"Loot the Bodies":[False]}, \
         "Reap": {"Dimension Door":False, "Skippy Timehog":False}, \
         "Action": {"Skippy Timehog":False}}
         self.pendingDest = []

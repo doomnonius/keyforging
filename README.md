@@ -23,12 +23,18 @@
 - update the play card function to tell the player how much amber they got for playing the card.
 - Also, update it to make it more succinct (hint: use return statements?).
 - need to implement hazardous and assault in fights
-- need to implement upgrades (and then figure out how to work them into pending)
+- need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them
 - figure out where destroyed abilities get called from <b>Answer can't be: from Card.update(). Why? Because sometimes cards can be destroyed other ways than damage.</b>
 - write one-offs for Krump and creatures of his ilk
 - the pending function will need to call card.dest, and definitely will need to call card.leaves
+- when do I check for taunt?
+- implement a "Check for x key!" step
+- implement the rule of six
 
-Bugs: extra armor is always applied, even if it's been broken
+
+<h2>Bugs: </h2>
+1: extra armor is always applied, even if it's been broken. Potential Solution: a calcExtraArmor() function, which needs to remember if a card has been hit yet this turn.
+2: if Sneklifter steals an artifact and it doesn't belong to one of the active player's houses, it gets changed to house Shadows. This is good. The bug is that if the artifact leaves play it doesn't get changed back.
 
 <h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>
 
@@ -36,6 +42,9 @@ Bugs: extra armor is always applied, even if it's been broken
 - 44: Rock-Hurling Giant - not sure I implemented this well
 - 192: Ether Spider - won't have a state, will just check for it everytime amber is gained (event emitter?)
 - 261: The Vaultkeeper
+- 295: The Sting
+- 298: Carlo Phantom
+
 
 <h3>Play:</h3>
 <h4>Brobnar:</h4>
@@ -171,3 +180,24 @@ Bugs: extra armor is always applied, even if it's been broken
 - 258: Sergeant Zakiel
 - 260: Gatekeeper
 - 262: Veemos Lightbringer
+<h4>Shadows:</h4>
+- 267: Bait and Switch (nerfed version)
+- 268: Booby Trap
+- 269: Finishing Blow
+- 270: Ghostly Hand
+- 271: Hidden Stash
+- 272: Imperial Traitor
+- 273: Key of Darkness
+- 274: Lights Out
+- 275: Miasma
+- 276: Nerve Blast
+- 277: One Last Job
+- 278: Oubliette
+- 279: Pawn Sacrifict
+- 280: Poison Wave
+- 281: Relentless Whispers
+- 282: Routine Job
+- 283: Too Much to Protect
+- 284: Treasure Map
+- 288: Masterplan
+- 
