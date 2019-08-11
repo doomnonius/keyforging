@@ -1,98 +1,18 @@
 import time
 import random
 from functools import reduce
+from helpers import absa, makeChoice, chooseSide, stealAmber
 # I think it makes more sense to add these to the cardsAsClass file, which means that the only function here is addToBoard
 
 # This is a list of functions for all the play effects on cards, including creature, upgrades, action cards
 # Basically any and all cards with "Play:" on them
 
-def absa(num, length):
-	return abs(num - length + 1)
-
-def backwardsList(input_L, actionstring, compstring, result_L = []):
-	""" [pendingDiscard.append(active.pop(abs(x - len(active) + 1))) for x in range(len(active)) if active[abs(x - len(active) + 1)].captured > 0]
-	"""
-	print("This function is deprecated.")
-
-def makeChoice(stringy, L = []):
-	""" Takes a string explaining the choice and a list, only accepts results within the length of the list, unless the list is empty, then it just returns the number.
-	"""
-	if L != 0:
-		[print(str(x) + ": " + str(L[x])) for x in range(len(L))]
-	while True:
-		try:
-			choice = int(input(stringy))
-			if 0 <= choice < len(L):
-				return choice
-			elif L == []:
-				return choice
-			else:
-				raise IndexError
-		except:
-			pass
-
 def passFunc(game, card):
 	return
 
-def pending(L, destination, fromPlay = True, ask = False):
-	""" A function that deals with pending piles of cards.
-	Arguments: game should be self-evident, it's needed to be able to modify the game, L is the list being emptied, and destination is the list being appended to.
-	"""
-	print("This function is deprecated. You should be using Game.pending")
-
-def chooseSide(game, stringy = "Creature", choices = True):
-	""" A return of 0 is friendly, 1 is enemy. Strings can make it deal with different lists. Choices set to true returns choice, side; set to false returns only side. Returns two empty strings if both sides are empty.
-	"""
-	activeBoard = game.activePlayer.board[stringy]
-	inactiveBoard = game.inactivePlayer.board[stringy]
-	
-	side = ''
-	if len(inactiveBoard) == 0 and len(activeBoard) == 0:
-		print("There are no " + stringy.lower() + "s to target. The card is still played.")
-		return side, side
-	elif len(inactiveBoard) == 0:
-		game.activePlayer.printShort(activeBoard, True)
-		side = 0
-		if choices:
-			choice = makeChoice("There are no enemy " + stringy.lower() + "s to target, so you must choose a friendly " + stringy.lower() + " to target: ", activeBoard)
-			return choice, side
-	else:
-		while side != "Friendly" and side != "Enemy":
-			side = input("Would you like to target an [enemy] " + stringy.lower() + " or a [friendly] " + stringy.lower() + "?").title()
-		if side == "Friendly":
-			game.activePlayer.printShort(activeBoard, True)
-			side = 0
-			if choices:
-				choice = makeChoice("Choose a target: ", activeBoard)
-				return choice, side
-		elif side == "Enemy":
-			game.activePlayer.printShort(inactiveBoard, True)
-			side = 1
-			if choices:
-				choice = makeChoice("Choose a target: ", inactiveBoard)
-				return choice, side
-	return side
-
-def stealAmber(thief, victim, num):
-	""" Function for stealing amber.
-	"""
-	# this will account for edge cases that allow the inactive player to steal amber (namely, Magda leaving play)
-	if "The Vaultkeeper" in [x.title for x in victim.board["Creature"]]:
-		print("The steal effect fails because of Vaultkeeper.")
-		return
-	if victim.amber >= num:
-		victim.amber -= num
-		thief.amber += num
-		print(thief.name + " stole " + str(num) + " amber from " + victim.name + ".")
-	else:
-		thief.amber += victim.amber
-		if victim.amber == 0:
-			print("Your opponent had no amber to steal. The card is stil played.")
-			return
-		print("Your opponent only had " + victim.amber + " amber for you to steal.")
-		victim.amber = 0
-
-## Start House Brobnar
+###########
+# Brobnar #
+###########
 
 def key001(game, card):
 	"""Anger. Ready and fight with a friendly creature.
@@ -755,7 +675,7 @@ def key060(game, card):
 			pendingDiscard.append(active.pop(choice))
 			game.pending(pendingDiscard)
 		else:
-			ran = random.choice([range(len(active))])
+			ran = random.choice(list(range(len(active))))
 			pendingDiscard.append(game.activePlayer.hand.pop(ran))
 			discardA = True
 	# enemy side
@@ -764,7 +684,7 @@ def key060(game, card):
 		pendingDiscard.append(inactive.pop(choice))
 		game.pending(pendingDiscard)
 	else:
-		ran = random.choice([range(len(inactive))])
+		ran = random.choice(list(range(len(inactive))))
 		pendingDiscard.append(game.inactivePlayer.hand.pop(ran))
 	game.pending(pendingDiscard, destroyed = False)
 	
@@ -780,7 +700,7 @@ def key060(game, card):
 			inactive[target].damageCalc(game, 4)
 			if inactive[target].update():
 				pendingDiscard.append(inactive.pop(target))
-		game.pending(pending)
+		game.pending(pendingDiscard)
 
 
 def key061(game, card):
@@ -902,7 +822,7 @@ def key067(game, card):
 	""" Mind Barb: Your opponent discards a random card from their hand.
 	"""
 	inactive = game.inactivePlayer.hand
-	ran = random.choice([range(len(inactive))])
+	ran = random.choice(list(range(len(inactive))))
 	game.inactivePlayer.discard.append(inactive.pop(ran))
 	print("your opponent discarded:\n" + repr(game.inactivePlayer.discard[-1]))
 
@@ -2764,16 +2684,24 @@ def key319(game, card):
 	while count > 0:
 		choice, side = chooseSide(game)
 		if side == 0: # friendly
-			active[choice].damageCalc(game, 1)
+			if active[choice].health() > count:
+				damage = makeChoice("How much damage would you like to deal to this creature?", list(range(1, count + 2)))
+			else:
+				damage = makeChoice("How much damage would you like to deal to this creature?", list(range(1, active[choice].health() + 2)))
+			active[choice].damageCalc(game, damage)
 			if active[choice].update():
 				pending.append(active.pop(choice))
 				game.pending(pending)
 				count -= 1
 				continue
 		if side == 1: # enemy
-			inactive[choice].damageCalc(game, 1)
-			if active[choice].update():
-				pending.append(active.pop(choice))
+			if inactive[choice].health() > count:
+				damage = makeChoice("How much damage would you like to deal to this creature?", list(range(1, count + 2)), show = False)
+			else:
+				damage = makeChoice("How much damage would you like to deal to this creature?", list(range(1, inactive[choice].health() + 2)), show = False)
+			inactive[choice].damageCalc(game, damage)
+			if inactive[choice].update():
+				pending.append(inactive.pop(choice))
 				game.pending(pending)
 				count -= 1
 				continue
@@ -2847,8 +2775,10 @@ def key325(game, card):
 	game.activePlayer.amber -= 1
 	game.activePlayer.keyCost = game.calculateCost()
 	if game.activePlayer.amber >= game.activePlayer.keyCost:
-		forge = input("Would you like to forge a key for " + str(game.activePlayer.keyCost) + " [Y/n]?\n>>>").title()
-		if forge[0] == 'Y':
+		forge = input("Would you like to forge a key for " + str(game.activePlayer.keyCost) + " amber [Y/n]?\n>>>").title()
+		if forge == '':
+			forge = "Y"
+		if forge[0] != 'N':
 			print("Key forged!")
 			game.activePlayer.keys += 1
 			game.activePlayer.amber -= game.activePlayer.keyCost
@@ -3118,7 +3048,13 @@ def key338(game, card):
 	"""
 	active = game.activePlayer.board["Creature"]
 	inactive = game.inactivePlayer.board["Creature"]
-	count = 3
+	damage = reduce(lambda x,y: x + y, [x.damage for x in (active + inactive)])
+	if damage > 3:
+		count = 3
+	else:
+		count = damage
+	if count == 0:
+		print("There are no damaged creatures. The card is still played.")
 	again = input("Would you like to heal any damage[Y/n]?\n>>>").title()
 	if again[0] == "N":
 		return
@@ -3249,12 +3185,6 @@ def key365(game, card):
 	length = len(inactive)
 	[pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
 	game.pending(pendingDisc)
-
-
-
-
-
-
 
 
 if __name__ == '__main__':

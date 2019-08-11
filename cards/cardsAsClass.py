@@ -100,23 +100,23 @@ class Card():
                     self.fight = False
             else: self.fight = False
             if "Assault" in self.text: self.assault = True, int(self.text[self.text.index("Assault") + 8])
-            else: self.assault = False
+            else: self.assault = False, 0
             if "Hazardous" in self.text: self.hazard = True, int(self.text[self.text.index("Hazardous") + 10])
-            else: self.hazard = False
+            else: self.hazard = False, 0
             if "Destroyed:" in self.text:
                 try:
                     self.dest = eval("dest.key" + self.number)
                 except:
                     print("The destroyed effect wasn't properly applied.")
-                    self.dest = False
-            else: self.dest = False
+                    self.dest = dest.basicLeaves
+            else: self.dest = dest.basicLeaves
             if "Leaves Play:" in self.text:
                 try:
                     self.leaves = eval("dest.lp" + self.number)
                 except:
                     print("The leaves play effect wasn't properly applied.")
-                    self.leaves = dest.basicDest
-            else: self.leaves = dest.basicDest
+                    self.leaves = dest.basicLeaves
+            else: self.leaves = dest.basicLeaves
         # abilities
         if self.type == "Artifact":
             self.captured = False
@@ -128,7 +128,7 @@ class Card():
                 print("The on play effect wasn't properly applied.")
                 self.play = play.passFunc
         else:
-            self.play = play.passFunc("Throwaway", "Throwaway")
+            self.play = play.passFunc
         if "Action:" in self.text:
             try:
                 self.action = eval("action.key" + self.number)
@@ -174,24 +174,32 @@ class Card():
                 s += " E"
             if self.taunt:
                 s += " T"
-            if self.hazard:
+            if self.hazard[0]:
                 s += " H"
             if self.skirmish:
                 s += " S"
-            if self.assault:
+            if self.assault[0]:
                 s += " As"            
             if "Reap:" in self.text:
                 s += " R"
             if self.fight:
                 s += " F"
-            if self.dest:
+            if "Destroyed" in self.text:
                 s += " D"
-            if "Leaves Play" in self.text: s += " LP"     
+            if "Leaves Play" in self.text: s += " LP"
+            if self.ready:
+                s += " Ready"
+            else:
+                s += " Exhausted" 
         elif self.type == "Artifact":
             if not self.captured:
                 s += self.title + " (" + self.house + ")"
             else:
                 s += self.title + " (" + self.house + " Amber: " + self.captured + ")"
+            if self.ready:
+                s += " Ready"
+            else:
+                s += " Exhausted"
         elif self.type == "Action":
             s += self.title + " (" + self.house + ")"
         if self.play:
@@ -200,10 +208,6 @@ class Card():
             s += " O"
         if self.action:
             s += " Ac"
-        if self.ready:
-            s += " Ready"
-        else:
-            s += " Exhausted"
         if self.type == "Creature":
             if self.stun:
                 s += ", Stunned"

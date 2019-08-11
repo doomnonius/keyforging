@@ -25,6 +25,7 @@
       <li><s>Draw Cards</s> - <b>Done</b></li>
    </ol>
  </li>
+ <li>Update Decks option from startup() so that people can examine what is in a deck</li>
  <li>Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.</li>
  <li><s>Rewrite the base code to reflect the implementation of the cards (ie in responses())</s></li>
  <li><s>update the play card function to tell the player how much amber they got for playing the card.</s></li>
@@ -85,12 +86,12 @@
   <li>17: Unguarded Camp</li>
   <li>18: Warsong - doesn't account for multiple copies</li>
   <li>30: Bumpsy - tested</li>
-  <li>31: Earthshaker - <b><s>failed</b></s> (Probably b/c of backwardsList)</li>
+  <li>31: Earthshaker - <u><b>passed</u></b></li>
   <li>33: Ganger Chieftain</li>
   <li>36: Hebe the Huge</li>
   <li>40: Lomir Flamefist</li>
   <li>46: Smaaash</li>
-  <li>49: Wardrummer - not sure won't return self to hand - <u><b>failed</u></b> (probably b/c of backwardsList)</li>
+  <li>49: Wardrummer - not sure won't return self to hand - <u><b>passed</u></b></li>
   <li>52: Yo Mama Mastery - only handles the healing part</li>
 </ul>
 <h4>Dis:</h4>
