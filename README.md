@@ -1,6 +1,11 @@
 <h1>This is a very complicated project</h1>
 
 <h2>This project will attempt to create a text based version of keyforge. If things go real well, I may attempt online play, a simple ai, and a graphical version, but I've got a lot of work ahead of me.<h2>
+<h3>BUGS:<h3>
+<ul>
+ <li>The game doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
+</ul>
+
 <h3>Current Goals:</h3>
 <ul>
  <li><s>Be able to import and save decks</s> - <b>Done</b></li>

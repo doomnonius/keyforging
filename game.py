@@ -5,9 +5,7 @@ import cards.actions as action
 import cards.play as play
 import cards.reap as reap
 import cards.fight as fight
-import json
-import random
-import time
+import json, random, logging, time
 from helpers import makeChoice, distance
 
 ##################
@@ -22,6 +20,7 @@ class Board():
     self.activeHouse = []
     self.first = first
     self.second = second
+    logging.info("{} is going first.".format(deck.deckName(first)))
     print("\n" + deck.deckName(first) + " is going first.\n")
     time.sleep(1)
     self.activePlayer = deck.Deck(deck.deckName(first))
@@ -55,7 +54,7 @@ class Board():
   def startGame(self): #called by choosedecks()
     """Fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
     """
-    self.activePlayer += 36 #self.activePlayer += 7
+    self.activePlayer += 7 #self.activePlayer += 7
     print("\n" + self.activePlayer.name + "'s hand:")
     self.activePlayer.printShort(self.activePlayer.hand)
     mull = input("Player 1, would you like to mulligan? \n>>>")
@@ -67,7 +66,7 @@ class Board():
       self.activePlayer += 6
     # for card in self.activePlayer.hand:
     #   print(card)
-    self.inactivePlayer += 36 # self.inactivePlayer += 6
+    self.inactivePlayer += 6 # self.inactivePlayer += 6
     print("\n" + self.inactivePlayer.name + "'s hand:")
     self.inactivePlayer.printShort(self.inactivePlayer.hand)
     mull2 = input("Player 2, would you like to mulligan? \n>>>")
@@ -87,9 +86,11 @@ class Board():
     """ The passive actions of a turn. 1: Forge key (if poss, and if miasma hasn't changed the state; also reset state); 2: Calls chooseHouse(); 3: calls responses(), which needs to be moved into this class, and represents all actions (playing, discarding, fighting, etc) and info seeking; 4: ready cards; 5: draw cards. num is the turn number.
     """
     while True:
+      logging.info("Turn: {}".format(num))
       if not self.endBool:
         break
       self.lastCreaturesPlayed = self.creaturesPlayed
+      logging.info("Num creatures played last turn: {}".format(self.lastCreaturesPlayed))
       self.creaturesPlayed = 0
       print("\nTurn: " + str(num))
       if self.turnNum == 1:
@@ -98,9 +99,19 @@ class Board():
         time.sleep(1)
         print(self) # step 0: show the board state
         time.sleep(1)
-        print("You have", self.activePlayer.amber, "amber and", self.activePlayer.keys, "keys. Your opponent has", self.inactivePlayer.amber, "amber and", self.inactivePlayer.keys, "keys.\n")
+        print("You have {} amber and {} keys. Your opponent has {} amber and {}keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
+        logging.info("You have {} amber and {} keys. Your opponent has {} amber and {}keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
         time.sleep(1)
-        # step 1: check if a key is forged, then forge it
+        #####################################
+        # Step 0.5: "Start of turn" effects #
+        #####################################
+        
+        if True: # checks if there are any cards in either deck that have start of turn effects - where and when?
+          pass #but actually execute start of turn effects
+        
+        ###################################################
+        # step 1: check if a key is forged, then forge it #
+        ###################################################
         # all code is here because it's short
         if self.checkForgeStates(): # returns True if you can forge, false if you can't (and why you can't), which in CotA is basically only Miasma
           self.activePlayer.keyCost = self.calculateCost()
@@ -119,12 +130,13 @@ class Board():
           print("Forging skipped this turn!")
         if self.activePlayer.keys >= 3:
           break
-      # step 2: the player chooses a house
-      # outsourced b/c multipurpose
-      if self.inactivePlayer.states["House"]["Control the Weak"] in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-        self.activeHouse = self.inactivePlayer.states["House"]["Control the Weak"]
-      else: self.chooseHouse("activeHouse")
-      # step 2.5: the player may pick up their archive
+      ######################################
+      # step 2: the player chooses a house #
+      ######################################
+      self.chooseHouse("activeHouse") # this command checks if anything is affecting their ability to choose a house
+      ##################################################
+      # step 2.5: the player may pick up their archive #
+      ##################################################
       if len(self.activePlayer.archive) > 0:
         self.activePlayer.printShort(self.activePlayer.archive)
         while True:
@@ -136,16 +148,23 @@ class Board():
             pass
           else:
             print("Not a valid response. Try again.")
-      # step 3: call responses
-      # outsourced b/c long
+      ###############################################################################
+      # step 3: play, discard, or use cards (and also inquire about the game state) #
+      ###############################################################################
       self.responses(self.turnNum)
-      # step 4: ready cards and reset things like armor
-      # here b/c short
+      ###################################################
+      # step 4: ready cards and reset things like armor #
+      ###################################################
       self.reset(self.turnNum, forgedThisTurn)
-      # step 5.1: draw cards
+      ######################
+      # step 5: draw cards #
+      ######################
       self.activePlayer.drawEOT()
-      # print("Checking draw:", self.activePlayer.handSize == len(self.activePlayer.hand)) # test line
-      # step 5.2: check for EOT effects
+      if self.activePlayer.handSize < len(self.activePlayer.hand)
+        logging.warn("Player seems to have too many cards in hand.")
+      ###################################
+      # step 5.5: check for EOT effects #
+      ###################################
       self.checkEOTStates()
       
       # self.resetEOTStates()
@@ -319,6 +338,9 @@ class Board():
     if varAsStr == "activeHouse":
       print("\nYour hand is:\n")
       self.activePlayer.printShort(self.activePlayer.hand)
+      if self.inactivePlayer.states["House"]["Control the Weak"] in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+        self.activeHouse = self.inactivePlayer.states["House"]["Control the Weak"]
+        return
       while True:
         choice = input("Choose a house. Your deck's houses are " + self.activePlayer.houses[0] + ", " + self.activePlayer.houses[1] + ", " + self.activePlayer.houses[2] + ".\n>>>").title()
         if choice in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
@@ -355,7 +377,11 @@ class Board():
   def calculateCost(self):
     """ Calculates the cost of a key considering current board state.
     """
+    if True: # check if things that affect cost are even in any decks
+      pass # return cost
+    
     # Things to check: That annoying Dis artifact, Murmook, Grabber Jammer, that Mars upgrade, Titan Mechanic
+    # Need to add a tag for affecting amber cost.
     cost = 6
     return cost
 
@@ -485,8 +511,10 @@ class Board():
     return True
 
   def checkForgeStates(self):
-    """ Checks if there is anything in Deck.states["Forge"]. Implementation for other things is still hazy.
+    """ Checks if there is anything in Deck.states["Forge"]. This isn't checking if you have enough amber.
     """
+    if True: #optimization: if no cards in deck with this effect, just return
+      pass # return True
     if self.activePlayer.states["Forge"]["Miasma"]:
       self.activePlayer.states["Forge"]["Miasma"] = False
       print("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")

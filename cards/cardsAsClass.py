@@ -3,6 +3,7 @@ import cards.fight as fight
 import cards.play as play
 import cards.actions as action
 import cards.reap as reap
+import logging
 
 def listOfWords (S):
 	""" Builds from the back of the list. Either adds a new item
@@ -82,21 +83,21 @@ class Card():
                 try:
                     self.reap = eval("reap.key" + self.number)
                 except:
-                    print("The reap effect wasn't properly applied.")
+                    logging.warn("The reap effect wasn't properly applied.")
                     self.reap = reap.basicReap
             else: self.reap = reap.basicReap
             if "Fight:" in self.text or "Fight/" in self.text:
                 if "Before" in self.text:
                     try: self.before = eval("fight.before" + self.number)
                     except: 
-                        print("The before fight effect wasn't applied properly.")
+                        logging.warn("The before fight effect wasn't applied properly.")
                         self.before = False
                     return
                 else:
                     self.before = False
                 try: self.fight = eval("fight.key" + self.number)
                 except:
-                    print("The fight effect wasn't properly applied.")
+                    logging.warn("The fight effect wasn't properly applied.")
                     self.fight = False
             else: self.fight = False
             if "Assault" in self.text: self.assault = True, int(self.text[self.text.index("Assault") + 8])
@@ -117,6 +118,10 @@ class Card():
                     print("The leaves play effect wasn't properly applied.")
                     self.leaves = dest.basicLeaves
             else: self.leaves = dest.basicLeaves
+        # start of turn effects
+        
+        # end of turn effects
+        
         # abilities
         if self.type == "Artifact":
             self.captured = False
