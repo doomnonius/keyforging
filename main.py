@@ -34,7 +34,7 @@ def startup(choice = ''): #Called at startup
       deck.importDeck()
       another = input("Would you like to import another deck (Y/n)? ")
   elif distance(choice, "NewGame") <= 2:
-    chooseDecks()
+    board = Board()
   elif distance(choice, "Load") <= 1:
     # Display saved games, then let them choose one.
     # display saves here !!!!
@@ -55,87 +55,81 @@ def load(saveFile):
   """
 
 
-FPS = 60
-WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags = pygame.FULLSCREEN)
-pygame.display.set_caption('Checkers')
-pygame.font.init()
-
-
-def chooseDecks(): #called by startup()
-  """The players choose their decks from deckDict, and if their choice isn't there they are offered the option to import a deck.
-  """
-  run = True
-  clock = pygame.time.Clock()
-  first_run = True
-  loaded_decks = 0
-  deck_options = []
-  with open('decks/deckList.json', encoding='UTF-8') as f:
-    stuff = json.load(f)
-    for x in stuff:
-      deck_options.append(x['name'])
+# def chooseDecks(): #called by startup()
+#   """The players choose their decks from deckDict, and if their choice isn't there they are offered the option to import a deck.
+#   """
+#   run = True
+#   clock = pygame.time.Clock()
+#   first_run = True
+#   loaded_decks = 0
+#   deck_options = []
+#   with open('decks/deckList.json', encoding='UTF-8') as f:
+#     stuff = json.load(f)
+#     for x in stuff:
+#       deck_options.append(x['name'])
   
-  while run:
-    clock.tick(FPS)
+#   while run:
+#     clock.tick(FPS)
 
-    # this needs to be in game in some very different way than currently
+#     # this needs to be in game in some very different way than currently
 
-    if first_run:
-      print("Available decks:")
-      with open('decks/deckList.json', encoding='UTF-8') as f:
-        stuff = json.load(f)
-        for x in range(len(stuff)):
-          print(str(x) + ': ' + stuff[x]['name'])
-      deckChoice = makeChoice("Choose player 1's deck by index: ", stuff, show = False)
-      # some code here to list player 2's options, which is all the decks except the one player 1 just chose
-      print("Available decks:")
-      with open('decks/deckList.json', encoding='UTF-8') as f:
-        stuff2 = json.load(f)
-        for x in range(len(stuff2)):
-          if x != deckChoice:
-            print(str(x) + ': ' + stuff2[x]['name'])
-      deckChoice2 = deckChoice
-      while deckChoice2 == deckChoice:
-          deckChoice2 = makeChoice("Choose player 2's deck by index: ", stuff2, show = False)
-      first = random.choice([deckChoice, deckChoice2])
-      # print(first)
-      if first == deckChoice:
-          second = deckChoice2
-      else:
-          second = deckChoice
-      global game
-      # game = Board(first, second)
-      # game.startGame()
-      board = Board()
-      first_run = False
+#     if first_run:
+#       print("Available decks:")
+#       with open('decks/deckList.json', encoding='UTF-8') as f:
+#         stuff = json.load(f)
+#         for x in range(len(stuff)):
+#           print(str(x) + ': ' + stuff[x]['name'])
+#       deckChoice = makeChoice("Choose player 1's deck by index: ", stuff, show = False)
+#       # some code here to list player 2's options, which is all the decks except the one player 1 just chose
+#       print("Available decks:")
+#       with open('decks/deckList.json', encoding='UTF-8') as f:
+#         stuff2 = json.load(f)
+#         for x in range(len(stuff2)):
+#           if x != deckChoice:
+#             print(str(x) + ': ' + stuff2[x]['name'])
+#       deckChoice2 = deckChoice
+#       while deckChoice2 == deckChoice:
+#           deckChoice2 = makeChoice("Choose player 2's deck by index: ", stuff2, show = False)
+#       first = random.choice([deckChoice, deckChoice2])
+#       # print(first)
+#       if first == deckChoice:
+#           second = deckChoice2
+#       else:
+#           second = deckChoice
+#       global game
+#       # game = Board(first, second)
+#       # game.startGame()
+#       board = Board()
+#       first_run = False
 
-    ## all this crap is going to need to go into game.py in some way
+#     ## all this crap is going to need to go into game.py in some way
 
-    for event in pygame.event.get():
-      print(event)
-      if loaded_decks < 2:
-        board.make_popup(deck_options, WIN)
-      else:
-        board.startGame()
+#     for event in pygame.event.get():
+#       print(event)
+#       if loaded_decks < 2:
+#         board.make_popup(deck_options, WIN)
+#       else:
+#         board.startGame()
       
-      if event.type == pygame.MOUSEMOTION:
-        #update mouse position
-        self.mousex, self.mousey = event.pos
+#       if event.type == pygame.MOUSEMOTION:
+#         #update mouse position
+#         self.mousex, self.mousey = event.pos
 
-      if event.type == pygame.QUIT:
-        run = False
+#       if event.type == pygame.QUIT:
+#         run = False
 
-      if event.type == pygame.MOUSEBUTTONDOWN:
-        pass
+#       if event.type == pygame.MOUSEBUTTONDOWN:
+#         pass
 
-      if event.type == pygame.KEYDOWN:
-        if event.key == 113 and event.mod == 64:
-          run = False
-        pygame.display.toggle_fullscreen()
+#       if event.type == pygame.KEYDOWN:
+#         if event.key == 113 and event.mod == 64:
+#           run = False
+#         pygame.display.toggle_fullscreen()
 
-    board.draw(WIN)
-    pygame.display.update()
+#     board.draw(WIN)
+#     pygame.display.update()
 
-  pygame.quit()
+#   pygame.quit()
 
 
 

@@ -1,3 +1,4 @@
+from pygame.constants import MOUSEBUTTONDOWN, MOUSEMOTION
 import decks.decks as deck
 import cards.cardsAsClass as card
 import cards.destroyed as dest
@@ -8,7 +9,7 @@ import cards.fight as fight
 import json, random, logging, time, pygame
 from helpers import makeChoice, distance, buildStateDict
 from typing import Dict, List, Set
-from constants import COLORS, WIDTH, HEIGHT, HALF, BASICFONT
+from constants import COLORS, WIDTH, HEIGHT, HALF
 
 #####################
 # Contains modules: #
@@ -19,16 +20,25 @@ class Board():
   def __init__(self):
     """ first is first player, which is determined before Game is created and entered as an input. deck.deckName is a function that pulls the right deck from the list.
     """
-    self.first = None
-    self.second = None
+    self.first = False
+    self.second = False
     self.top = 0
     self.left = 0
+    self.xmouse = 0
+    self.ymouse = 0
     self.activeHouse = []
     self.endBool = True
     self.turnNum = 0
     self.creaturesPlayed = 0
     self.extraFightHouses = []
     self.forgedLastTurn = False, 0
+    self.FPS = 60
+    self.WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags = pygame.FULLSCREEN)
+    pygame.display.set_caption('Keyforge')
+    pygame.font.init()
+    self.BASICFONT = pygame.font.SysFont("Arial", 8)
+    self.CLOCK = pygame.time.Clock()
+    self.main()
 
   def __repr__(self):
     s = ''
@@ -46,6 +56,110 @@ class Board():
     for x in range(len(self.activePlayer.board["Artifact"])):
       s += str(x) + ': ' + str(self.activePlayer.board["Artifact"][x]) + '\n'
     return s
+
+  def deckOptions(self) -> List:
+    retVal = []
+    with open('decks/deckList.json', encoding='UTF-8') as f:
+      stuff = json.load(f)
+      for x in stuff:
+        if x != self.first:
+          retVal.append(x['name'])
+    return retVal
+
+  def main(self):
+    run = True
+
+
+    while run:
+      self.CLOCK.tick(self.FPS)
+      for event in pygame.event.get():
+        print(event)
+        
+        if event.type == pygame.MOUSEMOTION:
+          #update mouse position
+          self.mousex, self.mousey = event.pos
+
+        if event.type == pygame.QUIT:
+          run = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+          if not self.first:
+            self.first = self.doPopup()
+          elif not self.second:
+            self.second = self.doPopup()
+            self.startGame()
+          print(self.first)
+          print(self.deckOptions())
+          
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+          self.WIN.fill(COLORS[random.choice(list(COLORS.keys()))])
+          
+        if event.type == pygame.KEYDOWN:
+          if event.key == 113 and event.mod == 64:
+            run = False
+          # pygame.display.toggle_fullscreen()
+
+      self.draw() # this will need hella updates
+      pygame.display.update()
+
+    pygame.quit()
+
+
+  def draw(self):
+    pass
+    # self.WIN.fill(COLORS["WHITE"])
+
+
+  def doPopup(self):
+    while True:
+      self.make_popup(self.deckOptions())
+      for e in pygame.event.get():
+        if e.type == pygame.QUIT:
+          pygame.quit()
+        elif e.type == pygame.MOUSEMOTION:
+          self.mousex, self.mousey = e.pos
+        elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+          OPTION = self.option_selected()
+          if OPTION != None:
+            return OPTION
+          else:
+            return None
+      self.CLOCK.tick(self.FPS)
+  
+
+  def option_selected(self):
+    popupSurf = pygame.Surface((50, 50))
+    options = self.deckOptions()
+    #draw up the surf, but don't blit it to the screen
+    for i in range(len(options)):
+      textSurf = self.BASICFONT.render(options[i], 1, COLORS['BLUE'])
+      textRect = textSurf.get_rect()
+      textRect.top = self.top
+      textRect.left = self.left
+      self.top += pygame.font.Font.get_linesize(self.BASICFONT)
+      popupSurf.blit(textSurf, textRect)
+      if pygame.Rect.collidepoint(textRect, (self.mousex, self.mousey)):
+        return options[i]
+    popupRect = popupSurf.get_rect()
+    popupRect.centerx = WIDTH/2
+    popupRect.centery = HEIGHT/2
+
+
+  def make_popup(self, options):
+    popupSurf = pygame.Surface((50, 50))
+    for i in range(len(options)):
+      textSurf = self.BASICFONT.render(options[i], 1, COLORS["BLUE"])
+      textRect = textSurf.get_rect()
+      textRect.top = self.top
+      textRect.left = self.left
+      self.top += pygame.font.Font.get_linesize(self.BASICFONT)
+      popupSurf.blit(textSurf, textRect)
+    popupRect = popupSurf.get_rect()
+    popupRect.centerx = WIDTH/2
+    popupRect.centery = HEIGHT/2
+    self.WIN.blit(popupSurf, popupRect)
+    pygame.display.update()
+
 
 ##################
 # Turn functions #
@@ -195,24 +309,6 @@ class Board():
     """
     self.activePlayer, self.inactivePlayer = self.inactivePlayer, self.activePlayer
     # print(self) # test line: passed on 7/25
-
-  def draw(self, win):
-    win.fill(COLORS["WHITE"])
-
-  def make_popup(self, options, display):
-    popupSurf = pygame.Surface((50, 50))
-    for i in range(len(options)):
-      textSurf = BASICFONT.render(options[i], 1, COLORS["BLUE"])
-      textRect = textSurf.get_rect()
-      textRect.top = self.top
-      textRect.left = self.left
-      self.top += pygame.font.Font.get_linesize(BASICFONT)
-      popupSurf.blit(textSurf, textRect)
-    popupRect = popupSurf.get_rect()
-    popupRect.centerx = WIDTH/2
-    popupRect.centery = HEIGHT/2
-    display.blit(popupSurf, popupRect)
-    # pygame.display.update()
 
   def responses(self, turn):
     """This is called during step 3 of the turn. Turn is so that players can ask what turn it is.
@@ -1028,4 +1124,4 @@ def developer(game):
   """Developer functions for manually changing the game state.
   """
 
-  
+
