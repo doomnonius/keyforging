@@ -76,7 +76,9 @@ def chooseDecks(): #called by startup()
   
   while run:
     clock.tick(FPS)
- 
+
+    # this needs to be in game in some very different way than currently
+
     if first_run:
       print("Available decks:")
       with open('decks/deckList.json', encoding='UTF-8') as f:
@@ -106,6 +108,8 @@ def chooseDecks(): #called by startup()
       board = Board()
       first_run = False
 
+    ## all this crap is going to need to go into game.py in some way
+
     for event in pygame.event.get():
       print(event)
       if loaded_decks < 2:
@@ -113,10 +117,10 @@ def chooseDecks(): #called by startup()
       else:
         board.startGame()
       
-      if event.type == MOUSEMOTION:
+      if event.type == pygame.MOUSEMOTION:
         #update mouse position
         self.mousex, self.mousey = event.pos
-        
+
       if event.type == pygame.QUIT:
         run = False
 
