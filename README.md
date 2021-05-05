@@ -3,7 +3,9 @@
 <h2>This project will attempt to create a text based version of keyforge. If things go real well, I may attempt online play, a simple ai, and a graphical version, but I've got a lot of work ahead of me.<h2>
 <h3>BUGS:<h3>
 <ul>
- <li>The game doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
+ <li>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</li>
+ <li>https://www.pygame.org/docs/genindex.html</li>
+ <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
 </ul>
 
 <h3>Current Goals:</h3>
