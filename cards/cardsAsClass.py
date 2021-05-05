@@ -22,7 +22,7 @@ def listOfWords (S):
 			return [c + L[0]] + L[1:]
 
 class Card():
-    """ Feed json.loads(returns a string) called the deck list (which       will be a json file) to this to build classes.
+    """ Feed json.loads(returns a string) called the deck list (which will be a json file) to this to build classes.
         Possibly create a function defined here or elsewhere, if self.name = x, add these functions, if = y, add these.
     """
     def __init__(self, cardInfo, deckName):
@@ -83,21 +83,21 @@ class Card():
                 try:
                     self.reap = eval("reap.key" + self.number)
                 except:
-                    logging.warn("The reap effect wasn't properly applied.")
+                    logging.warn("The reap effect wasn't properly applied to " + self.title)
                     self.reap = reap.basicReap
             else: self.reap = reap.basicReap
             if "Fight:" in self.text or "Fight/" in self.text:
                 if "Before" in self.text:
                     try: self.before = eval("fight.before" + self.number)
                     except: 
-                        logging.warn("The before fight effect wasn't applied properly.")
+                        logging.warn("The before fight effect wasn't applied properly to " + self.title)
                         self.before = False
                     return
                 else:
                     self.before = False
                 try: self.fight = eval("fight.key" + self.number)
                 except:
-                    logging.warn("The fight effect wasn't properly applied.")
+                    logging.warn("The fight effect wasn't properly applied to " + self.title)
                     self.fight = False
             else: self.fight = False
             if "Assault" in self.text: self.assault = True, int(self.text[self.text.index("Assault") + 8])
@@ -108,14 +108,14 @@ class Card():
                 try:
                     self.dest = eval("dest.key" + self.number)
                 except:
-                    print("The destroyed effect wasn't properly applied.")
+                    logging.warn("The destroyed effect wasn't properly applied to " + self.title)
                     self.dest = dest.basicLeaves
             else: self.dest = dest.basicLeaves
             if "Leaves Play:" in self.text:
                 try:
                     self.leaves = eval("dest.lp" + self.number)
                 except:
-                    print("The leaves play effect wasn't properly applied.")
+                    logging.warn("The leaves play effect wasn't properly applied to " + self.title)
                     self.leaves = dest.basicLeaves
             else: self.leaves = dest.basicLeaves
         # start of turn effects
@@ -130,7 +130,7 @@ class Card():
             try:
                 self.play = eval("play.key" + self.number)
             except:
-                print("The on play effect wasn't properly applied.")
+                logging.warn("The on play effect wasn't properly applied to " + self.title)
                 self.play = play.passFunc
         else:
             self.play = play.passFunc
@@ -138,7 +138,7 @@ class Card():
             try:
                 self.action = eval("action.key" + self.number)
             except:
-                print("The action effect wasn't properly applied.")
+                logging.warn("The action effect wasn't properly applied to " + self.title)
                 self.action = False
         else:
             self.action = False
@@ -146,7 +146,7 @@ class Card():
             try:
                 self.omni = eval("action.omni" + self.number)
             except:
-                print("The omni effect wasn't properly applied.")
+                logging.warn("The omni effect wasn't properly applied to " + self.title)
                 self.omni = False
         else:
             self.omni = False
@@ -161,7 +161,7 @@ class Card():
         else:
             s += self.house + ' ' + self.type + '\n'
         if self.type == "Creature":
-            s += "Power: " + str(self.power + self.extraPow) + " (" + str(self.damage) + " damage )" + "; Armor: " + str(self.armor + self.extraArm) + '\n'
+            s += "Power: " + str(self.power + self.extraPow) + " (" + str(self.damage) + " damage)" + "; Armor: " + str(self.armor + self.extraArm) + '\n'
         if self.traits != None:
             s += self.traits + '\n' + self.text + '\n'
         else:

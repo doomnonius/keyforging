@@ -1,4 +1,6 @@
 import os, logging
+
+from pygame.font import SysFont
 logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
 
 # Feature add: when the game is installed (like, properly, which is something I'm totally going to get to) a variable will be set that says where the game is installed, then this will be called.
@@ -6,11 +8,10 @@ logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s
 
 import cards.cardsAsClass as card
 import decks.decks as deck
+import json, random, argparse, pygame
 from game import Board
-import argparse # so we can call a new game from the command line
-import random
 from helpers import distance, makeChoice
-import json
+from constants import WIDTH, HEIGHT, COLORS
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", "--action", help="launch the app, specifiying whether to start a [newgame], [import] a deck", type=str, default="newgame")
@@ -54,33 +55,84 @@ def load(saveFile):
   """
 
 
+FPS = 60
+WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags = pygame.FULLSCREEN)
+pygame.display.set_caption('Checkers')
+pygame.font.init()
+
+
 def chooseDecks(): #called by startup()
   """The players choose their decks from deckDict, and if their choice isn't there they are offered the option to import a deck.
   """
-  print("Available decks:")
-  with open('decks/deckList.json') as f:
+  run = True
+  clock = pygame.time.Clock()
+  first_run = True
+  loaded_decks = 0
+  deck_options = []
+  with open('decks/deckList.json', encoding='UTF-8') as f:
     stuff = json.load(f)
-    for x in range(0, len(stuff)):
-      print(str(x) + ': ' + stuff[x]['name'])
-  deckChoice = makeChoice("Choose player 1's deck by index: ", stuff, show = False)
-  # some code here to list player 2's options, which is all the decks except the one player 1 just chose
-  print("Available decks:")
-  with open('decks/deckList.json') as f:
-    stuff2 = json.load(f)
-    for x in range(0, len(stuff2)):
-      if x != deckChoice:
-        print(str(x) + ': ' + stuff2[x]['name'])
-  deckChoice2 = deckChoice
-  while deckChoice2 == deckChoice:
-      deckChoice2 = makeChoice("Choose player 2's deck by index: ", stuff2, show = False)
-  first = random.choice([deckChoice, deckChoice2])
-  # print(first)
-  if first == deckChoice:
-      second = deckChoice2
-  else:
-      second = deckChoice
-  global game
-  game = Board(first, second)
-  game.startGame()
+    for x in stuff:
+      deck_options.append(x['name'])
+  
+  while run:
+    clock.tick(FPS)
+ 
+    if first_run:
+      print("Available decks:")
+      with open('decks/deckList.json', encoding='UTF-8') as f:
+        stuff = json.load(f)
+        for x in range(len(stuff)):
+          print(str(x) + ': ' + stuff[x]['name'])
+      deckChoice = makeChoice("Choose player 1's deck by index: ", stuff, show = False)
+      # some code here to list player 2's options, which is all the decks except the one player 1 just chose
+      print("Available decks:")
+      with open('decks/deckList.json', encoding='UTF-8') as f:
+        stuff2 = json.load(f)
+        for x in range(len(stuff2)):
+          if x != deckChoice:
+            print(str(x) + ': ' + stuff2[x]['name'])
+      deckChoice2 = deckChoice
+      while deckChoice2 == deckChoice:
+          deckChoice2 = makeChoice("Choose player 2's deck by index: ", stuff2, show = False)
+      first = random.choice([deckChoice, deckChoice2])
+      # print(first)
+      if first == deckChoice:
+          second = deckChoice2
+      else:
+          second = deckChoice
+      global game
+      # game = Board(first, second)
+      # game.startGame()
+      board = Board()
+      first_run = False
+
+    for event in pygame.event.get():
+      print(event)
+      if loaded_decks < 2:
+        board.make_popup(deck_options, WIN)
+      else:
+        board.startGame()
+      
+      if event.type == MOUSEMOTION:
+        #update mouse position
+        self.mousex, self.mousey = event.pos
+        
+      if event.type == pygame.QUIT:
+        run = False
+
+      if event.type == pygame.MOUSEBUTTONDOWN:
+        pass
+
+      if event.type == pygame.KEYDOWN:
+        if event.key == 113 and event.mod == 64:
+          run = False
+        pygame.display.toggle_fullscreen()
+
+    board.draw(WIN)
+    pygame.display.update()
+
+  pygame.quit()
+
+
 
 startup(args.action.title())

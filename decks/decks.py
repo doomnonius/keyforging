@@ -6,7 +6,7 @@ import json
 
 class Deck:
     def __init__(self, name):
-        with open('decks/deckList.json') as f:
+        with open('decks/deckList.json', encoding='UTF-8') as f:
             data = json.load(f)
             for deck in data:
                 if name == deck['name']:
@@ -126,7 +126,7 @@ url2 = "https://www.keyforgegame.com/deck-details/"
 def deckName(listIndex):
     """ Will take a list index, returns the deck name from that index.
     """
-    with open('decks/deckList.json') as f:
+    with open('decks/deckList.json', encoding='UTF-8') as f:
         data = json.load(f)
         return data[listIndex]['name']
 

@@ -5,27 +5,27 @@ import cards.actions as action
 import cards.play as play
 import cards.reap as reap
 import cards.fight as fight
-import json, random, logging, time
-from helpers import makeChoice, distance
+import json, random, logging, time, pygame
+from helpers import makeChoice, distance, buildStateDict
+from typing import Dict, List, Set
+from constants import COLORS, WIDTH, HEIGHT, HALF, BASICFONT
 
-##################
-# Contains modules:
-# Game class
-##################
+#####################
+# Contains modules: #
+# - Game class      #
+#####################
 
 class Board():
-  def __init__(self, first, second):
+  def __init__(self):
     """ first is first player, which is determined before Game is created and entered as an input. deck.deckName is a function that pulls the right deck from the list.
     """
+    self.first = None
+    self.second = None
+    self.top = 0
+    self.left = 0
     self.activeHouse = []
-    self.first = first
-    self.second = second
-    logging.info("{} is going first.".format(deck.deckName(first)))
-    print("\n" + deck.deckName(first) + " is going first.\n")
-    time.sleep(1)
-    self.activePlayer = deck.Deck(deck.deckName(first))
-    self.inactivePlayer = deck.Deck(deck.deckName(second))
     self.endBool = True
+    self.turnNum = 0
     self.creaturesPlayed = 0
     self.extraFightHouses = []
     self.forgedLastTurn = False, 0
@@ -54,6 +54,19 @@ class Board():
   def startGame(self): #called by choosedecks()
     """Fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
     """
+    logging.info("{} is going first.".format(deck.deckName(self.first)))
+    print("\n" + deck.deckName(self.first) + " is going first.\n")
+    time.sleep(1)
+    self.activePlayer = deck.Deck(deck.deckName(self.first))
+    self.inactivePlayer = deck.Deck(deck.deckName(self.second))
+    ##########################
+    # Build state dictionary #
+    ##########################
+    # self.activePlayer.states = buildStateDict(self.activePlayer, self.inactivePlayer) # will look at all the cards, and add states that might be needed, not functional yet
+    # self.inactivePlayer.states = buildStateDict(self.activePlayer, self.inactivePlayer)
+    #####################
+    # Draw and mulligan #
+    #####################
     self.activePlayer += 7 #self.activePlayer += 7
     print("\n" + self.activePlayer.name + "'s hand:")
     self.activePlayer.printShort(self.activePlayer.hand)
@@ -79,28 +92,28 @@ class Board():
     self.numPlays = 0
     self.numDiscards = 0
     self.turnNum = 1
-    self.turn(self.turnNum)
+    self.turn()
     # From here on should be in turn(), I think
 
-  def turn(self, num):
+  def turn(self):
     """ The passive actions of a turn. 1: Forge key (if poss, and if miasma hasn't changed the state; also reset state); 2: Calls chooseHouse(); 3: calls responses(), which needs to be moved into this class, and represents all actions (playing, discarding, fighting, etc) and info seeking; 4: ready cards; 5: draw cards. num is the turn number.
     """
     while True:
-      logging.info("Turn: {}".format(num))
+      logging.info("Turn: {}".format(self.turnNum))
       if not self.endBool:
         break
       self.lastCreaturesPlayed = self.creaturesPlayed
       logging.info("Num creatures played last turn: {}".format(self.lastCreaturesPlayed))
       self.creaturesPlayed = 0
-      print("\nTurn: " + str(num))
+      print("\nTurn: " + str(self.turnNum))
       if self.turnNum == 1:
         forgedThisTurn = False, 1
       if self.turnNum > 1:
         time.sleep(1)
         print(self) # step 0: show the board state
         time.sleep(1)
-        print("You have {} amber and {} keys. Your opponent has {} amber and {}keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
-        logging.info("You have {} amber and {} keys. Your opponent has {} amber and {}keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
+        print("You have {} amber and {} keys. Your opponent has {} amber and {} keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
+        logging.info("You have {} amber and {} keys. Your opponent has {} amber and {} keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
         time.sleep(1)
         #####################################
         # Step 0.5: "Start of turn" effects #
@@ -160,7 +173,7 @@ class Board():
       # step 5: draw cards #
       ######################
       self.activePlayer.drawEOT()
-      if self.activePlayer.handSize < len(self.activePlayer.hand)
+      if self.activePlayer.handSize < len(self.activePlayer.hand):
         logging.warn("Player seems to have too many cards in hand.")
       ###################################
       # step 5.5: check for EOT effects #
@@ -182,6 +195,24 @@ class Board():
     """
     self.activePlayer, self.inactivePlayer = self.inactivePlayer, self.activePlayer
     # print(self) # test line: passed on 7/25
+
+  def draw(self, win):
+    win.fill(COLORS["WHITE"])
+
+  def make_popup(self, options, display):
+    popupSurf = pygame.Surface((50, 50))
+    for i in range(len(options)):
+      textSurf = BASICFONT.render(options[i], 1, COLORS["BLUE"])
+      textRect = textSurf.get_rect()
+      textRect.top = self.top
+      textRect.left = self.left
+      self.top += pygame.font.Font.get_linesize(BASICFONT)
+      popupSurf.blit(textSurf, textRect)
+    popupRect = popupSurf.get_rect()
+    popupRect.centerx = WIDTH/2
+    popupRect.centery = HEIGHT/2
+    display.blit(popupSurf, popupRect)
+    # pygame.display.update()
 
   def responses(self, turn):
     """This is called during step 3 of the turn. Turn is so that players can ask what turn it is.

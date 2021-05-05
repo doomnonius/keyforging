@@ -30,6 +30,8 @@
       <li><s>Draw Cards</s> - <b>Done</b></li>
    </ol>
  </li>
+ <li>Build a state dict that only has the relevant information</li>
+ <li>Sort hand by house</li>
  <li>Update Decks option from startup() so that people can examine what is in a deck</li>
  <li>Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.</li>
  <li><s>Rewrite the base code to reflect the implementation of the cards (ie in responses())</s></li>
@@ -49,7 +51,8 @@
 <ol>
 <li>extra armor is always applied, even if it's been broken. Potential Solution: a calcExtraArmor() function, which needs to remember if a card has been hit yet this turn.</li>
 <li>if Sneklifter steals an artifact and it doesn't belong to one of the active player's houses, it gets changed to house Shadows. This is good. The bug is that if the artifact leaves play it doesn't get changed back.</li>
-<li>If scout gives a minion skirmish for a turn, it keeps skirmish until death. Might be fixed.
+<li>If scout gives a minion skirmish for a turn, it keeps skirmish until death. Might be fixed.</li>
+<li>Nocturnal Manuevers didn't work.</li>
 </ol>
 
 <h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>

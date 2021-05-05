@@ -1,3 +1,6 @@
+from typing import Dict
+
+
 ##################
 # Contains modules:
 # absa
@@ -96,3 +99,7 @@ def stealAmber(thief, victim, num):
       return
     print("Your opponent only had " + victim.amber + " amber for you to steal.")
     victim.amber = 0
+
+
+def buildStateDict(deck1, deck2) -> Dict:
+  return {}
