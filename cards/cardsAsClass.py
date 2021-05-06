@@ -1,9 +1,11 @@
+import os
+
+import pygame, logging
 import cards.destroyed as dest
 import cards.fight as fight
 import cards.play as play
 import cards.actions as action
-import cards.reap as reap
-import logging
+import cards.reap as reap 
 
 def listOfWords (S):
 	""" Builds from the back of the list. Either adds a new item
@@ -330,6 +332,21 @@ class Card():
             print(self.title + " is dead.")
             return True
         return False
+
+    def load_image(self, colorkey=None):
+        fullname = os.path.join('card-fronts', self.title.replace(' ', '-'))
+        try:
+            image = pygame.image.load(fullname)
+        except pygame.error as message:
+            logging.error(f'Cannot load image: {self.title}')
+            raise SystemExit(message)
+        image = image.convert()
+        if colorkey is not None:
+            if colorkey == -1:
+                colorkey = image.get_at((0,0))
+            image.set_colorkey(colorkey)
+        return image, image.get_rect()
+            
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly')

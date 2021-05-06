@@ -5,6 +5,7 @@
 <ul>
  <li>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</li>
  <li>https://www.pygame.org/docs/genindex.html</li>
+ <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
 </ul>
 

@@ -1,4 +1,4 @@
-import os, logging
+import os, sys, logging
 
 from pygame.font import SysFont
 logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
@@ -6,12 +6,11 @@ logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s
 # Feature add: when the game is installed (like, properly, which is something I'm totally going to get to) a variable will be set that says where the game is installed, then this will be called.
 ## os.chdir('/mnt/c/Users/devon/workspace/codeclass/keyforge')
 
-import cards.cardsAsClass as card
+# import cards.cardsAsClass as card
 import decks.decks as deck
-import json, random, argparse, pygame
+import json, argparse
 from game import Board
-from helpers import distance, makeChoice
-from constants import WIDTH, HEIGHT, COLORS
+from helpers import distance
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", "--action", help="launch the app, specifiying whether to start a [newgame], [import] a deck", type=str, default="newgame")
@@ -34,7 +33,7 @@ def startup(choice = ''): #Called at startup
       deck.importDeck()
       another = input("Would you like to import another deck (Y/n)? ")
   elif distance(choice, "NewGame") <= 2:
-    board = Board()
+    Board()
   elif distance(choice, "Load") <= 1:
     # Display saved games, then let them choose one.
     # display saves here !!!!

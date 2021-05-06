@@ -20,6 +20,7 @@ class Board():
   def __init__(self):
     """ first is first player, which is determined before Game is created and entered as an input. deck.deckName is a function that pulls the right deck from the list.
     """
+    # print("Or even here?")
     self.first = False
     self.second = False
     self.top = 0
@@ -32,6 +33,8 @@ class Board():
     self.creaturesPlayed = 0
     self.extraFightHouses = []
     self.forgedLastTurn = False, 0
+    self.allRects = []
+    self.backgroundColor = COLORS["WHITE"]
     self.FPS = 60
     self.WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags = pygame.FULLSCREEN)
     pygame.display.set_caption('Keyforge')
@@ -67,8 +70,8 @@ class Board():
     return retVal
 
   def main(self):
+    # print("Are we even getting here?")
     run = True
-
 
     while run:
       self.CLOCK.tick(self.FPS)
@@ -83,16 +86,12 @@ class Board():
           run = False
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
-          if not self.first:
-            self.first = self.doPopup()
-          elif not self.second:
-            self.second = self.doPopup()
-            self.startGame()
+          self.doPopup()
           print(self.first)
-          print(self.deckOptions())
+          # print(self.deckOptions())
           
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-          self.WIN.fill(COLORS[random.choice(list(COLORS.keys()))])
+          self.backgroundColor = COLORS[random.choice(list(COLORS.keys()))]
           
         if event.type == pygame.KEYDOWN:
           if event.key == 113 and event.mod == 64:
@@ -106,20 +105,27 @@ class Board():
 
 
   def draw(self):
-    pass
-    # self.WIN.fill(COLORS["WHITE"])
+    self.WIN.fill(self.backgroundColor)
+    # for r in self.allRects:
+    # self.WIN.blits(self.allRects)
 
 
   def doPopup(self):
     while True:
-      self.make_popup(self.deckOptions())
+      if not self.first or not self.second:
+        opt = self.deckOptions()
+      elif 1 == 2:
+        opt = [] # action options from clicking on a card
+      elif 2 == 3:
+        opt = [] # action options from clicking not on a card
+      self.make_popup(opt)
       for e in pygame.event.get():
         if e.type == pygame.QUIT:
           pygame.quit()
         elif e.type == pygame.MOUSEMOTION:
           self.mousex, self.mousey = e.pos
         elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
-          OPTION = self.option_selected()
+          OPTION = self.option_selected(opt)
           if OPTION != None:
             return OPTION
           else:
@@ -127,9 +133,8 @@ class Board():
       self.CLOCK.tick(self.FPS)
   
 
-  def option_selected(self):
-    popupSurf = pygame.Surface((50, 50))
-    options = self.deckOptions()
+  def option_selected(self, options):
+    popupSurf = pygame.Surface((200, 200))
     #draw up the surf, but don't blit it to the screen
     for i in range(len(options)):
       textSurf = self.BASICFONT.render(options[i], 1, COLORS['BLUE'])
@@ -139,6 +144,14 @@ class Board():
       self.top += pygame.font.Font.get_linesize(self.BASICFONT)
       popupSurf.blit(textSurf, textRect)
       if pygame.Rect.collidepoint(textRect, (self.mousex, self.mousey)):
+        print(options)
+        if not self.first:
+          self.first = options[i]
+          return
+        elif not self.second:
+          self.second = options[i]
+          self.startGame()
+          return
         return options[i]
     popupRect = popupSurf.get_rect()
     popupRect.centerx = WIDTH/2
@@ -146,7 +159,8 @@ class Board():
 
 
   def make_popup(self, options):
-    popupSurf = pygame.Surface((50, 50))
+    popupSurf = pygame.Surface((200, 200))
+    self.allRects.append((popupSurf, (WIDTH/2, HEIGHT/2)))
     for i in range(len(options)):
       textSurf = self.BASICFONT.render(options[i], 1, COLORS["BLUE"])
       textRect = textSurf.get_rect()
