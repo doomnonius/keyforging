@@ -23,12 +23,15 @@ def listOfWords (S):
 		else:
 			return [c + L[0]] + L[1:]
 
-class Card():
+class Card(): # Card(pygame.sprite.Sprite):
     """ Feed json.loads(returns a string) called the deck list (which will be a json file) to this to build classes.
         Possibly create a function defined here or elsewhere, if self.name = x, add these functions, if = y, add these.
     """
     def __init__(self, cardInfo, deckName):
         # These are all the things that are not in the dict data but that I need to keep track of
+        # pygame.sprite.Sprite.__init__(self)
+        # self.image, self.rect = self.load_image()
+        # screen = pygame.display.get_surface()
         self.deck = deckName
         self.title = cardInfo['card_title']
         self.damage = 0

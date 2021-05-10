@@ -21,8 +21,8 @@ class Board():
     """ first is first player, which is determined before Game is created and entered as an input. deck.deckName is a function that pulls the right deck from the list.
     """
     # print("Or even here?")
-    self.first = False
-    self.second = False
+    self.first = None
+    self.second = None
     self.top = 0
     self.left = 0
     self.xmouse = 0
@@ -33,13 +33,15 @@ class Board():
     self.creaturesPlayed = 0
     self.extraFightHouses = []
     self.forgedLastTurn = False, 0
-    self.allRects = []
+    # self.allRects = []
     self.backgroundColor = COLORS["WHITE"]
+    self.allsprites = pygame.sprite.RenderPlain()
+    pygame.init()
+    pygame.font.init()
+    self.BASICFONT = pygame.font.SysFont("Corbel", 10)
     self.FPS = 60
     self.WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags = pygame.FULLSCREEN)
     pygame.display.set_caption('Keyforge')
-    pygame.font.init()
-    self.BASICFONT = pygame.font.SysFont("Arial", 8)
     self.CLOCK = pygame.time.Clock()
     self.main()
 
@@ -62,21 +64,37 @@ class Board():
 
   def deckOptions(self) -> List:
     retVal = []
+    c = 0
     with open('decks/deckList.json', encoding='UTF-8') as f:
       stuff = json.load(f)
       for x in stuff:
-        if x != self.first:
+        if c != self.first:
           retVal.append(x['name'])
+        c += 1
     return retVal
 
   def main(self):
-    # print("Are we even getting here?")
+    wid, hei = [int(x) for x in self.WIN.get_size()]
+    self.mat1 = pygame.Surface((wid, hei//2 - 5))
+    self.mat1.convert()
+    self.mat1.fill(COLORS["GREY"])
+    self.mat2 = pygame.Surface((wid, hei//2 - 5))
+    self.mat2.convert()
+    self.mat2.fill(COLORS["GREEN"])
+    self.divider = pygame.Surface((wid, 10))
+    self.divider.convert()
+    self.divider.fill(COLORS["BLACK"])
+
+    self.WIN.blit(self.mat1, (0, 0))
+    self.WIN.blit(self.divider, (0, self.mat1.get_height()))
+    self.WIN.blit(self.mat2, (0, self.mat1.get_height() + 10))
+
     run = True
 
     while run:
       self.CLOCK.tick(self.FPS)
       for event in pygame.event.get():
-        print(event)
+        # print(event)
         
         if event.type == pygame.MOUSEMOTION:
           #update mouse position
@@ -87,7 +105,7 @@ class Board():
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
           self.doPopup()
-          print(self.first)
+          print(self.first, self.second)
           # print(self.deckOptions())
           
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -99,33 +117,39 @@ class Board():
           # pygame.display.toggle_fullscreen()
 
       self.draw() # this will need hella updates
-      pygame.display.update()
+      pygame.display.flip()
 
     pygame.quit()
 
 
   def draw(self):
-    self.WIN.fill(self.backgroundColor)
-    # for r in self.allRects:
-    # self.WIN.blits(self.allRects)
+    self.allsprites.update()
+
+    self.WIN.blit(self.mat1, (0, 0))
+    self.WIN.blit(self.divider, (0, self.mat1.get_height()))
+    self.WIN.blit(self.mat2, (0, self.mat1.get_height() + 10))
+
+    self.allsprites.draw(self.WIN)
 
 
   def doPopup(self):
+    pos = pygame.mouse.get_pos()
+    print(pos)
     while True:
-      if not self.first or not self.second:
+      if self.first == None or self.second == None:
         opt = self.deckOptions()
       elif 1 == 2:
         opt = [] # action options from clicking on a card
       elif 2 == 3:
         opt = [] # action options from clicking not on a card
-      self.make_popup(opt)
+      self.make_popup(opt, pos)
       for e in pygame.event.get():
         if e.type == pygame.QUIT:
           pygame.quit()
         elif e.type == pygame.MOUSEMOTION:
           self.mousex, self.mousey = e.pos
         elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
-          OPTION = self.option_selected(opt)
+          OPTION = self.option_selected(opt, pos)
           if OPTION != None:
             return OPTION
           else:
@@ -133,45 +157,56 @@ class Board():
       self.CLOCK.tick(self.FPS)
   
 
-  def option_selected(self, options):
-    popupSurf = pygame.Surface((200, 200))
+  def option_selected(self, options, pos):
+    popupSurf = pygame.Surface((500, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
+    popupSurf.convert()
     #draw up the surf, but don't blit it to the screen
+    top = pos[1]
     for i in range(len(options)):
       textSurf = self.BASICFONT.render(options[i], 1, COLORS['BLUE'])
       textRect = textSurf.get_rect()
-      textRect.top = self.top
-      textRect.left = self.left
-      self.top += pygame.font.Font.get_linesize(self.BASICFONT)
+      textRect.top = top
+      textRect.left = pos[0]
+      top += pygame.font.Font.get_linesize(self.BASICFONT)
       popupSurf.blit(textSurf, textRect)
       if pygame.Rect.collidepoint(textRect, (self.mousex, self.mousey)):
         print(options)
-        if not self.first:
-          self.first = options[i]
+        if self.first == None:
+          self.first = i
+          print(f"Setting first to {self.first}")
           return
-        elif not self.second:
-          self.second = options[i]
+        elif self.second == None:
+          self.second = i
+          if self.second >= self.first:
+            self.second += 1
+          print(f"Setting second to {self.second}")
           self.startGame()
           return
+        print(f"Returning {i}")
         return options[i]
     popupRect = popupSurf.get_rect()
-    popupRect.centerx = WIDTH/2
-    popupRect.centery = HEIGHT/2
+    popupRect.centerx = pos[0] + 250
+    popupRect.centery = pos[1]
 
 
-  def make_popup(self, options):
-    popupSurf = pygame.Surface((200, 200))
-    self.allRects.append((popupSurf, (WIDTH/2, HEIGHT/2)))
+  def make_popup(self, options, pos):
+    popupSurf = pygame.Surface((500, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
+    popupRect = popupSurf.get_rect()
+    popupRect.centerx = pos[0] + 250
+    popupRect.centery = pos[1]
+    top = pos[1]
+    pygame.draw.rect(self.WIN, COLORS["YELLOW"], popupRect, border_radius=10)
+    # popupRect.centerx = WIDTH/2
+    # popupRect.centery = HEIGHT/2
     for i in range(len(options)):
       textSurf = self.BASICFONT.render(options[i], 1, COLORS["BLUE"])
       textRect = textSurf.get_rect()
-      textRect.top = self.top
-      textRect.left = self.left
-      self.top += pygame.font.Font.get_linesize(self.BASICFONT)
-      popupSurf.blit(textSurf, textRect)
-    popupRect = popupSurf.get_rect()
-    popupRect.centerx = WIDTH/2
-    popupRect.centery = HEIGHT/2
-    self.WIN.blit(popupSurf, popupRect)
+      textRect.top = top
+      textRect.left = pos[0]
+      top += pygame.font.Font.get_linesize(self.BASICFONT)
+      popupSurf.blit(popupSurf, textRect)#COLORS["YELLOW"], textRect)
+      # popupSurf.blit(textSurf, textRect)
+    # self.WIN.blit(popupSurf, popupRect)
     pygame.display.update()
 
 
