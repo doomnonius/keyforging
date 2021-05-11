@@ -167,6 +167,7 @@ class Board():
       textRect = textSurf.get_rect()
       textRect.top = top
       textRect.left = pos[0]
+      print(f"textRect in o_s: {textRect}")
       top += pygame.font.Font.get_linesize(self.BASICFONT)
       popupSurf.blit(textSurf, textRect)
       if pygame.Rect.collidepoint(textRect, (self.mousex, self.mousey)):
@@ -187,15 +188,12 @@ class Board():
     popupRect = popupSurf.get_rect()
     popupRect.centerx = pos[0] + 250
     popupRect.centery = pos[1]
+    print(f"popupRect in o_s: {popupRect}")
 
 
   def make_popup(self, options, pos):
     popupSurf = pygame.Surface((500, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
-    popupRect = popupSurf.get_rect()
-    popupRect.centerx = pos[0] + 250
-    popupRect.centery = pos[1]
     top = pos[1]
-    pygame.draw.rect(self.WIN, COLORS["YELLOW"], popupRect, border_radius=10)
     # popupRect.centerx = WIDTH/2
     # popupRect.centery = HEIGHT/2
     for i in range(len(options)):
@@ -203,10 +201,16 @@ class Board():
       textRect = textSurf.get_rect()
       textRect.top = top
       textRect.left = pos[0]
+      print(f"textRect in m_p: {textRect}")
       top += pygame.font.Font.get_linesize(self.BASICFONT)
       popupSurf.blit(popupSurf, textRect)#COLORS["YELLOW"], textRect)
       # popupSurf.blit(textSurf, textRect)
     # self.WIN.blit(popupSurf, popupRect)
+    popupRect = popupSurf.get_rect()
+    popupRect.centerx = pos[0] + 250
+    popupRect.centery = pos[1]
+    print(f"popupRect in o_s: {popupRect}")
+    pygame.draw.rect(self.WIN, COLORS["YELLOW"], popupRect, border_radius=10)
     pygame.display.update()
 
 
