@@ -38,7 +38,7 @@ class Board():
     self.allsprites = pygame.sprite.RenderPlain()
     pygame.init()
     pygame.font.init()
-    self.BASICFONT = pygame.font.SysFont("Corbel", 10)
+    self.BASICFONT = pygame.font.SysFont("Corbel", 20)
     self.FPS = 60
     self.WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags = pygame.FULLSCREEN)
     pygame.display.set_caption('Keyforge')
@@ -158,7 +158,8 @@ class Board():
   
 
   def option_selected(self, options, pos):
-    popupSurf = pygame.Surface((500, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
+    w = 350
+    popupSurf = pygame.Surface((w, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
     popupSurf.convert()
     #draw up the surf, but don't blit it to the screen
     top = pos[1]
@@ -167,7 +168,6 @@ class Board():
       textRect = textSurf.get_rect()
       textRect.top = top
       textRect.left = pos[0]
-      print(f"textRect in o_s: {textRect}")
       top += pygame.font.Font.get_linesize(self.BASICFONT)
       popupSurf.blit(textSurf, textRect)
       if pygame.Rect.collidepoint(textRect, (self.mousex, self.mousey)):
@@ -186,31 +186,28 @@ class Board():
         print(f"Returning {i}")
         return options[i]
     popupRect = popupSurf.get_rect()
-    popupRect.centerx = pos[0] + 250
-    popupRect.centery = pos[1]
-    print(f"popupRect in o_s: {popupRect}")
+    popupRect.centerx = pos[0] + w//2
+    popupRect.centery = pos[1] + (pygame.font.Font.get_linesize(self.BASICFONT)*len(options))/2
 
 
   def make_popup(self, options, pos):
-    popupSurf = pygame.Surface((500, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
+    w = 350
+    popupSurf = pygame.Surface((350, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
+    popupSurf.fill(COLORS["BLACK"])
     top = pos[1]
-    # popupRect.centerx = WIDTH/2
-    # popupRect.centery = HEIGHT/2
+    popupRect = popupSurf.get_rect()
+    popupRect.centerx = pos[0] + w // 2
+    popupRect.centery = pos[1] + (pygame.font.Font.get_linesize(self.BASICFONT)*len(options))/2
+    self.WIN.blit(popupSurf, popupRect)
     for i in range(len(options)):
-      textSurf = self.BASICFONT.render(options[i], 1, COLORS["BLUE"])
+      textSurf = self.BASICFONT.render(options[i], 1, COLORS["YELLOW"])
       textRect = textSurf.get_rect()
       textRect.top = top
       textRect.left = pos[0]
-      print(f"textRect in m_p: {textRect}")
       top += pygame.font.Font.get_linesize(self.BASICFONT)
-      popupSurf.blit(popupSurf, textRect)#COLORS["YELLOW"], textRect)
-      # popupSurf.blit(textSurf, textRect)
-    # self.WIN.blit(popupSurf, popupRect)
-    popupRect = popupSurf.get_rect()
-    popupRect.centerx = pos[0] + 250
-    popupRect.centery = pos[1]
-    print(f"popupRect in o_s: {popupRect}")
-    pygame.draw.rect(self.WIN, COLORS["YELLOW"], popupRect, border_radius=10)
+      # pygame.draw.rect(self.WIN, COLORS["GREY"], textRect, border_radius=2)
+      # popupSurf.blit(popupSurf, textRect)#COLORS["YELLOW"], textRect)
+      self.WIN.blit(textSurf, textRect)
     pygame.display.update()
 
 
