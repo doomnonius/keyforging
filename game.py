@@ -6,7 +6,7 @@ import cards.actions as action
 import cards.play as play
 import cards.reap as reap
 import cards.fight as fight
-import json, random, logging, time, pygame
+import json, random, logging, time, pygame, pyautogui
 from helpers import makeChoice, distance, buildStateDict
 from typing import Dict, List, Set
 from constants import COLORS, WIDTH, HEIGHT, HALF
@@ -20,7 +20,6 @@ class Board():
   def __init__(self):
     """ first is first player, which is determined before Game is created and entered as an input. deck.deckName is a function that pulls the right deck from the list.
     """
-    # print("Or even here?")
     self.first = None
     self.second = None
     self.top = 0
@@ -55,7 +54,6 @@ class Board():
       s += str(x) + ': ' + str(self.inactivePlayer.board["Artifact"][x]) + '\n'
     s += "\nYour board:\nCreatures:\n"
     for x in range(len(self.activePlayer.board["Creature"])):
-      # print(x) #test line
       s += str(x) + ': ' + str(self.activePlayer.board["Creature"][x]) + "\n"
     s += "Artifacts: \n"
     for x in range(len(self.activePlayer.board["Artifact"])):
@@ -90,11 +88,16 @@ class Board():
     self.WIN.blit(self.mat2, (0, self.mat1.get_height() + 10))
 
     run = True
+    started = False
 
     while run:
       self.CLOCK.tick(self.FPS)
+      
+      if not started and self.first != None and self.second != None:
+        started = True
+        self.startGame()
+      
       for event in pygame.event.get():
-        # print(event)
         
         if event.type == pygame.MOUSEMOTION:
           #update mouse position
@@ -105,16 +108,14 @@ class Board():
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
           self.doPopup()
-          print(self.first, self.second)
-          # print(self.deckOptions())
           
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
           self.backgroundColor = COLORS[random.choice(list(COLORS.keys()))]
           
         if event.type == pygame.KEYDOWN:
+          print(event)
           if event.key == 113 and event.mod == 64:
             run = False
-          # pygame.display.toggle_fullscreen()
 
       self.draw() # this will need hella updates
       pygame.display.flip()
@@ -134,7 +135,6 @@ class Board():
 
   def doPopup(self):
     pos = pygame.mouse.get_pos()
-    print(pos)
     while True:
       if self.first == None or self.second == None:
         opt = self.deckOptions()
@@ -181,7 +181,6 @@ class Board():
           if self.second >= self.first:
             self.second += 1
           print(f"Setting second to {self.second}")
-          self.startGame()
           return
         print(f"Returning {i}")
         return options[i]
@@ -218,11 +217,15 @@ class Board():
   def startGame(self): #called by choosedecks()
     """Fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
     """
-    logging.info("{} is going first.".format(deck.deckName(self.first)))
-    print("\n" + deck.deckName(self.first) + " is going first.\n")
+    first = random.choice([self.first, self.second])
+    self.activePlayer = deck.Deck(deck.deckName(first))
+    if first == self.first:
+      self.inactivePlayer = deck.Deck(deck.deckName(self.second))
+    else:
+      self.inactivePlayer = deck.Deck(deck.deckName(self.first))
+    logging.info("{} is going first.".format(deck.deckName(first)))
+    pyautogui.alert("\n" + deck.deckName(first) + " is going first.\n")
     time.sleep(1)
-    self.activePlayer = deck.Deck(deck.deckName(self.first))
-    self.inactivePlayer = deck.Deck(deck.deckName(self.second))
     ##########################
     # Build state dictionary #
     ##########################

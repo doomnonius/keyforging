@@ -1,4 +1,4 @@
-import pygame 
+import pygame, pyautogui
 import sys 
   
 
@@ -107,6 +107,8 @@ while True:
       if pygame.Rect.collidepoint(textBox, mouse):
         # print("I QUIT")
         pygame.quit()
+      else:
+        pyautogui.alert("Hello!")
       # if width/2 <= mouse[0] <= width/2+140 and height/2 <= mouse[1] <= height/2+40: 
       # 	pygame.quit() 
           
