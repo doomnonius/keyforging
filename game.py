@@ -174,15 +174,13 @@ class Board():
         print(options)
         if self.first == None:
           self.first = i
-          print(f"Setting first to {self.first}")
           return
         elif self.second == None:
           self.second = i
           if self.second >= self.first:
             self.second += 1
-          print(f"Setting second to {self.second}")
           return
-        print(f"Returning {i}")
+        print(f"Returning {options[i]}")
         return options[i]
     popupRect = popupSurf.get_rect()
     popupRect.centerx = pos[0] + w//2
