@@ -23,17 +23,17 @@ def listOfWords (S):
 		else:
 			return [c + L[0]] + L[1:]
 
-class Card(): # Card(pygame.sprite.Sprite):
+class Card(pygame.sprite.Sprite):
     """ Feed json.loads(returns a string) called the deck list (which will be a json file) to this to build classes.
         Possibly create a function defined here or elsewhere, if self.name = x, add these functions, if = y, add these.
     """
     def __init__(self, cardInfo, deckName):
         # These are all the things that are not in the dict data but that I need to keep track of
-        # pygame.sprite.Sprite.__init__(self)
-        # self.image, self.rect = self.load_image()
+        pygame.sprite.Sprite.__init__(self)
+        self.image, self.rect = self.load_image()
         # screen = pygame.display.get_surface()
         self.deck = deckName
-        self.title = cardInfo['card_title']
+        self.title = cardInfo['card_title'].lower()
         self.damage = 0
         self.power = int(cardInfo['power'])
         self.extraPow = 0
@@ -330,19 +330,21 @@ class Card(): # Card(pygame.sprite.Sprite):
         """ Resets a card after it leaves the board.
         """
 
-    def update(self):
+    def updateHealth(self):
         if self.health() <= 0:
             print(self.title + " is dead.")
             return True
         return False
 
     def load_image(self, colorkey=None):
-        fullname = os.path.join('card-fronts', self.title.replace(' ', '-'))
+        fullname = os.path.join(f'card-fronts/{self.exp}', self.title.replace(' ', '-'))
         try:
             image = pygame.image.load(fullname)
         except pygame.error as message:
-            logging.error(f'Cannot load image: {self.title}')
-            raise SystemExit(message)
+            fullname = os.path.join(f'card-fronts/{self.exp}', 'mighty-javelin')
+            image = pygame.image.load(fullname)
+            logging.error(f'Cannot load image: {self.title}, {message}')
+            # raise SystemExit(message)
         image = image.convert()
         if colorkey is not None:
             if colorkey == -1:
@@ -352,4 +354,4 @@ class Card(): # Card(pygame.sprite.Sprite):
             
 
 if __name__ == '__main__':
-    print ('This statement will be executed only if this script is called directly')
+    print ('This statement will be executed only if this script is called directly, which it really shouldn\'t be.')

@@ -34,7 +34,27 @@ class Board():
     self.forgedLastTurn = False, 0
     # self.allRects = []
     self.backgroundColor = COLORS["WHITE"]
-    self.allsprites = pygame.sprite.RenderPlain()
+    # sprites
+    self.allsprites = pygame.sprite.RenderUpdates()
+    # hands
+    self.activeHand = pygame.sprite.Group()
+    self.inactiveHand = pygame.sprite.Group()
+    # creatures
+    self.activeCreatures = pygame.sprite.Group()
+    self.inactiveCreatures = pygame.sprite.Group()
+    # artifacts
+    self.activeArtifacts = pygame.sprite.Group()
+    self.inactiveArtifacts = pygame.sprite.Group()
+    # deck
+    self.activeDeck = pygame.sprite.Group()
+    self.inactiveDeck = pygame.sprite.Group()
+    # discard
+    self.activeDiscard = pygame.sprite.Group()
+    self.inactiveDiscard = pygame.sprite.Group()
+    # purged
+    self.activePurged = pygame.sprite.Group()
+    self.inactivePurged = pygame.sprite.Group()
+    # start pygame
     pygame.init()
     pygame.font.init()
     self.BASICFONT = pygame.font.SysFont("Corbel", 20)
