@@ -33,7 +33,7 @@ class Card(pygame.sprite.Sprite):
         self.image, self.rect = self.load_image()
         # screen = pygame.display.get_surface()
         self.deck = deckName
-        self.title = cardInfo['card_title'].lower()
+        self.title = cardInfo['card_title'].lower().replace(" ", "_")
         self.damage = 0
         self.power = int(cardInfo['power'])
         self.extraPow = 0
@@ -330,6 +330,10 @@ class Card(pygame.sprite.Sprite):
         """ Resets a card after it leaves the board.
         """
 
+    def update(self):
+        """ Doesn't do anything yet, but this is for the sprite
+        """
+    
     def updateHealth(self):
         if self.health() <= 0:
             print(self.title + " is dead.")
@@ -337,7 +341,7 @@ class Card(pygame.sprite.Sprite):
         return False
 
     def load_image(self, colorkey=None):
-        fullname = os.path.join(f'card-fronts/{self.exp}', self.title.replace(' ', '-'))
+        fullname = os.path.join(f'card-fronts/{self.exp}', self.title)
         try:
             image = pygame.image.load(fullname)
         except pygame.error as message:
