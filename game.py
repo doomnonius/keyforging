@@ -59,7 +59,7 @@ class Board():
     pygame.font.init()
     self.BASICFONT = pygame.font.SysFont("Corbel", 20)
     self.FPS = 60
-    self.WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags = pygame.FULLSCREEN)
+    self.WIN = pygame.display.set_mode((WIDTH, HEIGHT))#, flags = pygame.FULLSCREEN)
     pygame.display.set_caption('Keyforge')
     self.CLOCK = pygame.time.Clock()
     self.main()
@@ -93,17 +93,42 @@ class Board():
 
   def main(self):
     wid, hei = [int(x) for x in self.WIN.get_size()]
+    ## inactive mat
     self.mat1 = pygame.Surface((wid, hei//2 - 5))
     self.mat1.convert()
     self.mat1.fill(COLORS["GREY"])
-    self.mat2 = pygame.Surface((wid, hei//2 - 5))
-    self.mat2.convert()
-    self.mat2.fill(COLORS["GREEN"])
+    
+    mat_third = (self.mat1.get_height() - 30) // 3
+    
+    # hand
+    self.hand1 = pygame.Surface((self.mat1.get_width()-150, mat_third))
+    self.hand1.convert()
+    self.hand1_rect = self.hand1.get_rect()
+    self.hand1_rect.topleft = (150, 0)
+    self.hand1.fill(COLORS["YELLOW"])
+    # creatures
+
+    # artifacts
+
+    # deck
+
+    # discard
+
+    # purge
+
+    # divider
     self.divider = pygame.Surface((wid, 10))
     self.divider.convert()
     self.divider.fill(COLORS["BLACK"])
+    
+    # active mat
+    self.mat2 = pygame.Surface((wid, hei//2 - 5))
+    self.mat2.convert()
+    self.mat2.fill(COLORS["GREEN"])
+
 
     self.WIN.blit(self.mat1, (0, 0))
+    self.mat1.blit(self.hand1, self.hand1_rect)
     self.WIN.blit(self.divider, (0, self.mat1.get_height()))
     self.WIN.blit(self.mat2, (0, self.mat1.get_height() + 10))
 
@@ -147,6 +172,7 @@ class Board():
     self.allsprites.update()
 
     self.WIN.blit(self.mat1, (0, 0))
+    self.WIN.blit(self.hand1, (0, 0))
     self.WIN.blit(self.divider, (0, self.mat1.get_height()))
     self.WIN.blit(self.mat2, (0, self.mat1.get_height() + 10))
 
