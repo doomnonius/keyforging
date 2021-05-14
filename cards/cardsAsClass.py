@@ -30,7 +30,6 @@ class Card(pygame.sprite.Sprite):
     def __init__(self, cardInfo, deckName):
         # These are all the things that are not in the dict data but that I need to keep track of
         pygame.sprite.Sprite.__init__(self)
-        self.image, self.rect = self.load_image()
         # screen = pygame.display.get_surface()
         self.deck = deckName
         self.title = cardInfo['card_title'].lower().replace(" ", "_")
@@ -50,13 +49,13 @@ class Card(pygame.sprite.Sprite):
             self.traits = ''
         if len(listOfWords(self.traits)[0]) > 0:
             self.traitList = listOfWords(self.traits)
-            # print(self.traitList) # test line
         self.amber = cardInfo['amber']
         self.rarity = cardInfo["rarity"]
         self.flavor = cardInfo["flavor_text"]
         self.number = (cardInfo['card_number'])
         self.exp = cardInfo["expansion"]
         self.maverick = cardInfo['is_maverick']
+        self.image, self.rect = self.load_image()
         # conditionals to add?
         # status effects
         if self.type == "Creature":
@@ -341,19 +340,20 @@ class Card(pygame.sprite.Sprite):
         return False
 
     def load_image(self, colorkey=None):
-        fullname = os.path.join(f'card-fronts/{self.exp}', self.title)
+        fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', self.title + '.png')
         try:
             image = pygame.image.load(fullname)
         except pygame.error as message:
-            fullname = os.path.join(f'card-fronts/{self.exp}', 'mighty-javelin')
+            fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', 'mighty_javelin.png')
             image = pygame.image.load(fullname)
             logging.error(f'Cannot load image: {self.title}, {message}')
-            # raise SystemExit(message)
+            raise SystemExit(message)
         image = image.convert()
         if colorkey is not None:
             if colorkey == -1:
                 colorkey = image.get_at((0,0))
             image.set_colorkey(colorkey)
+        print(image.get_size())
         return image, image.get_rect()
             
 

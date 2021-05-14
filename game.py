@@ -104,7 +104,7 @@ class Board():
     self.hand1 = pygame.Surface((self.mat1.get_width()-150, mat_third))
     self.hand1.convert()
     self.hand1_rect = self.hand1.get_rect()
-    self.hand1_rect.topleft = (150, 0)
+    self.hand1_rect.topleft = (300, 0)
     self.hand1.fill(COLORS["YELLOW"])
     # creatures
 
