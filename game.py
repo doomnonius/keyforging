@@ -9,7 +9,7 @@ import cards.fight as fight
 import json, random, logging, time, pygame, pyautogui
 from helpers import makeChoice, distance, buildStateDict
 from typing import Dict, List, Set
-from constants import COLORS, WIDTH, HEIGHT, HALF
+from constants import COLORS, WIDTH, HEIGHT, CARDH
 
 #####################
 # Contains modules: #
@@ -93,6 +93,8 @@ class Board():
 
   def main(self):
     wid, hei = [int(x) for x in self.WIN.get_size()]
+    target_cardh = hei // 7
+    ratio = CARDH // target_cardh
     ## inactive mat
     self.mat1 = pygame.Surface((wid, hei//2 - 5))
     self.mat1.convert()
@@ -101,10 +103,11 @@ class Board():
     mat_third = (self.mat1.get_height() - 30) // 3
     
     # hand
-    self.hand1 = pygame.Surface((self.mat1.get_width()-150, mat_third))
+    self.hand1 = pygame.Surface((wid-150, mat_third))
     self.hand1.convert()
     self.hand1_rect = self.hand1.get_rect()
-    self.hand1_rect.topleft = (300, 0)
+    self.hand1_rect.top = 0
+    self.hand1_rect.centerx = wid/2 + 75
     self.hand1.fill(COLORS["YELLOW"])
     # creatures
 

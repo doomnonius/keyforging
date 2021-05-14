@@ -7,6 +7,8 @@ import cards.play as play
 import cards.actions as action
 import cards.reap as reap 
 
+from constants import CARDW, CARDH
+
 def listOfWords (S):
 	""" Builds from the back of the list. Either adds a new item
 	to the list, or adds a character to the string at the head
@@ -353,8 +355,11 @@ class Card(pygame.sprite.Sprite):
             if colorkey == -1:
                 colorkey = image.get_at((0,0))
             image.set_colorkey(colorkey)
-        print(image.get_size())
         return image, image.get_rect()
+
+    def scaled_image(self, ratio):
+        scaled = pygame.transform.scale(self.image, (CARDW//ratio, CARDH//ratio))
+        return scaled, scaled.get_rect()
             
 
 if __name__ == '__main__':
