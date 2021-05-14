@@ -9,7 +9,7 @@ import cards.fight as fight
 import json, random, logging, time, pygame, pyautogui
 from helpers import makeChoice, distance, buildStateDict
 from typing import Dict, List, Set
-from constants import COLORS, WIDTH, HEIGHT, CARDH
+from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW
 
 #####################
 # Contains modules: #
@@ -32,6 +32,8 @@ class Board():
     self.creaturesPlayed = 0
     self.extraFightHouses = []
     self.forgedLastTurn = False, 0
+    self.turnStage = None
+    self.response = []
     # self.allRects = []
     self.backgroundColor = COLORS["WHITE"]
     # sprites
@@ -91,26 +93,38 @@ class Board():
         c += 1
     return retVal
 
+  def turnOptions(self) -> List:
+    return ['Hand', 'House', 'Turn', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
+    
+  def cardOptions(self) -> List:
+    return ['Play', 'Reap', 'Action', 'Fight', 'Omni', 'Discard']
+
   def main(self):
     wid, hei = [int(x) for x in self.WIN.get_size()]
     target_cardh = hei // 7
     ratio = CARDH // target_cardh
+    target_cardw = CARDW // ratio
     ## inactive mat
     self.mat1 = pygame.Surface((wid, hei//2 - 5))
     self.mat1.convert()
     self.mat1.fill(COLORS["GREY"])
     
-    mat_third = (self.mat1.get_height() - 30) // 3
-    
+    mat_third = (self.mat1.get_height()) // 3
+    print(f"size: {self.WIN.get_size()}")
     # hand
-    self.hand1 = pygame.Surface((wid-150, mat_third))
+    self.hand1 = pygame.Surface((wid - (target_cardw + 5), mat_third))
     self.hand1.convert()
     self.hand1_rect = self.hand1.get_rect()
-    self.hand1_rect.top = 0
-    self.hand1_rect.centerx = wid/2 + 75
-    self.hand1.fill(COLORS["YELLOW"])
+    self.hand1_rect.topleft = (0, 0)
+    
+    print(f"width: {self.WIN.get_width()}, mat1: {self.mat1.get_width()}, hand1: {self.hand1.get_width()}, hand1_rect: {self.hand1_rect.width}")
+    print(f"inside: {self.mat1.get_rect().contains(self.hand1_rect)}")
     # creatures
-
+    self.creatures1 = pygame.Surface((wid - (target_cardw + 5), mat_third))
+    self.creatures1.convert()
+    self.creatures1_rect = self.creatures1.get_rect()
+    self.creatures1_rect.topleft = (0, target_cardh + 5)
+    
     # artifacts
 
     # deck
@@ -131,9 +145,10 @@ class Board():
 
 
     self.WIN.blit(self.mat1, (0, 0))
-    self.mat1.blit(self.hand1, self.hand1_rect)
     self.WIN.blit(self.divider, (0, self.mat1.get_height()))
     self.WIN.blit(self.mat2, (0, self.mat1.get_height() + 10))
+    self.WIN.blit(self.hand1, (0, 0))
+    self.WIN.blit(self.creatures1, (0, target_cardh + 5))
 
     run = True
     started = False
@@ -143,6 +158,7 @@ class Board():
       
       if not started and self.first != None and self.second != None:
         started = True
+        self.forgedThisTurn = False, 0
         self.startGame()
       
       for event in pygame.event.get():
@@ -165,6 +181,184 @@ class Board():
           if event.key == 113 and event.mod == 64:
             run = False
 
+      ###################################
+      # Step 0: "Start of turn" effects #
+      ###################################
+
+      if self.turnStage == 0: # start of turn effects
+        self.lastCreaturesPlayed = self.creaturesPlayed
+        self.creaturesPlayed = 0
+        self.turnStage += 1
+      
+      ###################################################
+      # step 1: check if a key is forged, then forge it #
+      ###################################################
+
+      elif self.turnStage == 1: # forge a key
+        if self.checkForgeStates(): # returns True if you can forge, false if you can't (and why you can't), which in CotA is basically only Miasma
+          self.activePlayer.keyCost = self.calculateCost()
+          if self.activePlayer.amber >= self.activePlayer.keyCost:
+            self.activePlayer.amber -= self.activePlayer.keyCost
+            self.activePlayer.keys += 1
+            pyautogui.alert(f"You forged a key for {self.activePlayer.keyCost} amber. You now have {self.activePlayer.keys} key(s) and {self.activePlayer.amber} amber.\n") # it works!
+            if self.activePlayer.states["Forge"]["Interdimensional Graft"] and self.activePlayer.amber > 0:
+              pyautogui.alert(f"Your opponent played Interdimensional Graft last turn, so they gain your {self.activePlayer.amber} leftover amber.")
+              # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
+              self.inactivePlayer.amber += self.activePlayer.amber
+              self.activePlayer.amber = 0
+              pyautogui.alert(f"They now have {self.inactivePlayer.amber} amber.")
+            self.forgedThisTurn = True, self.turnNum
+          else:
+            pyautogui.alert("No key forged this turn, not enough amber.")
+        else:
+          pyautogui.alert("Forging skipped this turn but I'm not going to tell you why!")
+        if self.activePlayer.keys >= 3:
+          pyautogui.alert(f"{self.activePlayer.name} wins!")
+          run = False
+        self.turnStage += 1
+      
+      ######################################
+      # step 2: the player chooses a house #
+      # and if to pick up their archive    #
+      ######################################
+
+      elif self.turnStage == 2: # choose a house, optionally pick up archive
+        self.chooseHouse("activeHouse")
+        if len(self.activePlayer.archive) > 0:
+          self.activePlayer.printShort(self.activePlayer.archive)
+          while True:
+            archive = pyautogui.confirm("Would you like to pick up your archive?", buttons=["Yes", "No"])
+            if archive == "Yes":
+              self.pending(self.activePlayer.archive, 'hand')
+              break
+            elif archive == "No":
+              pass
+            else:
+              pyautogui.alert("Not a valid response. Try again.")
+        self.turnStage += 1
+
+      ###############################################################################
+      # step 3: play, discard, or use cards (and also inquire about the game state) #
+      ###############################################################################
+
+      elif self.turnStage == 3:
+        if self.response:
+          if len(self.response) == 1:
+            self.response = self.response[0]
+          if len(self.response) == 2:
+            self.response, self.targetCard = self.response
+          
+          if self.response == "Hand":
+            show = ''
+            for card in self.activePlayer.hand:
+              show += f"{card.title} ({card.house})\n"
+            pyautogui.alert(show)
+          elif self.response == "House":
+            pyautogui.alert(self.activeHouse)
+          elif self.response == "Turn":
+            pyautogui.alert(f"It is turn {self.turnNum}, stage {self.turnStage}.")
+          elif self.response == "MyDiscard":
+            show = ''
+            for card in self.activePlayer.discard:
+              show += f"{card.title}\n"
+            pyautogui.alert(show)
+          elif self.response == "OppDiscard":
+            show = ''
+            for card in self.inactivePlayer.discard:
+              show += f"{card.title}\n"
+            pyautogui.alert(show)
+          elif self.response == "MyPurge":
+            show = ''
+            for card in self.inactivePlayer.purged:
+              show += f"{card.title}\n"
+            pyautogui.alert(show)
+          elif self.response == "OppPurge":
+            show = ''
+            for card in self.inactivePlayer.purged:
+              show += f"{card.title}\n"
+            pyautogui.alert(show)
+          elif self.response == "MyArchive":
+            show = ''
+            for card in self.activePlayer.archive:
+              show += f"{card.title}\n"
+            pyautogui.alert(show)
+          elif self.response == "OppArchive":
+            pyautogui.alert("There are " + str(len(self.inactivePlayer.archive) + " cards in your opponent's archive."))
+          elif self.response == "OppHouses":
+            show = 'Your opponent\'s houses are:\n'
+            for house in self.inactivePlayer.houses:
+              show += f"{house}\n"
+            pyautogui.alert(show)
+          elif self.response == "Keys" or self.response == "Amber":
+            pyautogui.alert(f"You have {self.activePlayer.amber} amber and {self.activePlayer.keys} keys. Your opponent has {self.inactivePlayer.amber} amber and {self.inactivePlayer.keys} keys.")
+          elif self.response == "Card":
+            cardName = pyautogui.prompt("Enter the name of a card from one of the active decks:").lower()
+            # print(f"Testing prompt: {cardName}")
+            for x in [deck.Deck(deck.deckName(self.first)), deck.Deck(deck.deckName(self.second))]:
+              for card in x.deck:
+                if cardName == card.title.replace(" ", "_"):
+                  pyautogui.alert(card.text)
+                  break
+          elif self.response == "MyDeck":
+            pyautogui.alert("Your deck has " + str(len(self.activePlayer.deck)) + " cards.")
+          elif self.response == "OppDeck":
+            pyautogui.alert("Your opponent's deck has " + str(len(self.inactivePlayer.deck)) + " cards.")
+          elif self.response == "OppHand":
+            pyautogui.alert("Your opponent's hand has " + str(len(self.inactivePlayer.hand)) + " cards.")
+          elif self.response == "EndTurn":
+            pyautogui.alert("Ending Turn!")
+            self.turnStage += 1
+          elif self.response == "Concede":
+            pyautogui.alert(f"{self.inactivePlayer.name} wins!")
+            run = False
+          elif self.response == "Quit":
+            run = False
+          
+          ## these will work slightly differently
+          elif self.response == "Fight":
+            # hands off the info to the "Fight" function
+            self.fightCard()
+          elif self.response == "Discard":
+            if self.numPlays == 1 and self.turnNum == 1:
+              pyautogui.alert("You've already taken your one action for turn one.")
+              break
+            self.activePlayer.printShort(self.activePlayer.hand)
+            disc = makeChoice("Choose a card to discard: ", self.activePlayer.hand)
+            self.discardCard(disc)
+          elif self.response == "Action":
+            # Shows friendly cards in play with "Action" keyword, prompts a choice
+            self.actionCard()
+          elif self.response == "Reap":
+            # Shows friendly board, prompts choice.
+            # Checks viability
+            self.reapCard()
+
+          self.response = []
+
+      ###################################################
+      # step 4: ready cards and reset things like armor #
+      ###################################################
+
+      elif self.turnStage == 4: # ready and reset armor
+        self.reset(self.turnNum, self.forgedThisTurn)
+        self.turnStage += 1
+      
+      ######################
+      # step 5: draw cards #
+      ######################
+
+      elif self.turnStage == 5: # end of turn draw and end of turn effects
+        self.activePlayer.drawEOT()
+        
+        self.checkEOTStates()
+
+        # switch players
+        self.switch()
+        self.turnNum += 1
+        self.numPlays = 0
+        self.numDiscards = 0
+        self.turnStage = 0
+      
       self.draw() # this will need hella updates
       pygame.display.flip()
 
@@ -184,13 +378,17 @@ class Board():
 
   def doPopup(self):
     pos = pygame.mouse.get_pos()
+    card = False
+    board = False
     while True:
       if self.first == None or self.second == None:
         opt = self.deckOptions()
-      elif 1 == 2:
-        opt = [] # action options from clicking on a card
-      elif 2 == 3:
-        opt = [] # action options from clicking not on a card
+      elif True in [pygame.rect.collidepoint(pos, x) for x in self.activeHand]: # check for collisions with a card: action options from clicking on a card
+        opt = self.cardOptions()
+        card = True
+      else: # action options from clicking not on a card: then check for a collision with a mat
+        opt = self.turnOptions()
+        board = True
       self.make_popup(opt, pos)
       for e in pygame.event.get():
         if e.type == pygame.QUIT:
@@ -200,6 +398,10 @@ class Board():
         elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
           OPTION = self.option_selected(opt, pos)
           if OPTION != None:
+            if card:
+              pass
+            elif board:
+              self.response = [OPTION]
             return OPTION
           else:
             return None
@@ -229,7 +431,6 @@ class Board():
           if self.second >= self.first:
             self.second += 1
           return
-        print(f"Returning {options[i]}")
         return options[i]
     popupRect = popupSurf.get_rect()
     popupRect.centerx = pos[0] + w//2
@@ -251,8 +452,6 @@ class Board():
       textRect.top = top
       textRect.left = pos[0]
       top += pygame.font.Font.get_linesize(self.BASICFONT)
-      # pygame.draw.rect(self.WIN, COLORS["GREY"], textRect, border_radius=2)
-      # popupSurf.blit(popupSurf, textRect)#COLORS["YELLOW"], textRect)
       self.WIN.blit(textSurf, textRect)
     pygame.display.update()
 
@@ -281,23 +480,23 @@ class Board():
     #####################
     # Draw and mulligan #
     #####################
-    self.activePlayer += 7 #self.activePlayer += 7
-    print("\n" + self.activePlayer.name + "'s hand:")
-    self.activePlayer.printShort(self.activePlayer.hand)
-    mull = input("Player 1, would you like to mulligan? \n>>>")
-    if mull == "Yes" or mull == "Y" or mull == "y":
+    self.activePlayer += 7
+    show = f'{self.activePlayer.name}\'s hand:\n'
+    for card in self.activePlayer.hand:
+      show += f"{card.title} ({card.house})\n"
+    mull = pyautogui.confirm(f"Player 1, would you like to keep?\n{show}", buttons=["Yes","No"])
+    if mull == "No":
       for card in self.activePlayer.hand:
         self.activePlayer.deck.append(card)
       random.shuffle(self.activePlayer.deck)
       self.activePlayer.hand = []
       self.activePlayer += 6
-    # for card in self.activePlayer.hand:
-    #   print(card)
-    self.inactivePlayer += 6 # self.inactivePlayer += 6
-    print("\n" + self.inactivePlayer.name + "'s hand:")
-    self.inactivePlayer.printShort(self.inactivePlayer.hand)
-    mull2 = input("Player 2, would you like to mulligan? \n>>>")
-    if mull2 == "Yes" or mull2 == "Y" or mull2 == "y":
+    self.inactivePlayer += 6
+    show = f'{self.inactivePlayer.name}\'s hand:\n'
+    for card in self.inactivePlayer.hand:
+      show += f"{card.title} ({card.house})\n"
+    mull2 = pyautogui.confirm(f"Player 2, would you like to keep?\n{show}", buttons=["Yes","No"])
+    if mull2 == "No":
       for card in self.inactivePlayer.hand:
         self.inactivePlayer.deck.append(card)
       random.shuffle(self.inactivePlayer.deck)
@@ -306,300 +505,150 @@ class Board():
     self.numPlays = 0
     self.numDiscards = 0
     self.turnNum = 1
-    self.turn()
-    # From here on should be in turn(), I think
+    self.turnStage = 0
 
-  def turn(self):
-    """ The passive actions of a turn. 1: Forge key (if poss, and if miasma hasn't changed the state; also reset state); 2: Calls chooseHouse(); 3: calls responses(), which needs to be moved into this class, and represents all actions (playing, discarding, fighting, etc) and info seeking; 4: ready cards; 5: draw cards. num is the turn number.
-    """
-    while True:
-      logging.info("Turn: {}".format(self.turnNum))
-      if not self.endBool:
-        break
-      self.lastCreaturesPlayed = self.creaturesPlayed
-      logging.info("Num creatures played last turn: {}".format(self.lastCreaturesPlayed))
-      self.creaturesPlayed = 0
-      print("\nTurn: " + str(self.turnNum))
-      if self.turnNum == 1:
-        forgedThisTurn = False, 1
-      if self.turnNum > 1:
-        time.sleep(1)
-        print(self) # step 0: show the board state
-        time.sleep(1)
-        print("You have {} amber and {} keys. Your opponent has {} amber and {} keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
-        logging.info("You have {} amber and {} keys. Your opponent has {} amber and {} keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
-        time.sleep(1)
-        #####################################
-        # Step 0.5: "Start of turn" effects #
-        #####################################
+  # def turn(self):
+  #   """ The passive actions of a turn. 1: Forge key (if poss, and if miasma hasn't changed the state; also reset state); 2: Calls chooseHouse(); 3: calls responses(), which needs to be moved into this class, and represents all actions (playing, discarding, fighting, etc) and info seeking; 4: ready cards; 5: draw cards. num is the turn number.
+  #   """
+  #   while True:
+  #     logging.info("Turn: {}".format(self.turnNum))
+  #     if not self.endBool:
+  #       break
+  #     self.lastCreaturesPlayed = self.creaturesPlayed
+  #     logging.info("Num creatures played last turn: {}".format(self.lastCreaturesPlayed))
+  #     self.creaturesPlayed = 0
+  #     print("\nTurn: " + str(self.turnNum))
+  #     if self.turnNum == 1:
+  #       self.forgedThisTurn = False, 1
+  #     if self.turnNum > 1:
+  #       time.sleep(1)
+  #       print(self) # step 0: show the board state
+  #       time.sleep(1)
+  #       print("You have {} amber and {} keys. Your opponent has {} amber and {} keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
+  #       logging.info("You have {} amber and {} keys. Your opponent has {} amber and {} keys.\n".format(self.activePlayer.amber, self.activePlayer.keys, self.inactivePlayer.amber, self.inactivePlayer.keys))
+  #       time.sleep(1)
+  #       #####################################
+  #       # Step 0.5: "Start of turn" effects #
+  #       #####################################
         
-        if True: # checks if there are any cards in either deck that have start of turn effects - where and when?
-          pass #but actually execute start of turn effects
+  #       if True: # checks if there are any cards in either deck that have start of turn effects - where and when?
+  #         pass #but actually execute start of turn effects
         
         ###################################################
         # step 1: check if a key is forged, then forge it #
         ###################################################
-        # all code is here because it's short
-        if self.checkForgeStates(): # returns True if you can forge, false if you can't (and why you can't), which in CotA is basically only Miasma
-          self.activePlayer.keyCost = self.calculateCost()
-          if self.activePlayer.amber >= self.activePlayer.keyCost:
-            self.activePlayer.amber -= self.activePlayer.keyCost
-            self.activePlayer.keys += 1
-            print("You forged a key for", self.activePlayer.keyCost, "amber. You now have", self.activePlayer.keys, "key(s) and", self.activePlayer.amber, "amber.\n") # it works!
-            if self.activePlayer.states["Forge"]["Interdimensional Graft"] and self.activePlayer.amber > 0:
-              print("Your opponent played Interdimensional Graft last turn, so they gain your " + str(self.activePlayer.amber) + " leftover amber.")
-              # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
-              self.inactivePlayer.amber += self.activePlayer.amber
-              self.activePlayer.amber = 0
-              print("They now have " + self.inactivePlayer.amber + " amber.")
-            forgedThisTurn = True, self.turnNum
-        else:
-          print("Forging skipped this turn!")
-        if self.activePlayer.keys >= 3:
-          break
-      ######################################
-      # step 2: the player chooses a house #
-      ######################################
-      self.chooseHouse("activeHouse") # this command checks if anything is affecting their ability to choose a house
-      ##################################################
-      # step 2.5: the player may pick up their archive #
-      ##################################################
-      if len(self.activePlayer.archive) > 0:
-        self.activePlayer.printShort(self.activePlayer.archive)
-        while True:
-          archive = input("Would you like to pick up your archive [y/n]?").title()
-          if archive[0] == "Y":
-            self.pending(self.activePlayer.archive, 'hand')
-            break
-          elif archive[0] == "N":
-            pass
-          else:
-            print("Not a valid response. Try again.")
+  #       # all code is here because it's short
+  #       if self.checkForgeStates(): # returns True if you can forge, false if you can't (and why you can't), which in CotA is basically only Miasma
+  #         self.activePlayer.keyCost = self.calculateCost()
+  #         if self.activePlayer.amber >= self.activePlayer.keyCost:
+  #           self.activePlayer.amber -= self.activePlayer.keyCost
+  #           self.activePlayer.keys += 1
+  #           print("You forged a key for", self.activePlayer.keyCost, "amber. You now have", self.activePlayer.keys, "key(s) and", self.activePlayer.amber, "amber.\n") # it works!
+  #           if self.activePlayer.states["Forge"]["Interdimensional Graft"] and self.activePlayer.amber > 0:
+  #             print("Your opponent played Interdimensional Graft last turn, so they gain your " + str(self.activePlayer.amber) + " leftover amber.")
+  #             # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
+  #             self.inactivePlayer.amber += self.activePlayer.amber
+  #             self.activePlayer.amber = 0
+  #             print("They now have " + self.inactivePlayer.amber + " amber.")
+  #           self.forgedThisTurn = True, self.turnNum
+  #       else:
+  #         print("Forging skipped this turn!")
+  #       if self.activePlayer.keys >= 3:
+  #         break
+  #     ######################################
+  #     # step 2: the player chooses a house #
+  #     ######################################
+  #     self.chooseHouse("activeHouse") # this command checks if anything is affecting their ability to choose a house
+  #     ##################################################
+  #     # step 2.5: the player may pick up their archive #
+  #     ##################################################
+  #     if len(self.activePlayer.archive) > 0:
+  #       self.activePlayer.printShort(self.activePlayer.archive)
+  #       while True:
+  #         archive = input("Would you like to pick up your archive [y/n]?").title()
+  #         if archive[0] == "Y":
+  #           self.pending(self.activePlayer.archive, 'hand')
+  #           break
+  #         elif archive[0] == "N":
+  #           pass
+  #         else:
+  #           print("Not a valid response. Try again.")
       ###############################################################################
       # step 3: play, discard, or use cards (and also inquire about the game state) #
       ###############################################################################
-      self.responses(self.turnNum)
+  #     self.responses(self.turnNum)
       ###################################################
       # step 4: ready cards and reset things like armor #
       ###################################################
-      self.reset(self.turnNum, forgedThisTurn)
+  #     self.reset(self.turnNum, self.forgedThisTurn)
       ######################
       # step 5: draw cards #
       ######################
-      self.activePlayer.drawEOT()
-      if self.activePlayer.handSize < len(self.activePlayer.hand):
-        logging.warn("Player seems to have too many cards in hand.")
-      ###################################
-      # step 5.5: check for EOT effects #
-      ###################################
-      self.checkEOTStates()
+  #     self.activePlayer.drawEOT()
+  #     if self.activePlayer.handSize < len(self.activePlayer.hand):
+  #       logging.warn("Player seems to have too many cards in hand.")
+  #     ###################################
+  #     # step 5.5: check for EOT effects #
+  #     ###################################
+  #     self.checkEOTStates()
       
-      # self.resetEOTStates()
+  #     # self.resetEOTStates()
       
-      # step 5.3: switch players
-      self.switch()
-      # step 5.4: increment num
-      self.turnNum += 1
-      self.numPlays = 0
-      self.numDiscards = 0
-    self.endGame(self.endBool)
+  #     # step 5.3: switch players
+  #     self.switch()
+  #     # step 5.4: increment num
+  #     self.turnNum += 1
+  #     self.numPlays = 0
+  #     self.numDiscards = 0
+  #   self.endGame(self.endBool)
 
   def switch(self):
     """ Swaps active and inactive players.
     """
     self.activePlayer, self.inactivePlayer = self.inactivePlayer, self.activePlayer
-    # print(self) # test line: passed on 7/25
+    # print("Players swapped") # test line: passed on 5/14/21
 
-  def responses(self, turn):
-    """This is called during step 3 of the turn. Turn is so that players can ask what turn it is.
-    """
-    choice = input("\nWhat would you like to do? (h for help):\n>>>").title()
-    while True: # returns on EndTurn or Concede, or after one play on turn one
-      try:
-        chosen = int(choice)
-        yes = True
-        # if the above works, they are trying to play a card, then we check for first turn
-        # try:
-        #   self.playCard(chosen)
-        # except:
-        #   print("playCard failed.")
-        # print("Got past playCard()") # Test line
-      except:
-        yes = False
-      if yes:
-        self.playCard(chosen)
-      if choice == 'h' or choice == 'H':
-        print("Enter a number to play that card. Available info commands are 'House', 'Hand', 'Board', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck', 'OppHouses', and 'OppHand'. \nAvailable action commands are 'Turn', 'Fight', 'Discard', 'Action', 'Reap', 'EndTurn', and 'Concede'.\n>>>")
-        choice2 = input("Type a command here to learn more about it, or press enter to return:\n>>>").title()
-        while choice2 != '':
-          if distance(choice2, "Hand") <= 1:
-            print("Lists the names of the cards in your hand.")
-          if distance(choice2, "House") <= 1:
-            print("Lists the active house.")
-          elif distance(choice2, "OppHouses") <= 1:
-            print("Lists your opponent's houses.")
-          elif distance(choice2, "Board") <= 1:
-            print("Lists the creatures and artifacts on the board.")
-          elif distance(choice2, "MyDiscard") <= 1:
-            print("Lists the contents of your discard pile.")
-          elif distance(choice2, "OppDiscard") <= 1:
-            print("Lists the contents of your opponent's discard pile.")
-          elif distance(choice2, "MyPurge") <= 1:
-            print("Lists your purged cards.")
-          elif distance(choice2, "OppPurge") <= 1:
-            print("Lists your opponent's purged cards.")
-          elif distance(choice2, "MyArchive") <= 1:
-            print("Lists your archive.")
-          elif distance(choice2, "OppArchive") <= 1:
-            print("Returns the number of cards in your opponent's archive.")
-          elif distance(choice2, "Keys") <= 1:
-            print("Lists how many keys each player has.")
-          elif distance(choice2, "Amber") <= 1:
-            print("Lists how much amber each player has.")
-          elif distance(choice2, "MyDeck") <= 1:
-            print("Returns the number of cards in your deck.")
-          elif distance(choice2, "OppDeck") <= 1:
-            print("Returns the number of cards in your opponent's deck. ")
-          elif distance(choice2, "Turn") <= 1:
-            print("Returns the turn number.")
-          elif distance(choice2, "EndTurn") <= 1:
-            print("Ends your turn.")
-          elif distance(choice2, "Card") <= 1:
-            print("Search for a card in one of the active decks by name.")
-          elif distance(choice2, "OppHand") <= 1:
-            print("Returns the number of cards in your opponent's hand.")
-          elif distance(choice2, "OppHand") <= 1:
-            print("Concede the game.")
-          elif distance(choice2, "Play") <= 1:
-            print("Play a card from hand.")
-          elif distance(choice2, "Fight") <= 1:
-            print("Choose a creature to fight with and a creature to fight against.")
-          elif distance(choice2, "Discard") <= 1:
-            print("Choose a card from hand to discard.")
-          elif distance(choice2, "Action") <= 1:
-            print("Choose a card with an action, and use that action.")
-          elif distance(choice2, "Reap") <= 1:
-            print("Choose a friendly creature to reap with.")
-          else:
-            print("That is not recognized as a command.")
-          break
-          # self.responses() # probably unnecessary line
-      elif choice == "developer":
-        developer(self)
-      elif distance(choice, "Turn") <= 1:
-        print("Turn: " + str(turn))
-      elif distance(choice, "Hand") <= 1:
-        self.activePlayer.printShort(self.activePlayer.hand)
-      elif distance(choice, "House") <= 1:
-        [print(x) for x in self.activeHouse]
-      elif distance(choice, "Turn") <= 1:
-        print("It is turn " + str(turn) + ".")
-      elif distance(choice, "Board") <= 1:
-        print(self)
-      elif distance(choice, "MyDiscard") <= 1:
-        self.activePlayer.printShort(self.activePlayer.discard, False)
-      elif distance(choice, "OppDiscard") <= 1:
-        self.inactivePlayer.printShort(self.inactivePlayer.discard, False)
-      elif distance(choice, "MyPurge") <= 1:
-        self.activePlayer.printShort(self.activePlayer.purges, False)
-      elif distance(choice, "OppPurge") <= 1:
-        self.inactivePlayer.printShort(self.inactivePlayer.discard, False)
-      elif distance(choice, "MyArchive") <= 1:
-        self.activePlayer.printShort(self.activePlayer.archive)
-      elif distance(choice, "OppArchive") <= 1:
-        print("There are " + str(len(self.inactivePlayer.archive) + " cards in your opponent's archive."))
-      elif distance(choice, "OppHouses") <= 1:
-        [print(x) for x in self.inactivePlayer.houses]
-      elif distance(choice, "Keys") <= 1 or distance(choice, "Amber") <= 1:
-        print("You have", self.activePlayer.amber, "amber and", self.activePlayer.keys, "keys. Your opponent has", self.inactivePlayer.amber, "amber and", self.inactivePlayer.keys, "keys.\n")
-      elif distance(choice, "Card") <= 1:
-        cardName = input("Enter the name of a card from one of the active decks:\n>>>").title()
-        for x in [deck.Deck(deck.deckName(self.first)), deck.Deck(deck.deckName(self.second))]:
-          for card in x.deck:
-            if cardName == card.title.title():
-              print(repr(card))
-              break
-      elif distance(choice, "MyDeck") <= 1:
-        print("Your deck has " + str(len(self.activePlayer.deck)) + " cards.")
-      elif distance(choice, "OppDeck") <= 1:
-        print("Your opponent's deck has " + str(len(self.inactivePlayer.deck)) + " cards.")
-      elif distance(choice, "OppHand") <= 1:
-        print("Your opponent's hand has " + str(len(self.inactivePlayer.hand)) + " cards.")
-      elif distance(choice, "Fight") <= 1:
-        # hands off the info to the "Fight" function
-        self.fightCard()
-      elif distance(choice, "Discard") <= 1:
-        if self.numPlays == 1 and turn == 1:
-          print("You've already taken your one action for turn one.")
-          break
-        self.activePlayer.printShort(self.activePlayer.hand)
-        disc = makeChoice("Choose a card to discard: ", self.activePlayer.hand)
-        self.discardCard(disc)
-      elif distance(choice, "Action") <= 1:
-        # Shows friendly cards in play with "Action" keyword, prompts a choice
-        self.actionCard()
-      elif distance(choice, "Reap") <= 1:
-        # Shows friendly board, prompts choice.
-        # Checks viability
-        self.reapCard()
-      elif distance(choice, "EndTurn") <= 1:
-        print("\nEnding Turn!")
-        return
-      elif distance(choice, "Concede") <= 1:
-        self.inactivePlayer.keys = 3
-        return
-      elif distance(choice, "Quit") <= 1:
-        self.endBool = False
-      else:
-        try:
-          int(choice)
-        except:
-          print("Unrecognized command. Try again.\n")
-      if not self.endBool:
-        break
-      choice = input("\nWhat would you like to do? (h for help):\n>>>").title()
 
   def chooseHouse(self, varAsStr, num = 1):
     """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak. Num is used for cards that allow extra houses to fight or be used.
     """
     if varAsStr == "activeHouse":
-      print("\nYour hand is:\n")
-      self.activePlayer.printShort(self.activePlayer.hand)
+      show = 'Your hand is:\n'
+      for card in self.activePlayer.hand:
+        show += f"{card.title} ({card.house})\n"
       if self.inactivePlayer.states["House"]["Control the Weak"] in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
         self.activeHouse = self.inactivePlayer.states["House"]["Control the Weak"]
         return
       while True:
-        choice = input("Choose a house. Your deck's houses are " + self.activePlayer.houses[0] + ", " + self.activePlayer.houses[1] + ", " + self.activePlayer.houses[2] + ".\n>>>").title()
-        if choice in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-          if "Restringuntus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
+        choice = pyautogui.confirm(text=f"{show}\nChoose a house:", buttons=[self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]])
+        if choice.title() in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+          if "restringuntus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
             self.activeHouse = self.activePlayer.restring # I was able to verify that there will never be more than one copy of Restringuntus in a deck
           else:
             self.activeHouse = choice
           return
         else:
-          print("\nThat's not a valid choice!\n")
-          time.sleep(1)
+          pyautogui.alert("That's not a valid choice! And how did you even get here?")
     elif varAsStr == "extraFight": #for brothers in battle, and probably others
-      print("\nYour board:\n")
-      self.activePlayer.printShort(self.activePlayer.board["Creature"], False)
       if num == 1:
         while True:
-          extra = input("Choose another house to fight with:\n>>>").title()
-          if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"] and extra != self.activeHouse:
+          extra = pyautogui.confirm("Choose another house to fight with:", buttons=["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"])
+          if extra != self.activeHouse:
+          # if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"] and extra != self.activeHouse:
             self.extraFightHouses.append(extra)
             break
           elif extra == self.activeHouse:
-            print("\nThat's already your active house. Try again.\n")
+            pyautogui.alert("\nThat's already your active house. Try again.\n")
           else:
-            print("\nNot a valid input.\n")
+            pyautogui.alert("\nNot a valid input.\n")
     elif varAsStr == "Restringuntus":
       while True:
-        extra = input("Choose another house to fight with:\n>>>").title()
+        extra = pyautogui.confirm("This is still incomplete", buttons=["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"])
         if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
           self.inactivePlayer.restring = extra
           break
         else:
-          print("\nNot a valid input.\n")  
+          pyautogui.alert("\nNot a valid input.\n")  
   
   def calculateCost(self):
     """ Calculates the cost of a key considering current board state.
@@ -626,16 +675,6 @@ class Board():
       self.forgedLastTurn = forgedThisTurn
     else:
       self.forgedLastTurn = False, num
-
-  def endGame(self, booly):
-    """ Ends the game, with a winner if someone has three keys.
-    """
-    if self.activePlayer.keys >= 3:
-      print(self.activePlayer.name + " wins!\n")
-    elif self.inactivePlayer.keys >= 3:
-      print(self.inactivePlayer.name + " wins!\n")
-    else:
-      print("Game ended.")
 
 ############################
 # State Checking Functions #

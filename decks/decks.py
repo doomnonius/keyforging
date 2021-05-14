@@ -57,20 +57,15 @@ class Deck:
         """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have.
         """
         draw = self.handSize
-        if 0 < self.chains < 7:
-            draw -= 1
-        elif 6 < self.chains < 13:
-            draw -= 2
-        elif 12 < self.chains < 19:
-            draw -= 3
-        elif 18 < self.chains < 25:
-            draw -= 4
-        else:
-            pass
-        if len(self.hand) >= self.handSize:
-            pass
-        else:
-            self.chains -= 1
+        if self.chains > 0:
+            reduced = self.chains // 6
+            if self.chains % 6 != 0:
+                reduced += 1
+            draw -= reduced
+            if len(self.hand) >= self.handSize:
+                pass
+            else:
+                self.chains -= 1
         while (len(self.hand)) < draw:
             if self.deck != []:
                 self.hand.append(self.deck.pop())
