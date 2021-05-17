@@ -106,109 +106,114 @@ class Board():
     target_cardw = CARDW // ratio
     
     ## inactive mat
-    self.mat1 = pygame.Surface((wid, hei//2 - 3))
+    self.mat1 = pygame.Surface((wid, hei//2 - 15))
     self.mat1.convert()
-    self.mat1.fill(COLORS["GREY"])
+    self.mat1.fill(COLORS["BLACK"])
     
     mat_third = (self.mat1.get_height()) // 3
     print(f"size: {self.WIN.get_size()}")
     # hand
     self.hand1 = pygame.Surface((wid - (target_cardw + 5), mat_third))
     self.hand1.convert()
-    self.hand1.fill(COLORS["YELLOW"])
+    self.hand1.fill(COLORS["GREY"])
     self.hand1_rect = self.hand1.get_rect()
     self.hand1_rect.topleft = (0, 0)
 
     # purge/decklist
     self.purge1 = pygame.Surface((target_cardw, mat_third))
     self.purge1.convert()
-    self.purge1.fill(COLORS["WHITE"])
+    self.purge1.fill(COLORS["GREY"])
     self.purge1_rect = self.purge1.get_rect()
     self.purge1_rect.topright = (wid, 0)
 
     # artifacts
     self.artifacts1 = pygame.Surface((wid - (target_cardw + 5), mat_third))
     self.artifacts1.convert()
-    self.artifacts1.fill(COLORS["GREEN"])
+    self.artifacts1.fill(COLORS["GREY"])
     self.artifacts1_rect = self.artifacts1.get_rect()
     self.artifacts1_rect.topleft = (0, mat_third)
 
     # discard
     self.discard1 = pygame.Surface((target_cardw, mat_third))
     self.discard1.convert()
-    self.discard1.fill(COLORS["YELLOW"])
+    self.discard1.fill(COLORS["GREY"])
     self.discard1_rect = self.discard1.get_rect()
     self.discard1_rect.topright = (wid, mat_third)
     
     # creatures
     self.creatures1 = pygame.Surface((wid - (target_cardw + 5), mat_third))
     self.creatures1.convert()
-    self.creatures1.fill(COLORS["WHITE"])
+    self.creatures1.fill(COLORS["GREY"])
     self.creatures1_rect = self.creatures1.get_rect()
     self.creatures1_rect.topleft = (0, mat_third*2)
 
     # deck
     self.deck1 = pygame.Surface((target_cardw, mat_third))
     self.deck1.convert()
-    self.deck1.fill(COLORS["GREEN"])
+    self.deck1.fill(COLORS["GREY"])
     self.deck1_rect = self.deck1.get_rect()
     self.deck1_rect.topright = (wid, mat_third*2)
 
-    mat_height = self.mat1.get_height()
-
-    ## divider
-    self.divider = pygame.Surface((wid, 6))
+    ## divider1
+    self.divider = pygame.Surface((wid//2, 30))
     self.divider.convert()
-    self.divider.fill(COLORS["BLACK"])
+    self.divider.fill(COLORS["GREY"])
     self.divider_rect = self.divider.get_rect()
-    self.divider_rect.topleft = (0, mat_height)
+    self.divider_rect.topleft = (0, self.mat1.get_height())
     
+    ## divider2
+    self.divider2 = pygame.Surface((wid//2, 30))
+    self.divider2.convert()
+    self.divider2.fill(COLORS["GREEN"])
+    self.divider2_rect = self.divider2.get_rect()
+    self.divider2_rect.topright = (wid, self.mat1.get_height())
+
     ## active mat
-    self.mat2 = pygame.Surface((wid, hei//2 - 3))
+    self.mat2 = pygame.Surface((wid, hei//2 - 15))
     self.mat2.convert()
-    self.mat2.fill(COLORS["GREEN"])
+    self.mat2.fill(COLORS["BLACK"])
     self.mat2_rect = self.mat2.get_rect()
     self.mat2_rect = (0, mat_third * 3)
 
     # deck2
     self.deck2 = pygame.Surface((target_cardw, mat_third))
     self.deck2.convert()
-    self.deck2.fill(COLORS["RED"])
+    self.deck2.fill(COLORS["GREEN"])
     self.deck2_rect = self.deck2.get_rect()
     self.deck2_rect.topleft = (0, hei - mat_third * 3)
 
     # creatures2
     self.creatures2 = pygame.Surface((wid - (target_cardw + 5), mat_third))
     self.creatures2.convert()
-    self.creatures2.fill(COLORS["WHITE"])
+    self.creatures2.fill(COLORS["GREEN"])
     self.creatures2_rect = self.creatures2.get_rect()
     self.creatures2_rect.topright = (wid, hei - mat_third * 3)
 
     # discard2
     self.discard2 = pygame.Surface((target_cardw, mat_third))
     self.discard2.convert()
-    self.discard2.fill(COLORS["WHITE"])
+    self.discard2.fill(COLORS["GREEN"])
     self.discard2_rect = self.discard2.get_rect()
     self.discard2_rect.topleft = (0, hei - mat_third * 2)
 
     # artifacts2
     self.artifacts2 = pygame.Surface((wid - (target_cardw + 5), mat_third))
     self.artifacts2.convert()
-    self.artifacts2.fill(COLORS["BLACK"])
+    self.artifacts2.fill(COLORS["GREEN"])
     self.artifacts2_rect = self.artifacts2.get_rect()
     self.artifacts2_rect.topright = (wid, hei - mat_third * 2)
 
     # purge2
     self.purge2 = pygame.Surface((target_cardw, mat_third))
     self.purge2.convert()
-    self.purge2.fill(COLORS["BLACK"])
+    self.purge2.fill(COLORS["GREEN"])
     self.purge2_rect = self.purge2.get_rect()
     self.purge2_rect.topleft = (0, hei - mat_third)
 
     # hand2
     self.hand2 = pygame.Surface((wid - (target_cardw + 5), mat_third))
     self.hand2.convert()
-    self.hand2.fill(COLORS["RED"])
+    self.hand2.fill(COLORS["GREEN"])
     self.hand2_rect = self.hand2.get_rect()
     self.hand2_rect.topright = (wid, hei - mat_third)
 
@@ -447,6 +452,7 @@ class Board():
     self.WIN.blit(self.purge2, self.purge2_rect)
     self.WIN.blit(self.hand2, self.hand2_rect)
     self.WIN.blit(self.divider, self.divider_rect)
+    self.WIN.blit(self.divider2, self.divider2_rect)
 
     self.allsprites.draw(self.WIN)
 
