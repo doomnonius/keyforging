@@ -1,3 +1,4 @@
+import pyautogui
 import cards.cardsAsClass as cards
 import random
 import cards.destroyed as dest
@@ -149,7 +150,7 @@ def importDeck():
     """
 
     newDeck = []
-    deckname = input("Enter your deck's exact full name: ")
+    deckname = pyautogui.prompt("Enter your deck's exact full name: ")
     # why not let them import a bunch of decks at once? because links=cards doesn't work, so I'd need to do another json call. Not willing to implement that yet
     newUrl = url1 + convertToHtml(deckname.lower())
     page = requests.get(newUrl).json()
@@ -159,19 +160,19 @@ def importDeck():
     with open('decks/newdeck.json') as f:
         data = json.load(f)
         if data['data'] == []:
-            print("That input returned no results.")
+            pyautogui.alert("That input returned no results.")
             return
         deckid = data['data'][0]['id']
         deckName = data['data'][0]['name']
         deckExp = data['data'][0]['expansion']
         if deckExp != 341:
-            print("This version of the game can only handle CotA decks.")
+            pyautogui.alert("This version of the game can only handle CotA decks.")
             return
         with open('decks/deckList.json', 'r') as dList:
             allDecks = json.load(dList)
             for deck in allDecks:
                 if deck['name'] == deckName:
-                    print("This deck has already been added.")
+                    pyautogui.alert("This deck has already been added.")
                     return
         houses = (data['data'][0]['_links']['houses'][0:3])
         # print(len(data['_linked']['cards']))

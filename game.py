@@ -6,8 +6,8 @@ import cards.actions as action
 import cards.play as play
 import cards.reap as reap
 import cards.fight as fight
-import json, random, logging, time, pygame, pyautogui
-from helpers import makeChoice, distance, buildStateDict
+import json, random, logging, time, pygame, pyautogui, os
+from helpers import makeChoice, buildStateDict
 from typing import Dict, List, Set
 from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW
 
@@ -160,13 +160,27 @@ class Board():
     self.divider.fill(COLORS["GREY"])
     self.divider_rect = self.divider.get_rect()
     self.divider_rect.topleft = (0, self.mat1.get_height())
+    self.key1y, self.key1y_rect = load_image("yellow_key_back", -1)
+    self.key_forged, self.key_forged_rect = load_image("yellow_key_front", -1)
+    self.key1y_rect.topleft = (2, 2)
+    self.key1r, self.key1r_rect = load_image("yellow_key_back", -1)
+    self.key1r_rect.topleft = (35, 2)
+    self.key1b, self.key1b_rect = load_image("yellow_key_back", -1)
+    self.key1b_rect.topleft = (68, 2)
     
     ## divider2
     self.divider2 = pygame.Surface((wid//2, 30))
     self.divider2.convert()
     self.divider2.fill(COLORS["GREEN"])
+    div2_w = self.divider2.get_width()
     self.divider2_rect = self.divider2.get_rect()
     self.divider2_rect.topright = (wid, self.mat1.get_height())
+    self.key2y, self.key2y_rect = load_image("yellow_key_back", -1)
+    self.key2y_rect.topright = (div2_w - 2, 2)
+    self.key2r, self.key2r_rect = load_image("yellow_key_back", -1)
+    self.key2r_rect.topright = (div2_w - 35, 2)
+    self.key2b, self.key2b_rect = load_image("yellow_key_back", -1)
+    self.key2b_rect.topright = (div2_w - 68, 2)
 
     ## active mat
     self.mat2 = pygame.Surface((wid, hei//2 - 15))
@@ -246,7 +260,7 @@ class Board():
           
         if event.type == pygame.KEYDOWN:
           print(event)
-          if event.key == 113 and event.mod == 64:
+          if event.key == 113 and (event.mod == 64 or event.mod == 4160):
             run = False
 
       ###################################
@@ -452,7 +466,11 @@ class Board():
     self.WIN.blit(self.purge2, self.purge2_rect)
     self.WIN.blit(self.hand2, self.hand2_rect)
     self.WIN.blit(self.divider, self.divider_rect)
+    inactive_keys = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect)]
+    self.divider.blits(inactive_keys)
     self.WIN.blit(self.divider2, self.divider2_rect)
+    active_keys = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect)]
+    self.divider2.blits(active_keys)
 
     self.allsprites.draw(self.WIN)
 
@@ -1339,6 +1357,21 @@ class Board():
                 #####################
                 # End of Game Class #
                 #####################
+
+def load_image(title, colorkey=None):
+  fullname = os.path.join(f'game_assets', title + '.png')
+  try:
+      image = pygame.image.load(fullname)
+  except pygame.error as message:
+      logging.error(f'Cannot load image: {title}, {message}')
+      raise SystemExit(message)
+  image = image.convert()
+  if colorkey is not None:
+      if colorkey == -1:
+          colorkey = image.get_at((0,0))
+      image.set_colorkey(colorkey)
+  scaled = pygame.transform.scale(image, (26, 26))
+  return scaled, scaled.get_rect()
 
 def developer(game):
   """Developer functions for manually changing the game state.

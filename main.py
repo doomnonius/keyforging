@@ -1,6 +1,5 @@
-import os, sys, logging
+import os, sys, logging, pyautogui
 
-from pygame.font import SysFont
 logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
 
 # Feature add: when the game is installed (like, properly, which is something I'm totally going to get to) a variable will be set that says where the game is installed, then this will be called.
@@ -10,7 +9,6 @@ logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s
 import decks.decks as deck
 import json, argparse
 from game import Board
-from helpers import distance
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", "--action", help="launch the app, specifiying whether to start a [newgame], [import] a deck", type=str, default="newgame")
@@ -24,30 +22,38 @@ def startup(choice = ''): #Called at startup
   """
   logging.info("Game started with parameter: {}".format(choice))
   logging.info("Game is starting up!")
-  if choice != "Newgame" and choice != "Import" and choice != "Decks" and choice != "Load":
-    choice = input("What would you like to do: [Import] a new deck, start a [NewGame], list imported [Decks], or [Load] a game? \n>>> ")
-  if distance(choice, "Import") <= 1:
+  choice = pyautogui.confirm("What would you like to do?", buttons=["New Game", "Import", "Decks", "Load", "Quit"])
+  # if choice != "Newgame" and choice != "Import" and choice != "Decks" and choice != "Load":
+  #   choice = input("What would you like to do: [Import] a new deck, start a [NewGame], list imported [Decks], or [Load] a game? \n>>> ")
+  if choice == "Import": # distance(choice, "Import") <= 1:
     deck.importDeck()
-    another = input("Would you like to import another deck (Y/n)? ")
-    while another != 'n' and another != 'N':
+    another = pyautogui.confirm("Would you like to import another deck?", buttons=["Yes", "No"]) # input("Would you like to import another deck (Y/n)? ")
+    while another != 'No':
       deck.importDeck()
-      another = input("Would you like to import another deck (Y/n)? ")
-  elif distance(choice, "NewGame") <= 2:
+      another = pyautogui.confirm("Would you like to import another deck?", buttons=["Yes", "No"])
+  elif choice == "New Game": # distance(choice, "NewGame") <= 2:
     Board()
-  elif distance(choice, "Load") <= 1:
+  elif choice == "Load": # distance(choice, "Load") <= 1:
     # Display saved games, then let them choose one.
     # display saves here !!!!
-    loaded = input("Which save would you like to load?")
+    loaded = pyautogui.confirm("Which save would you like to load?", buttons=[x for x in ["A"]]) #input("Which save would you like to load?")
     load(loaded)
-  elif distance(choice, "Decks") <= 1:
+  elif choice == "Decks": # distance(choice, "Decks") <= 1:
     while True:
-      print("Available decks:")
-      with open('decks/deckList.json') as f:
+      show = "Enter a deck's number to see the cards it contains.\n\nAvailable decks:\n"
+      with open('decks/deckList.json', encoding='utf-8') as f:
         data = json.load(f)
         for x in range(0, len(data)):
-          print(str(x) + ': ' + data[x]['name'])
+          show += f"{x}: " + data[x]['name'] + "\n"
+        chosen = int(pyautogui.prompt(show))
+        cardList = ''
+        for card in data[chosen]['deck']:
+          cardList += f"{card['card_title']} [{card['house']}]\n"
+        pyautogui.confirm(cardList)
       startup('')
       break
+  else:
+    return
 
 def load(saveFile):
   """Loads a saved game.
