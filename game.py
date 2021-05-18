@@ -309,6 +309,10 @@ class Board():
           if event.key == 113 and (event.mod == 64 or event.mod == 4160):
             run = False
 
+      ######################
+      # Initial hand fill  #
+      ######################
+
       if self.turnStage == None:
         logging.info(f"{self.activePlayer.name} is going first.")
         pyautogui.alert(f"\n{self.activePlayer.name} is going first.\n")
@@ -320,8 +324,9 @@ class Board():
         #####################
         # Draw and mulligan #
         #####################
-        self.activePlayer += 7
-        if self.do:
+        if not self.do:
+          self.activePlayer += 7
+        else:
           show = f'{self.activePlayer.name}\'s hand:\n'
           for card in self.activePlayer.hand:
             show += f"{card.title} ({card.house})\n"
@@ -332,8 +337,9 @@ class Board():
             random.shuffle(self.activePlayer.deck)
             self.activePlayer.hand = []
             self.activePlayer += 6
-        self.inactivePlayer += 6
-        if self.do:
+        if not self.do:
+          self.inactivePlayer += 6
+        else:
           show = f'{self.inactivePlayer.name}\'s hand:\n'
           for card in self.inactivePlayer.hand:
             show += f"{card.title} ({card.house})\n"
@@ -349,7 +355,6 @@ class Board():
           self.turnNum = 1
           self.turnStage = 0
         self.do = True
-
 
       ###################################
       # Step 0: "Start of turn" effects #
@@ -485,6 +490,9 @@ class Board():
             run = False
           
           ## these will work slightly differently
+          elif self.response == "Play":
+            # hands off the info to the "Fight" function
+            self.playCard()
           elif self.response == "Fight":
             # hands off the info to the "Fight" function
             self.fightCard()
@@ -492,8 +500,13 @@ class Board():
             if self.numPlays == 1 and self.turnNum == 1:
               pyautogui.alert("You've already taken your one action for turn one.")
               break
-            self.activePlayer.printShort(self.activePlayer.hand)
-            disc = makeChoice("Choose a card to discard: ", self.activePlayer.hand)
+            # self.activePlayer.printShort(self.activePlayer.hand)
+            show = "Choose a card to discard:\n\n"
+            b = []
+            for x in range(len(self.activePlayer.hand)):
+              show += f"{x}: {self.activePlayer.hand[x].title}"
+              b += str(x)
+            disc = int(pyautogui.confirm(show, buttons=b))
             self.discardCard(disc)
           elif self.response == "Action":
             # Shows friendly cards in play with "Action" keyword, prompts a choice
@@ -541,11 +554,12 @@ class Board():
     self.divider.blits(self.inactive_info)
     self.divider2.blits(self.active_info)
     x = 0
-    for card in self.activePlayer.hand:
-      card_image, card_rect = card.scaled_image(self.target_cardw, self.target_cardh)
-      card_rect.topleft = ((x * self.target_cardw) + 5 * (x + 1), 0)
-      x += 1
-      self.hand2.blit(card_image, card_rect)
+    for board,area in [(self.activePlayer.hand, self.hand2_rect), (self.inactivePlayer.hand, self.hand1_rect), (self.activePlayer.board["Creature"], self.creatures2_rect), (self.inactivePlayer.board["Creature"], self.creatures1_rect), (self.activePlayer.board["Artifact"], self.artifacts2_rect), (self.inactivePlayer.board["Artifact"], self.artifacts1_rect)]:
+      for card in board:
+        card_image, card_rect = card.scaled_image(self.target_cardw, self.target_cardh)
+        card_rect.topleft = (area.left + (x * self.target_cardw) + 5 * (x + 1), area.top)
+        x += 1
+        self.WIN.blit(card_image, card_rect)
     self.allsprites.draw(self.WIN)
 
 
@@ -554,11 +568,11 @@ class Board():
     card = False
     board = False
     while True:
-      if True in [pygame.rect.collidepoint(x, pos) for x in self.hand2]: # check for collisions with a card: action options from clicking on a card
+      if True in [pygame.Rect.collidepoint(x.rect, pos) for x in self.activePlayer.hand]: # check for collisions with a card: action options from clicking on a card
         opt = self.handOptions()
         card = True
       elif True in []:
-        ...
+        opt = self.cardOptions()
       else: # action options from clicking not on a card: then check for a collision with a mat
         opt = self.turnOptions()
         board = True
@@ -999,7 +1013,7 @@ class Board():
       print("You can only use cards from the active house.")
       return
   
-  def discardCard(self, cardNum):
+  def discardCard(self, cardNum: int):
     """ Discard a card from hand, within the turn. Doesn't need to use pending for discards, but does use it for Rock-Hurling Giant.
     """
     active = self.activePlayer.board["Creature"]
@@ -1026,7 +1040,7 @@ class Board():
         self.pending(pending)
       if self.turnNum == 1:
         self.numPlays += 1
-    else: print("You can only discard cards of the active house.")
+    else: pyautogui.alert("You can only discard cards of the active house.")
     self.numDiscards += 1
 
   def fightCard(self, attacker = 100):

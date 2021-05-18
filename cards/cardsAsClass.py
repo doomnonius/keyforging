@@ -359,7 +359,8 @@ class Card(pygame.sprite.Sprite):
 
     def scaled_image(self, width, height):
         scaled = pygame.transform.scale(self.image, (width, height))
-        return scaled, scaled.get_rect()
+        self.image, self.image_rect = scaled, scaled.get_rect()
+        return self.image, self.rect
             
 
 if __name__ == '__main__':
