@@ -341,7 +341,7 @@ class Card(pygame.sprite.Sprite):
             return True
         return False
 
-    def load_image(self, colorkey=None):
+    def load_image(self, colorkey=-1):
         fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', self.title + '.png')
         try:
             image = pygame.image.load(fullname)
@@ -357,8 +357,8 @@ class Card(pygame.sprite.Sprite):
             image.set_colorkey(colorkey)
         return image, image.get_rect()
 
-    def scaled_image(self, ratio):
-        scaled = pygame.transform.scale(self.image, (CARDW//ratio, CARDH//ratio))
+    def scaled_image(self, width, height):
+        scaled = pygame.transform.scale(self.image, (width, height))
         return scaled, scaled.get_rect()
             
 
