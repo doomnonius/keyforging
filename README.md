@@ -1,12 +1,29 @@
 <h1>This is a very complicated project</h1>
 
-<h2>This project will attempt to create a text based version of keyforge. If things go real well, I may attempt online play, a simple ai, and a graphical version, but I've got a lot of work ahead of me.<h2>
+<h2>This project will attempt to create a graphical version of keyforge. If things go real well, I may attempt online play and a simple ai, but I've got a lot of work ahead of me.<h2>
 <h3>BUGS:<h3>
 <ul>
  <li>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</li>
  <li>https://www.pygame.org/docs/genindex.html</li>
  <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
+ <li>Amber doesn't update properly.</li>
+ <li>Says who is going first twice (though really a lot of the mulligan phase needs to be updated, not just that)</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
+ <li>Cards aren't tapped when exhausted.</li>
+ <li>Code not yet implemented to differentiate action from artifact v action from creature.</li>
+ <li>Code not yet implemented to only display valid options for items, instead of all.</li>
+ <li>Upgrades don't work</li>
+ <li>Wild wormhole doesn't work</li>
+ <li>Something I don't quite understand in line 1322 of game.py about things with play effects</li>
+ <li>State dictionaries.</li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li><s>Discard card always says cards aren't in active house.</s></li>
 </ul>
 
 <h3>Current Goals:</h3>

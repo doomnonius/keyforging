@@ -41,8 +41,8 @@ class Board():
     #   self.second += 1
     self.top = 0
     self.left = 0
-    self.xmouse = 0
-    self.ymouse = 0
+    self.mousex = 0
+    self.mousey = 0
     self.activeHouse = []
     self.endBool = True
     self.turnNum = 0
@@ -265,18 +265,18 @@ class Board():
     self.key2b_rect.topright = (div2_w - 68, 2)
     self.board_blits.append((self.divider2, self.divider2_rect))
     
-    # amber1
-    self.amber1 = self.BASICFONT.render(f"{self.inactivePlayer.amber} amber", 1, COLORS['BLACK'])
-    self.amber1_rect = self.amber1.get_rect()
-    self.amber1_rect.topright = (self.divider.get_width() - 10, 5)
+    # # amber1
+    # self.amber1 = self.BASICFONT.render(f"{self.inactivePlayer.amber} amber", 1, COLORS['BLACK'])
+    # self.amber1_rect = self.amber1.get_rect()
+    # self.amber1_rect.topright = (self.divider.get_width() - 10, 5)
 
-    # amber2
-    self.amber2 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['BLACK'])
-    self.amber2_rect = self.amber2.get_rect()
-    self.amber2_rect.topleft = (10, 5)
+    # # amber2
+    # self.amber2 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['BLACK'])
+    # self.amber2_rect = self.amber2.get_rect()
+    # self.amber2_rect.topleft = (10, 5)
     
-    self.inactive_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect), (self.amber1, self.amber1_rect)]
-    self.active_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect), (self.amber2, self.amber2_rect)]
+    # self.inactive_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect), (self.amber1, self.amber1_rect)]
+    # self.active_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect), (self.amber2, self.amber2_rect)]
 
     run = True
     started = False
@@ -297,11 +297,6 @@ class Board():
           self.doPopup()
           
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-          if not started:
-            started = True
-            self.forgedThisTurn = False, 0
-            # self.startGame() # I want to put this in the self.turnStage == None section
-
           self.backgroundColor = COLORS[random.choice(list(COLORS.keys()))]
           
         if event.type == pygame.KEYDOWN:
@@ -324,8 +319,7 @@ class Board():
       ######################
 
       if self.turnStage == None:
-        logging.info(f"{self.activePlayer.name} is going first.")
-        pyautogui.alert(f"\n{self.activePlayer.name} is going first.\n")
+        self.forgedThisTurn = False, 0
         ##########################
         # Build state dictionary #
         ##########################
@@ -335,6 +329,8 @@ class Board():
         # Draw and mulligan #
         #####################
         if not self.do:
+          logging.info(f"{self.activePlayer.name} is going first.")
+          pyautogui.alert(f"\n{self.activePlayer.name} is going first.\n")
           self.activePlayer += 7
         else:
           show = f'{self.activePlayer.name}\'s hand:\n'
@@ -428,10 +424,12 @@ class Board():
 
       elif self.turnStage == 3:
         if self.response:
-          if len(self.response) == 1:
+          print(self.response)
+          l = len(self.response)
+          if l == 1:
             self.response = self.response[0]
-          if len(self.response) == 2:
-            self.response, self.targetCard = self.response
+          elif l == 3:
+            self.response, self.targetCard, self.loc = self.response
           
           if self.response == "Hand":
             show = ''
@@ -504,31 +502,26 @@ class Board():
           ## these will work slightly differently
           elif self.response == "Play":
             # hands off the info to the "Fight" function
-            self.playCard()
+            self.playCard(self.targetCard)
           elif self.response == "Fight":
             # hands off the info to the "Fight" function
-            self.fightCard()
+            self.fightCard(self.targetCard)
           elif self.response == "Discard":
             if self.numPlays == 1 and self.turnNum == 1:
               pyautogui.alert("You've already taken your one action for turn one.")
-              break
-            # self.activePlayer.printShort(self.activePlayer.hand)
-            show = "Choose a card to discard:\n\n"
-            b = []
-            for x in range(len(self.activePlayer.hand)):
-              show += f"{x}: {self.activePlayer.hand[x].title}"
-              b += str(x)
-            disc = int(pyautogui.confirm(show, buttons=b))
-            self.discardCard(disc)
+            else:
+              self.discardCard(self.targetCard)
           elif self.response == "Action":
             # Shows friendly cards in play with "Action" keyword, prompts a choice
-            self.actionCard()
+            self.actionCard(self.targetCard)
           elif self.response == "Reap":
             # Shows friendly board, prompts choice.
             # Checks viability
-            self.reapCard()
+            self.reapCard(self.targetCard)
 
           self.response = []
+          self.targetCard = None
+          self.loc = 0
 
       ###################################################
       # step 4: ready cards and reset things like armor #
@@ -563,6 +556,16 @@ class Board():
   def draw(self):
     self.allsprites.update()
     self.WIN.blits(self.board_blits)
+    # amber1
+    self.amber1 = self.BASICFONT.render(f"{self.inactivePlayer.amber} amber", 1, COLORS['BLACK'])
+    self.amber1_rect = self.amber1.get_rect()
+    self.amber1_rect.topright = (self.divider.get_width() - 10, 5)
+    # amber2
+    self.amber2 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['BLACK'])
+    self.amber2_rect = self.amber2.get_rect()
+    self.amber2_rect.topleft = (10, 5)
+    self.inactive_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect), (self.amber1, self.amber1_rect)]
+    self.active_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect), (self.amber2, self.amber2_rect)]
     self.divider.blits(self.inactive_info)
     self.divider2.blits(self.active_info)
     x = 0
@@ -577,7 +580,7 @@ class Board():
     l = len(self.activePlayer.discard)
     if l > 0:
       card_image, card_rect = self.activePlayer.discard[l - 1].scaled_image(self.target_cardw, self.target_cardh)
-      card_rect.topright = (self.discard2_rect.left, self.discard2_rect.top)
+      card_rect.topleft = (self.discard2_rect.left, self.discard2_rect.top)
       self.WIN.blit(card_image, card_rect)
     l = len(self.inactivePlayer.discard)
     if l > 0: 
@@ -616,14 +619,24 @@ class Board():
 
   def doPopup(self):
     pos = pygame.mouse.get_pos()
-    card = False
     board = False
+    loc = 0
     while True:
-      if True in [pygame.Rect.collidepoint(x.rect, pos) for x in self.activePlayer.hand]: # check for collisions with a card: action options from clicking on a card
+      in_hand = [pygame.Rect.collidepoint(x.rect, pos) for x in self.activePlayer.hand]
+      in_creature = [pygame.Rect.collidepoint(x.rect, pos) for x in self.activePlayer.board["Creature"]]
+      in_artifact = [pygame.Rect.collidepoint(x.rect, pos) for x in self.activePlayer.board["Artifact"]]
+      if True in in_hand: # check for collisions with a card: action options from clicking on a card
         opt = self.handOptions()
-        card = True
-      elif True in []:
+        card_pos = in_hand.index(True)
+        loc = "hand"
+      elif True in in_creature:
         opt = self.cardOptions()
+        card_pos = in_creature.index(True)
+        loc = "creature"
+      elif True in in_artifact:
+        opt = self.cardOptions()
+        card_pos = in_artifact.index(True)
+        loc = "artifact"
       else: # action options from clicking not on a card: then check for a collision with a mat
         opt = self.turnOptions()
         board = True
@@ -636,10 +649,10 @@ class Board():
         elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
           OPTION = self.option_selected(opt, pos)
           if OPTION != None:
-            if card:
-              pass
-            elif board:
+            if board:
               self.response = [OPTION]
+            else:
+              self.response = [OPTION, card_pos, loc]
             return OPTION
           else:
             return None
@@ -747,15 +760,15 @@ class Board():
       for card in self.activePlayer.hand:
         show += f"{card.title} ({card.house})\n"
       if self.inactivePlayer.states["House"]["Control the Weak"] in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-        self.activeHouse = self.inactivePlayer.states["House"]["Control the Weak"]
+        self.activeHouse = [self.inactivePlayer.states["House"]["Control the Weak"]]
         return
       while True:
         choice = pyautogui.confirm(text=f"{show}\nChoose a house:", buttons=[self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]])
         if choice.title() in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
           if "restringuntus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
-            self.activeHouse = self.activePlayer.restring # I was able to verify that there will never be more than one copy of Restringuntus in a deck
+            self.activeHouse = [self.activePlayer.restring] # I was able to verify that there will never be more than one copy of Restringuntus in a deck
           else:
-            self.activeHouse = choice
+            self.activeHouse = [choice]
           return
         else:
           pyautogui.alert("That's not a valid choice! And how did you even get here?")
@@ -763,11 +776,11 @@ class Board():
       if num == 1:
         while True:
           extra = pyautogui.confirm("Choose another house to fight with:", buttons=["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"])
-          if extra != self.activeHouse:
+          if extra not in self.activeHouse:
           # if extra in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"] and extra != self.activeHouse:
             self.extraFightHouses.append(extra)
             break
-          elif extra == self.activeHouse:
+          elif extra in self.activeHouse:
             pyautogui.alert("\nThat's already your active house. Try again.\n")
           else:
             pyautogui.alert("\nNot a valid input.\n")
@@ -805,6 +818,8 @@ class Board():
       self.forgedLastTurn = forgedThisTurn
     else:
       self.forgedLastTurn = False, num
+    self.activeHouse = []
+
 
 ############################
 # State Checking Functions #
@@ -1070,7 +1085,7 @@ class Board():
     active = self.activePlayer.board["Creature"]
     inactive = self.inactivePlayer.board["Creature"]
     pending = []
-    if self.activePlayer.hand[cardNum].house == self.activeHouse[0]:
+    if self.activePlayer.hand[cardNum].house in self.activeHouse:
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       if "Giant Sloth" in [x.title for x in active] and self.activePlayer.discard[-1].house == "Untamed":
         index = [active.index(x) for x in active if x.title == "Giant Sloth"]
@@ -1091,8 +1106,13 @@ class Board():
         self.pending(pending)
       if self.turnNum == 1:
         self.numPlays += 1
-    else: pyautogui.alert("You can only discard cards of the active house.")
-    self.numDiscards += 1
+        self.numDiscards += 1
+    else:
+      print(cardNum)
+      print(self.activePlayer.hand[cardNum].house)
+      print(self.activeHouse)
+      pyautogui.alert("You can only discard cards of the active house.")
+
 
   def fightCard(self, attacker = 100):
     """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.
@@ -1233,8 +1253,9 @@ class Board():
   def playCard(self, chosen = 50, booly = True):
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
-    print(self.numPlays)
-    if self.numPlays == 1 and self.turnNum == 1:
+    print(f"numPlays: {self.numPlays}")
+    if self.numPlays >= 1 and self.turnNum == 1:
+      pyautogui.alert("You cannot play another card this turn.")
       return
     if chosen < len(self.activePlayer.hand):
       # print("playCard area 1") # test line
@@ -1269,7 +1290,7 @@ class Board():
           # set a variable with the index of the card in board
           location = self.activePlayer.board[cardType][0]
           self.numPlays += 1
-          print(self.numPlays) # test line
+          print(f"numPlays: {self.numPlays}") # test line
         # default case: right flank
         elif self.activePlayer.hand[chosen].type != "Upgrade":
           # print("playCard area 1.5") # test line

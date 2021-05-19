@@ -25,20 +25,20 @@ def startup(choice = ''): #Called at startup
   choice = pyautogui.confirm("What would you like to do?", buttons=["New Game", "Import", "Decks", "Load", "Quit"])
   # if choice != "Newgame" and choice != "Import" and choice != "Decks" and choice != "Load":
   #   choice = input("What would you like to do: [Import] a new deck, start a [NewGame], list imported [Decks], or [Load] a game? \n>>> ")
-  if choice == "Import": # distance(choice, "Import") <= 1:
+  if choice == "Import":
     deck.importDeck()
     another = pyautogui.confirm("Would you like to import another deck?", buttons=["Yes", "No"]) # input("Would you like to import another deck (Y/n)? ")
     while another != 'No':
       deck.importDeck()
       another = pyautogui.confirm("Would you like to import another deck?", buttons=["Yes", "No"])
-  elif choice == "New Game": # distance(choice, "NewGame") <= 2:
+  elif choice == "New Game":
     Board()
-  elif choice == "Load": # distance(choice, "Load") <= 1:
+  elif choice == "Load":
     # Display saved games, then let them choose one.
     # display saves here !!!!
     loaded = pyautogui.confirm("Which save would you like to load?", buttons=[x for x in ["A"]]) #input("Which save would you like to load?")
     load(loaded)
-  elif choice == "Decks": # distance(choice, "Decks") <= 1:
+  elif choice == "Decks":
     while True:
       show = "Enter a deck's number to see the cards it contains.\n\nAvailable decks:\n"
       with open('decks/deckList.json', encoding='utf-8') as f:
