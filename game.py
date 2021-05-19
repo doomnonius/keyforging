@@ -107,7 +107,7 @@ class Board():
     return s
 
   def turnOptions(self) -> List:
-    return ['Hand', 'House', 'Turn', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
+    return ['Hand', 'House', 'Turn', 'MyDiscard', 'OppDiscard', 'Board', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
     
   def cardOptions(self) -> List:
     return ['Reap', 'Action', 'Fight', 'Omni']
@@ -283,7 +283,7 @@ class Board():
 
     while run:
       self.CLOCK.tick(self.FPS)
-      
+
       for event in pygame.event.get():
         
         if event.type == pygame.MOUSEMOTION:
@@ -308,6 +308,16 @@ class Board():
           print(event)
           if event.key == 113 and (event.mod == 64 or event.mod == 4160):
             run = False
+
+      # handle card hovering
+
+      self.hovercard = []
+      hoverable = self.activePlayer.hand + self.inactivePlayer.hand + self.activePlayer.board["Creature"] + self.inactivePlayer.board["Creature"] + self.activePlayer.board["Artifact"] + self.inactivePlayer.board["Artifact"]
+
+      for card in hoverable:
+        if pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)):
+          self.hovercard.append(card)
+          break
 
       ######################
       # Initial hand fill  #
@@ -430,6 +440,8 @@ class Board():
             pyautogui.alert(show)
           elif self.response == "House":
             pyautogui.alert(self.activeHouse)
+          elif self.response == "Board":
+            print(self)
           elif self.response == "Turn":
             pyautogui.alert(f"It is turn {self.turnNum}, stage {self.turnStage}.")
           elif self.response == "MyDiscard":
@@ -554,12 +566,51 @@ class Board():
     self.divider.blits(self.inactive_info)
     self.divider2.blits(self.active_info)
     x = 0
+    # card areas
     for board,area in [(self.activePlayer.hand, self.hand2_rect), (self.inactivePlayer.hand, self.hand1_rect), (self.activePlayer.board["Creature"], self.creatures2_rect), (self.inactivePlayer.board["Creature"], self.creatures1_rect), (self.activePlayer.board["Artifact"], self.artifacts2_rect), (self.inactivePlayer.board["Artifact"], self.artifacts1_rect)]:
       for card in board:
         card_image, card_rect = card.scaled_image(self.target_cardw, self.target_cardh)
         card_rect.topleft = (area.left + (x * self.target_cardw) + 5 * (x + 1), area.top)
         x += 1
         self.WIN.blit(card_image, card_rect)
+    # discards
+    l = len(self.activePlayer.discard)
+    if l > 0:
+      card_image, card_rect = self.activePlayer.discard[l - 1].scaled_image(self.target_cardw, self.target_cardh)
+      card_rect.topright = (self.discard2_rect.left, self.discard2_rect.top)
+      self.WIN.blit(card_image, card_rect)
+    l = len(self.inactivePlayer.discard)
+    if l > 0: 
+      card_image, card_rect = self.inactivePlayer.discard[l - 1].scaled_image(self.target_cardw, self.target_cardh)
+      card_rect.topleft = (self.discard1_rect.left, self.discard1_rect.top)
+      self.WIN.blit(card_image, card_rect)
+    # decks
+    # going to need a card back of some sort to put here
+    l = len(self.activePlayer.deck)
+    if l > 0:
+      card_image, card_rect = self.activePlayer.deck[0].scaled_image(self.target_cardw, self.target_cardh)
+      card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
+      self.WIN.blit(card_image, card_rect)
+    l = len(self.inactivePlayer.deck)
+    if l > 0:
+      card_image, card_rect = self.inactivePlayer.deck[0].scaled_image(self.target_cardw, self.target_cardh)
+      card_rect.topleft = (self.deck1_rect.left, self.deck1_rect.top)
+      self.WIN.blit(card_image, card_rect)
+    if self.hovercard:
+      hover, hover_rect = self.hovercard[0].orig_image, self.hovercard[0].orig_rect
+      if self.mousey > HEIGHT / 2:
+        hover_rect.top = self.mousey - CARDH
+        while hover_rect.top < 0:
+          hover_rect.top += 10
+      else:
+        hover_rect.top = self.mousey
+        while hover_rect.top > HEIGHT:
+          hover_rect.top -= 10
+      if self.mousex > WIDTH / 2:
+        hover_rect.left = self.mousex - CARDW
+      else:
+        hover_rect.left = self.mousex
+      self.WIN.blit(hover, hover_rect)
     self.allsprites.draw(self.WIN)
 
 

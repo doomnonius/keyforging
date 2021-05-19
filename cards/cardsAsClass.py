@@ -58,6 +58,7 @@ class Card(pygame.sprite.Sprite):
         self.exp = cardInfo["expansion"]
         self.maverick = cardInfo['is_maverick']
         self.image, self.rect = self.load_image()
+        self.orig_image, self.orig_rect = self.load_image()
         # conditionals to add?
         # status effects
         if self.type == "Creature":
@@ -341,7 +342,7 @@ class Card(pygame.sprite.Sprite):
             return True
         return False
 
-    def load_image(self, colorkey=-1):
+    def load_image(self, colorkey=None):
         fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', self.title + '.png')
         try:
             image = pygame.image.load(fullname)
@@ -359,7 +360,7 @@ class Card(pygame.sprite.Sprite):
 
     def scaled_image(self, width, height):
         scaled = pygame.transform.scale(self.image, (width, height))
-        self.image, self.image_rect = scaled, scaled.get_rect()
+        self.image, self.rect = scaled, scaled.get_rect()
         return self.image, self.rect
             
 
