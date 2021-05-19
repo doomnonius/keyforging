@@ -7,7 +7,7 @@
  <li>https://www.pygame.org/docs/genindex.html</li>
  <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
  <li>Amber doesn't update properly.</li>
- <li>Says who is going first twice (though really a lot of the mulligan phase needs to be updated, not just that)</li>
+ <li><s>Says who is going first twice</s> (though really a lot of the mulligan phase needs to be updated, not just that)</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
  <li>Cards aren't tapped when exhausted.</li>
  <li>Code not yet implemented to differentiate action from artifact v action from creature.</li>

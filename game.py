@@ -564,13 +564,15 @@ class Board():
     self.amber2 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['BLACK'])
     self.amber2_rect = self.amber2.get_rect()
     self.amber2_rect.topleft = (10, 5)
-    self.inactive_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect), (self.amber1, self.amber1_rect)]
-    self.active_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect), (self.amber2, self.amber2_rect)]
+    self.inactive_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect)]#, (self.amber1, self.amber1_rect)]
+    self.active_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect)]#, (self.amber2, self.amber2_rect)]
     self.divider.blits(self.inactive_info)
     self.divider2.blits(self.active_info)
-    x = 0
+    self.divider.blit(self.amber1, self.amber1_rect)
+    self.divider2.blit(self.amber2, self.amber2_rect)
     # card areas
     for board,area in [(self.activePlayer.hand, self.hand2_rect), (self.inactivePlayer.hand, self.hand1_rect), (self.activePlayer.board["Creature"], self.creatures2_rect), (self.inactivePlayer.board["Creature"], self.creatures1_rect), (self.activePlayer.board["Artifact"], self.artifacts2_rect), (self.inactivePlayer.board["Artifact"], self.artifacts1_rect)]:
+      x = 0
       for card in board:
         card_image, card_rect = card.scaled_image(self.target_cardw, self.target_cardh)
         card_rect.topleft = (area.left + (x * self.target_cardw) + 5 * (x + 1), area.top)
