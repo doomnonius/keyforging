@@ -21,7 +21,7 @@
  <li>Enable dragging and dropping cards.</li>
  <li>Upgrades don't work. (Or things in later sets that give other cards abilities).</li>
  <li>Check all the card options properly (for example, checkActionStates tries to check if an artifact is stunned and crashes).</li>
- <li></li>
+ <li>Don't make the extra space for tapping in the hand, only the board.</li>
  <li></li>
  <li></li>
  <li></li>
