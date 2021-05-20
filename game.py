@@ -110,7 +110,7 @@ class Board():
     return ['Hand', 'House', 'Turn', 'MyDiscard', 'OppDiscard', 'Board', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
     
   def cardOptions(self) -> List:
-    return ['Reap', 'Action', 'Fight', 'Omni']
+    return ['Reap', 'Action', 'Fight', 'Omni', 'Unstun', 'No valid options']
 
   def handOptions(self) -> List:
     return ["Play", "Discard"]
@@ -121,7 +121,7 @@ class Board():
     ratio = CARDH / self.target_cardh
     self.target_cardw = int(CARDW // ratio)
     self.board_blits = []
-    print(self.target_cardw, self.target_cardh)
+    # print(self.target_cardw, self.target_cardh)
     
     ## inactive mat
     self.mat1 = pygame.Surface((wid, hei//2 - 15))
@@ -130,7 +130,7 @@ class Board():
     self.board_blits.append((self.mat1, (0,0)))
     
     mat_third = (self.mat1.get_height()) // 3
-    print(f"size: {self.WIN.get_size()}")
+    # print(f"size: {self.WIN.get_size()}")
     # hand
     self.hand1 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
     self.hand1.convert()
@@ -300,7 +300,7 @@ class Board():
           self.backgroundColor = COLORS[random.choice(list(COLORS.keys()))]
           
         if event.type == pygame.KEYDOWN:
-          print(event)
+          # print(event)
           if event.key == 113 and (event.mod == 64 or event.mod == 4160):
             run = False
 
@@ -406,16 +406,13 @@ class Board():
       elif self.turnStage == 2: # choose a house, optionally pick up archive
         self.chooseHouse("activeHouse")
         if len(self.activePlayer.archive) > 0:
-          self.activePlayer.printShort(self.activePlayer.archive)
-          while True:
-            archive = pyautogui.confirm("Would you like to pick up your archive?", buttons=["Yes", "No"])
-            if archive == "Yes":
-              self.pending(self.activePlayer.archive, 'hand')
-              break
-            elif archive == "No":
-              pass
-            else:
-              pyautogui.alert("Not a valid response. Try again.")
+          # self.activePlayer.printShort(self.activePlayer.archive)
+          show = 'Would you like to pick up your archive? It contains:\n\n'
+          for card in self.activePlayer.archive:
+            show += f"{card.title} [{card.house}]\n"
+          archive = pyautogui.confirm(show, buttons=["Yes", "No"])
+          if archive == "Yes":
+            self.pending(self.activePlayer.archive, 'hand')
         self.turnStage += 1
 
       ###############################################################################
@@ -424,7 +421,7 @@ class Board():
 
       elif self.turnStage == 3:
         if self.response:
-          print(self.response)
+          # print(self.response)
           l = len(self.response)
           if l == 1:
             self.response = self.response[0]
@@ -438,8 +435,8 @@ class Board():
             pyautogui.alert(show)
           elif self.response == "House":
             pyautogui.alert(self.activeHouse)
-          elif self.response == "Board":
-            print(self)
+          # elif self.response == "Board":
+            # print(self)
           elif self.response == "Turn":
             pyautogui.alert(f"It is turn {self.turnNum}, stage {self.turnStage}.")
           elif self.response == "MyDiscard":
@@ -478,7 +475,6 @@ class Board():
             pyautogui.alert(f"You have {self.activePlayer.amber} amber and {self.activePlayer.keys} keys. Your opponent has {self.inactivePlayer.amber} amber and {self.inactivePlayer.keys} keys.")
           elif self.response == "Card":
             cardName = pyautogui.prompt("Enter the name of a card from one of the active decks:").lower()
-            # print(f"Testing prompt: {cardName}")
             for x in [deck.Deck(deck.deckName(self.first)), deck.Deck(deck.deckName(self.second))]:
               for card in x.deck:
                 if cardName == card.title.replace(" ", "_"):
@@ -513,7 +509,7 @@ class Board():
               self.discardCard(self.targetCard)
           elif self.response == "Action":
             # Shows friendly cards in play with "Action" keyword, prompts a choice
-            self.actionCard(self.targetCard)
+            self.actionCard(self.targetCard, self.loc)
           elif self.response == "Reap":
             # Shows friendly board, prompts choice.
             # Checks viability
@@ -521,7 +517,7 @@ class Board():
 
           self.response = []
           self.targetCard = None
-          self.loc = 0
+          self.loc = None
 
       ###################################################
       # step 4: ready cards and reset things like armor #
@@ -559,23 +555,24 @@ class Board():
     # amber1
     self.amber1 = self.BASICFONT.render(f"{self.inactivePlayer.amber} amber", 1, COLORS['BLACK'])
     self.amber1_rect = self.amber1.get_rect()
-    self.amber1_rect.topright = (self.divider.get_width() - 10, 5)
+    self.amber1_rect.topright = (self.divider.get_width() - 10, 5 + self.mat1.get_height())
     # amber2
     self.amber2 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['BLACK'])
     self.amber2_rect = self.amber2.get_rect()
-    self.amber2_rect.topleft = (10, 5)
+    self.amber2_rect.topleft = (self.divider.get_width() + 10, 5 + self.mat1.get_height())
+
     self.inactive_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect)]#, (self.amber1, self.amber1_rect)]
     self.active_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect)]#, (self.amber2, self.amber2_rect)]
     self.divider.blits(self.inactive_info)
     self.divider2.blits(self.active_info)
-    self.divider.blit(self.amber1, self.amber1_rect)
-    self.divider2.blit(self.amber2, self.amber2_rect)
+    self.WIN.blit(self.amber1, self.amber1_rect)
+    self.WIN.blit(self.amber2, self.amber2_rect)
     # card areas
     for board,area in [(self.activePlayer.hand, self.hand2_rect), (self.inactivePlayer.hand, self.hand1_rect), (self.activePlayer.board["Creature"], self.creatures2_rect), (self.inactivePlayer.board["Creature"], self.creatures1_rect), (self.activePlayer.board["Artifact"], self.artifacts2_rect), (self.inactivePlayer.board["Artifact"], self.artifacts1_rect)]:
       x = 0
       for card in board:
         card_image, card_rect = card.scaled_image(self.target_cardw, self.target_cardh)
-        card_rect.topleft = (area.left + (x * self.target_cardw) + 5 * (x + 1), area.top)
+        card_rect.topleft = (area.left + (x * self.target_cardh) + 5 * (x + 1), area.top)
         x += 1
         self.WIN.blit(card_image, card_rect)
     # discards
@@ -634,11 +631,11 @@ class Board():
       elif True in in_creature:
         opt = self.cardOptions()
         card_pos = in_creature.index(True)
-        loc = "creature"
+        loc = "Creature"
       elif True in in_artifact:
         opt = self.cardOptions()
         card_pos = in_artifact.index(True)
-        loc = "artifact"
+        loc = "Artifact"
       else: # action options from clicking not on a card: then check for a collision with a mat
         opt = self.turnOptions()
         board = True
@@ -675,7 +672,7 @@ class Board():
       top += pygame.font.Font.get_linesize(self.BASICFONT)
       popupSurf.blit(textSurf, textRect)
       if pygame.Rect.collidepoint(textRect, (self.mousex, self.mousey)):
-        print(options)
+        # print(options)
         return options[i]
     popupRect = popupSurf.get_rect()
     popupRect.centerx = pos[0] + w//2
@@ -751,7 +748,6 @@ class Board():
     """ Swaps active and inactive players.
     """
     self.activePlayer, self.inactivePlayer = self.inactivePlayer, self.activePlayer
-    # print("Players swapped") # test line: passed on 5/14/21
 
 
   def chooseHouse(self, varAsStr, num = 1):
@@ -764,16 +760,15 @@ class Board():
       if self.inactivePlayer.states["House"]["Control the Weak"] in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
         self.activeHouse = [self.inactivePlayer.states["House"]["Control the Weak"]]
         return
-      while True:
-        choice = pyautogui.confirm(text=f"{show}\nChoose a house:", buttons=[self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]])
-        if choice.title() in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-          if "restringuntus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
-            self.activeHouse = [self.activePlayer.restring] # I was able to verify that there will never be more than one copy of Restringuntus in a deck
-          else:
-            self.activeHouse = [choice]
-          return
+      choice = pyautogui.confirm(text=f"{show}\nChoose a house:", buttons=[self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]])
+      if choice.title() in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+        if "restringuntus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
+          self.activeHouse = [self.activePlayer.restring] # I was able to verify that there will never be more than one copy of Restringuntus in a deck
         else:
-          pyautogui.alert("That's not a valid choice! And how did you even get here?")
+          self.activeHouse = [choice]
+        return
+      else:
+        pyautogui.alert("That's not a valid choice! And how did you even get here?")
     elif varAsStr == "extraFight": #for brothers in battle, and probably others
       if num == 1:
         while True:
@@ -783,9 +778,9 @@ class Board():
             self.extraFightHouses.append(extra)
             break
           elif extra in self.activeHouse:
-            pyautogui.alert("\nThat's already your active house. Try again.\n")
+            pyautogui.alert("That's already your active house. Try again.\n")
           else:
-            pyautogui.alert("\nNot a valid input.\n")
+            pyautogui.alert("Not a valid input.\n")
     elif varAsStr == "Restringuntus":
       while True:
         extra = pyautogui.confirm("This is still incomplete", buttons=["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"])
@@ -793,7 +788,7 @@ class Board():
           self.inactivePlayer.restring = extra
           break
         else:
-          pyautogui.alert("\nNot a valid input.\n")  
+          pyautogui.alert("Not a valid input.")  
   
   def calculateCost(self):
     """ Calculates the cost of a key considering current board state.
@@ -833,18 +828,18 @@ class Board():
     # things that might return false
     # These two go first, because if you can't use a card, you can't unstun it
     if self.activePlayer.states["Action"]["Skippy Timehog"]:
-      print("Your opponent played 'Skippy Timehog' last turn, so you can't use your action.")
+      pyautogui.alert("Your opponent played 'Skippy Timehog' last turn, so you can't use your action.")
       return False
     if card.title == "Giant Sloth" and not card.usable:
-      print("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+      pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
       return False
     if card.stun == True:
       card.stun = False
       card.ready = False
-      print("This creature is stunned and cannot be used.")
+      pyautogui.alert("This creature is stunned and cannot be used.")
       return False
     if card.ready == False:
-      print("This creature is not ready to be used.")
+      pyautogui.alert("This creature is not ready to be used.")
       return False
     
 
@@ -880,24 +875,24 @@ class Board():
     # check for taunt
     
     if attacker.title == "Giant Sloth" and not attacker.usable:
-      print("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+      pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
       return False
     if self.activePlayer.states["Fight"]["Skippy Timehog"]:
-      print("Your opponent played 'Skippy Timehog' last turn, so you cannot fight.")
+      pyautogui.alert("Your opponent played 'Skippy Timehog' last turn, so you cannot fight.")
       return False
     if attacker.stun == True:
       attacker.stun = False
       attacker.ready = False
-      print("This creature is stunned and cannot fight.")
+      pyautogui.alert("This creature is stunned and cannot fight.")
       return False
     if attacker.ready == False:
-      print("This creature is not ready to fight.")
+      pyautogui.alert("This creature is not ready to fight.")
       return False
     if self.activePlayer.states["Fight"]["Foggify"]:
-      print("Your opponent played 'Foggify' last turn, so you cannot fight.")
+      pyautogui.alert("Your opponent played 'Foggify' last turn, so you cannot fight.")
       return False
     if self.activePlayer.states["Fight"]["Fogbank"]:
-      print("Your opponent played 'Fogbank' last turn, so you cannot fight.")
+      pyautogui.alert("Your opponent played 'Fogbank' last turn, so you cannot fight.")
       return False
     
     
@@ -919,7 +914,7 @@ class Board():
       if self.activePlayer.states["Fight"]["Warsong"][0]:
         self.activePlayer.amber += len(self.activePlayer.states["Fight"]["Warsong"])
       if len(self.inactivePlayer.board["Creature"]) == 0:
-        print("Your opponent no longer has any creatures to attack. Your creature is still exhausted.")
+        pyautogui.alert("Your opponent no longer has any creatures to attack. Your creature is still exhausted.")
     print("About to return True") # test line
     return True
 
@@ -930,10 +925,10 @@ class Board():
       pass # return True
     if self.activePlayer.states["Forge"]["Miasma"]:
       self.activePlayer.states["Forge"]["Miasma"] = False
-      print("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
+      pyautogui.alert("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
       return False
     if "The Sting" in [x.title for x in self.activePlayer.board["Artifact"]]:
-      print("You skip your forge a key step this turn because you have 'The Sting' in play.")
+      pyautogui.alert("You skip your forge a key step this turn because you have 'The Sting' in play.")
       return False
     return True
 
@@ -943,22 +938,22 @@ class Board():
     # lifeward and other things that might return False first
     if card.type == "Upgrade":
       if len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
-        print("There are no creatures to play this upgrade on. It is not played.")
+        pyautogui.alert("There are no creatures to play this upgrade on. It is not played.")
         return False
     if self.activePlayer.states["Play"]["Scrambler Storm"]:
       if card.type == "Action":
-        print("Your opponent played 'Scrambler Storm' last turn, so you cannot play actions this turn.")
+        pyautogui.alert("Your opponent played 'Scrambler Storm' last turn, so you cannot play actions this turn.")
         return False
     if self.activePlayer.states["Play"]["Treasure Map"]:
-      print("You played 'Treasure Map' this turn and can no longer play cards.")
+      pyautogui.alert("You played 'Treasure Map' this turn and can no longer play cards.")
       return False
     if card.title == "Truebaru":
       if self.activePlayer.amber < 3:
-        print("You must have 3 amber to sacrifice in order to play 'Truebaru'.")
+        pyautogui.alert("You must have 3 amber to sacrifice in order to play 'Truebaru'.")
         return False
       self.activePlayer.amber -= 3
     if "Grommid" in [x.title for x in self.activePlayer.board["Creature"]] and card.type == "Creature":
-      print("You can't play creatures with 'Grommid' in play.")
+      pyautogui.alert("You can't play creatures with 'Grommid' in play.")
       return False
 
     
@@ -991,13 +986,13 @@ class Board():
         self.pending(pending)
     if card.type == "Artifact" and "Carlo Phantom" in [x.title for x in self.activePlayer.board["Creature"]]:
       play.stealAmber(self.activePlayer, self.inactivePlayer, 1)
-      print("'Carlo Phantom' stole 1 amber for you. You now have " + str(self.activePlayer.amber) + " amber.")
+      pyautogui.alert("'Carlo Phantom' stole 1 amber for you. You now have " + str(self.activePlayer.amber) + " amber.")
     if self.activePlayer.states["Play"]["Library Access"]:
       self.activePlayer += 1
-      print("You draw a card because you played 'Library Access' earlier this turn.")
+      pyautogui.alert("You draw a card because you played 'Library Access' earlier this turn.")
     if self.activePlayer.states["Play"]["Soft Landing"]:
       card.ready = True
-      print(card.title + " enters play ready!")
+      pyautogui.alert(card.title + " enters play ready!")
       self.activePlayer.states["Play"]["Soft Landing"]
    
 
@@ -1013,18 +1008,18 @@ class Board():
     """
     # things that might return false
     if card.title == "Giant Sloth" and not card.usable:
-      print("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+      pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
       return False
     if self.activePlayer.states["Reap"]["Skippy Timehog"]:
-      print("Your opponent played 'Skippy Timehog' last turn, so you cannot reap.")
+      pyautogui.alert("Your opponent played 'Skippy Timehog' last turn, so you cannot reap.")
       return False
     if card.stun == True:
       card.stun = False
       card.ready = False
-      print("This creature is stunned and cannot reap.")
+      pyautogui.alert("This creature is stunned and cannot reap.")
       return False
     if card.ready == False:
-      print("This creature is not ready to reap.")
+      pyautogui.alert("This creature is not ready to reap.")
       return False
     
 
@@ -1041,13 +1036,13 @@ class Board():
     neigh = defender.neighbor(self)
     if len(neigh) == 2:
       if not defender.taunt and attacker.title != "Niffle Ape" and (inactive[neigh[1]].taunt or inactive[neigh[0]].taunt): # so if the thing attacked doesn't have taunt, if the attacker isn't niffle ape, and at least one neighbor has taunt
-        print("One of " + defender.title + "'s neighbors has taunt. Choose a different target.")
+        pyautogui.alert("One of " + defender.title + "'s neighbors has taunt. Choose a different target.")
         return False
       else:
         return True # either defender has taunt, attacker is niffle ape, or neither neighbor has taunt
     if len(neigh) == 1:
       if not defender.taunt and attacker.title != "Niffle Ape" and inactive[neigh[0]].taunt:
-        print(defender.title + "'s neighbor has taunt. Choose a different target.")
+        pyautogui.alert(defender.title + "'s neighbor has taunt. Choose a different target.")
         return False
       else:
         return True
@@ -1059,26 +1054,20 @@ class Board():
 # Card functions #
 ##################
 
-  def actionCard(self):
+  def actionCard(self, cardNum: int, loc: str):
     """ Trigger a card's action from within the turn.
     """
-    active = self.activePlayer.board["Creature"]
-    art = self.activePlayer.board["Artifact"]
-    actList = []
-    [(actList.append(active[x], x)) for x in range(len(active)) if active[x].action == True or active[x].omni == True]
-    [(actList.append(art[x], x)) for x in range(len(art)) if art[x].action == True or art[x].omni == True]
-    [print(repr(actList[x])) for x in range(len(actList))]
-    act = makeChoice("Choose an artifact or minion to use: ", actList)
-    if not self.checkActionStates(actList[act]): # checks stuns, ready as well
+    act = self.activePlayer.board[loc][cardNum]
+    if not self.checkActionStates(act): # checks stuns, ready as well
       return # action states should explain why
-    if actList[act].house in self.activeHouse:
+    if act.house in self.activeHouse:
       # Trigger action
       try:
-        actList[act].action(self, actList[act])
+        act.action(self, act)
       except:
-        actList[act].omni(self, actList[act])
+        act.omni(self, act)
     else:
-      print("You can only use cards from the active house.")
+      pyautogui.alert("You can only use cards from the active house.")
       return
   
   def discardCard(self, cardNum: int):
@@ -1110,39 +1099,30 @@ class Board():
         self.numPlays += 1
         self.numDiscards += 1
     else:
-      print(cardNum)
-      print(self.activePlayer.hand[cardNum].house)
-      print(self.activeHouse)
       pyautogui.alert("You can only discard cards of the active house.")
 
 
-  def fightCard(self, attacker = 100):
+  def fightCard(self, attacker: int):
     """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.
     """
-    # Shows board, then prompts to choose attacker and defender
-    print(self)
+    # This will actually probably need to be incorporated into the main loop in some way
+    
+    # this check should be in cardOptions
     if len(self.inactivePlayer.board["Creature"]) == 0:
-      print("Your opponent has no creatures for you to attack. Fight canceled.")
+      pyautogui.alert("Your opponent has no creatures for you to attack. Fight canceled.")
       return self, None
-    while True:
-      if attacker >= len(self.activePlayer.board["Creature"]):
-        try:
-          attacker = makeChoice("Choose a minion to fight with: ", self.activePlayer.board["Creature"])
-          # next line basically checks if they've listed a valid option
-          if self.activePlayer.board["Creature"][attacker].house not in self.activeHouse:
-            if len(self.extraFightHouses) > 0:
-              if self.activePlayer.board["Creature"][attacker].house not in self.extraFightHouses:
-                print("\nYou can only use cards from the active house or extra declared houses.")
-                return self, None
-            else:
-              print("\nYou can only use cards from the active house.")
-              return self, None
-          break
-        except:
-          print("Your entry was invalid. Try again.")
+    attack = self.activePlayer.board["Creature"][attacker]
+    # again, the below checks should be in cardOptions
+    if attack.house not in self.activeHouse:
+      if len(self.extraFightHouses) > 0:
+        if self.activePlayer.board["Creature"][attacker].house not in self.extraFightHouses:
+          pyautogui.alert("You can only use cards from the active house or extra declared houses.")
+          return self, None
       else:
-        break
+        pyautogui.alert("You can only use cards from the active house.")
+        return self, None
     # self.checkFightStates(attacker) also checks before fight abilities, stuns, and exhaustion/ready
+    # and for the third time, checking if the card can attack will be in cardOptions
     if self.checkFightStates(self.activePlayer.board["Creature"][attacker]):
       while True:
         defender = makeChoice("Choose a minion to fight against: ", self.inactivePlayer.board["Creature"])
@@ -1151,7 +1131,7 @@ class Board():
         else:
           break
     else:
-      print("You cannot fight with that minion.")
+      pyautogui.alert("You cannot fight with that minion.")
     # Checks card is viable to fight or be fought (taunt)
     try:
       print("Trying to fight.")
@@ -1173,7 +1153,7 @@ class Board():
     if L == []:
       return # just in case we feed it an empty list
     if destination not in ['purge', 'discard', 'hand', 'deck']:
-      print("Pending was given an invalid destination.")
+      pyautogui.alert("Pending was given an invalid destination.")
       return
     if "Annihilation Ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Creature"]]) and destroyed:
       destination = "annihilate"
@@ -1249,7 +1229,7 @@ class Board():
         self.inactivePlayer.deck.append(pendingI.pop())
     # check that the list was emptied
     if L != []:
-      print("Pending did not properly empty the list.")
+      pyautogui.alert("Pending did not properly empty the list.")
 
 
   def playCard(self, chosen = 50, booly = True):
@@ -1275,7 +1255,7 @@ class Board():
         self.activePlayer.amber += self.activePlayer.hand[chosen].amber
         flank = 1
         if self.activePlayer.hand[chosen].amber > 0:
-          print(self.activePlayer.hand[chosen].title + " gave you " + str(self.activePlayer.hand[chosen].amber) + " amber. You now have " + str(self.activePlayer.amber) + " amber.")
+          pyautogui.alert(self.activePlayer.hand[chosen].title + " gave you " + str(self.activePlayer.hand[chosen].amber) + " amber. You now have " + str(self.activePlayer.amber) + " amber.\n\nChange to a log when you fix the amber display issue.")
         cardType = self.activePlayer.hand[chosen].type
         if self.activePlayer.hand[chosen].type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
           # print("playCard area 1.3") # test line
@@ -1301,15 +1281,14 @@ class Board():
           # set a variable with the index of the card in board
           location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType]) - 1]
           self.numPlays += 1
-          print(self.numPlays)
-          print([x.title for x in self.activePlayer.board["Action"]])
+          print(f"numPlays: {self.numPlays}") # test line
         else:
           print("playCard area 1.6") # test line
           if len(self.activePlayer.board["Creature"]) > 0 or len(self.inactivePlayer.board["Creature"]) > 0:
             print("Choose a creature to play this upgrade on: ")
             target, side = play.chooseSide(self)
           else:
-            print("There are no creatures to play this upgrade on. It is not played.")
+            pyautogui.alert("There are no creatures to play this upgrade on. It is not played.")
             return
           self.activePlayer.board[cardType].append(self.activePlayer.hand.pop(chosen))
           location = self.activePlayer.board[cardType][len(self.activePlayer.board[cardType]) - 1]
@@ -1320,23 +1299,22 @@ class Board():
           else:
             return # shouldn't end up being triggered
         #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
-        print(location.text)
-        # try: 
-        if location.play:
-          location.play(self, location)
-        # except:
-        #   print("this card's play action failed.")
+        pyautogui.alert(location.text)
+        try: 
+          if location.play:
+            location.play(self, location)
+        except:
+          pyautogui.alert("this card's play action failed.")
         #   pass
         # if the card is an action, now add it to the discard pile
         if cardType == "Action":
           self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
-        self.activePlayer.printShort(self.activePlayer.hand, False)
       else:
-        print("\nYou can only play cards from the active house.")
+        pyautogui.alert("You can only play cards from the active house.")
     else:
       print("playCard area 2") # test line
-      if "Wild Wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
-        print("playCard area 2.1") # test line
+      if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
+        print("playCard area 2.1 aka Wild Wormhole") # test line
         # Increases amber, adds the card to the action section of the board, then calls the card's play function
         if not self.checkPlayStates(self.activePlayer.deck[-1]):
           return # checkPlayStates will explain why
@@ -1345,13 +1323,10 @@ class Board():
         cardType = self.activePlayer.deck[-1].type
         if cardType == "Creature":
           print("playCard area 2.2") # test line
-          try:
-            flank = int(input("Choose left flank [0] or right flank [1, default]:  "))
-            self.creaturesPlayed += 1
-          except:
-            pass
+          flank = pyautogui.confirm("Choose left or right flank:", buttons=["Left","Right"])
+          self.creaturesPlayed += 1
         # left flank
-        if cardType != "Upgrade" and flank == 0:
+        if cardType != "Upgrade" and flank == "Left":
           print("playCard area 2.3") # test line
           self.activePlayer.board[cardType].insert(0, self.activePlayer.deck.pop())
           location = self.activePlayer.board[cardType][0]
@@ -1370,7 +1345,7 @@ class Board():
             print("Choose a creature to play this upgrade on: ")
             target, side = play.chooseSide(self)
           else:
-            print("There are no creatures to play this upgrade on. It goes back on top of your deck.")
+            pyautogui.alert("There are no creatures to play this upgrade on. It goes back on top of your deck.")
             self.activePlayer.deck.append(self.activePlayer.board[cardType].pop())
             return
           if side == 0: # friendly
@@ -1381,11 +1356,11 @@ class Board():
             return # shouldn't end up being triggered
         #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
         print(location.text)
-        # try: 
-        if location.play:
-          location.play(self, location)
-        # except:
-        #   print("This card's play action failed.")
+        try: 
+          if location.play:
+            location.play(self, location)
+        except:
+          pyautogui.alert("This card's play action failed.")
         #   pass
         # if the card is an action, now add it to the discard pile
         if cardType == "Action":
@@ -1395,17 +1370,16 @@ class Board():
     """ Plays an upgrade on a creature.
     """
 
-  def reapCard(self):
+  def reapCard(self, cardNum: int):
     """ Triggers a card's reap effect from within the turn.
     """
-    reapList = self.activePlayer.board["Creature"]
-    self.activePlayer.printShort(reapList)
-    reaper = makeChoice("Choose a creature to reap with: ", reapList)
-    if not self.checkReapStates(reapList[reaper]):
+    reaper = self.activePlayer.board["Creature"][cardNum]
+    # check reap states when building cardOptions
+    if not self.checkReapStates(reaper):
       return # Reap States will say why
-    if reapList[reaper].house in self.activeHouse:
-      print("Reaping.") # test line
-      reapList[reaper].reap(self, reapList[reaper])
+    if reaper.house in self.activeHouse:
+      pyautogui("Reaping.") # test line
+      reaper.reap(self, reaper)
       return
   
                 #####################
