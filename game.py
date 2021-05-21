@@ -50,6 +50,7 @@ class Board():
     self.extraFightHouses = []
     self.forgedLastTurn = False, 0
     self.turnStage = None
+    self.subStage = None
     self.response = []
     self.do = False
     # self.allRects = []
@@ -82,12 +83,15 @@ class Board():
     self.WIN = pygame.display.set_mode((WIDTH, HEIGHT))#, flags = pygame.FULLSCREEN)
     pygame.display.set_caption('Keyforge')
     self.CLOCK = pygame.time.Clock()
+    self.target_cardh = HEIGHT // 7
+    ratio = CARDH / self.target_cardh
+    self.target_cardw = int(CARDW // ratio)
     first = random.choice([self.first, self.second])
-    self.activePlayer = deck.Deck(deck.deckName(first))
+    self.activePlayer = deck.Deck(deck.deckName(first), self.target_cardw, self.target_cardh)
     if first == self.first:
-      self.inactivePlayer = deck.Deck(deck.deckName(self.second))
+      self.inactivePlayer = deck.Deck(deck.deckName(self.second), self.target_cardw, self.target_cardh)
     else:
-      self.inactivePlayer = deck.Deck(deck.deckName(self.first))
+      self.inactivePlayer = deck.Deck(deck.deckName(self.first), self.target_cardw, self.target_cardh)
     self.main()
 
   def __repr__(self):
@@ -117,9 +121,6 @@ class Board():
 
   def main(self):
     wid, hei = [int(x) for x in self.WIN.get_size()]
-    self.target_cardh = hei // 7
-    ratio = CARDH / self.target_cardh
-    self.target_cardw = int(CARDW // ratio)
     self.board_blits = []
     # print(self.target_cardw, self.target_cardh)
     
@@ -264,22 +265,8 @@ class Board():
     self.key2b, self.key2b_rect = load_image("yellow_key_back", -1)
     self.key2b_rect.topright = (div2_w - 68, 2)
     self.board_blits.append((self.divider2, self.divider2_rect))
-    
-    # # amber1
-    # self.amber1 = self.BASICFONT.render(f"{self.inactivePlayer.amber} amber", 1, COLORS['BLACK'])
-    # self.amber1_rect = self.amber1.get_rect()
-    # self.amber1_rect.topright = (self.divider.get_width() - 10, 5)
-
-    # # amber2
-    # self.amber2 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['BLACK'])
-    # self.amber2_rect = self.amber2.get_rect()
-    # self.amber2_rect.topleft = (10, 5)
-    
-    # self.inactive_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect), (self.amber1, self.amber1_rect)]
-    # self.active_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect), (self.amber2, self.amber2_rect)]
 
     run = True
-    started = False
 
     while run:
       self.CLOCK.tick(self.FPS)
@@ -428,12 +415,7 @@ class Board():
           elif l == 3:
             self.response, self.targetCard, self.loc = self.response
           
-          if self.response == "Hand":
-            show = ''
-            for card in self.activePlayer.hand:
-              show += f"{card.title} ({card.house})\n"
-            pyautogui.alert(show)
-          elif self.response == "House":
+          if self.response == "House":
             pyautogui.alert(self.activeHouse)
           # elif self.response == "Board":
             # print(self)
@@ -471,11 +453,11 @@ class Board():
             for house in self.inactivePlayer.houses:
               show += f"{house}\n"
             pyautogui.alert(show)
-          elif self.response == "Keys" or self.response == "Amber":
+          elif self.response == "Keys":
             pyautogui.alert(f"You have {self.activePlayer.amber} amber and {self.activePlayer.keys} keys. Your opponent has {self.inactivePlayer.amber} amber and {self.inactivePlayer.keys} keys.")
           elif self.response == "Card":
             cardName = pyautogui.prompt("Enter the name of a card from one of the active decks:").lower()
-            for x in [deck.Deck(deck.deckName(self.first)), deck.Deck(deck.deckName(self.second))]:
+            for x in [deck.Deck(deck.deckName(self.first), self.target_cardw, self.target_cardh), deck.Deck(deck.deckName(self.second), self.target_cardw, self.target_cardh)]:
               for card in x.deck:
                 if cardName == card.title.replace(" ", "_"):
                   pyautogui.alert(card.text)
@@ -502,6 +484,7 @@ class Board():
           elif self.response == "Fight":
             # hands off the info to the "Fight" function
             self.fightCard(self.targetCard)
+            self.subStage = self.reponse
           elif self.response == "Discard":
             if self.numPlays == 1 and self.turnNum == 1:
               pyautogui.alert("You've already taken your one action for turn one.")
@@ -518,6 +501,11 @@ class Board():
           self.response = []
           self.targetCard = None
           self.loc = None
+        
+        elif self.subStage:
+          if self.subStage == "fight":
+            ...
+
 
       ###################################################
       # step 4: ready cards and reset things like armor #
@@ -568,34 +556,56 @@ class Board():
     self.WIN.blit(self.amber1, self.amber1_rect)
     self.WIN.blit(self.amber2, self.amber2_rect)
     # card areas
-    for board,area in [(self.activePlayer.hand, self.hand2_rect), (self.inactivePlayer.hand, self.hand1_rect), (self.activePlayer.board["Creature"], self.creatures2_rect), (self.inactivePlayer.board["Creature"], self.creatures1_rect), (self.activePlayer.board["Artifact"], self.artifacts2_rect), (self.inactivePlayer.board["Artifact"], self.artifacts1_rect)]:
+    for board,area in [(self.activePlayer.board["Creature"], self.creatures2_rect), (self.inactivePlayer.board["Creature"], self.creatures1_rect), (self.activePlayer.board["Artifact"], self.artifacts2_rect), (self.inactivePlayer.board["Artifact"], self.artifacts1_rect)]:
       x = 0
       for card in board:
-        card_image, card_rect = card.scaled_image(self.target_cardw, self.target_cardh)
+        if card.ready:
+          card_image, card_rect = card.image, card.rect
+        else:
+          card_image, card_rect = card.tapped, card.tapped_rect
         card_rect.topleft = (area.left + (x * self.target_cardh) + 5 * (x + 1), area.top)
+        x += 1
+        self.WIN.blit(card_image, card_rect)
+    # hands
+    for board,area in [(self.activePlayer.hand, self.hand2_rect), (self.inactivePlayer.hand, self.hand1_rect)]:
+      x = 0
+      for card in board:
+        card_image, card_rect = card.image, card.rect #= card.scaled_image(self.target_cardw, self.target_cardh)
+        card_rect.topleft = (area.left + (x * self.target_cardw) + 5 * (x + 1), area.top)
         x += 1
         self.WIN.blit(card_image, card_rect)
     # discards
     l = len(self.activePlayer.discard)
     if l > 0:
-      card_image, card_rect = self.activePlayer.discard[l - 1].scaled_image(self.target_cardw, self.target_cardh)
+      card_image, card_rect = self.activePlayer.discard[l - 1].image, self.activePlayer.discard[l - 1].rect
       card_rect.topleft = (self.discard2_rect.left, self.discard2_rect.top)
       self.WIN.blit(card_image, card_rect)
     l = len(self.inactivePlayer.discard)
     if l > 0: 
-      card_image, card_rect = self.inactivePlayer.discard[l - 1].scaled_image(self.target_cardw, self.target_cardh)
+      card_image, card_rect = self.inactivePlayer.discard[l - 1].image, self.inactivePlayer.discard[l - 1].rect
       card_rect.topleft = (self.discard1_rect.left, self.discard1_rect.top)
+      self.WIN.blit(card_image, card_rect)
+    # purged
+    l = len(self.activePlayer.purged)
+    if l > 0:
+      card_image, card_rect = self.activePlayer.purged[l - 1].image, self.activePlayer.purged[l - 1].rect
+      card_rect.topleft = (self.purge2_rect.left, self.purge2_rect.top)
+      self.WIN.blit(card_image, card_rect)
+    l = len(self.inactivePlayer.purged)
+    if l > 0: 
+      card_image, card_rect = self.inactivePlayer.purged[l - 1].image, self.inactivePlayer.purged[l - 1].rect
+      card_rect.topleft = (self.purge1_rect.left, self.purge1.top)
       self.WIN.blit(card_image, card_rect)
     # decks
     # going to need a card back of some sort to put here
     l = len(self.activePlayer.deck)
     if l > 0:
-      card_image, card_rect = self.activePlayer.deck[0].scaled_image(self.target_cardw, self.target_cardh)
+      card_image, card_rect = self.activePlayer.deck[0].image, self.activePlayer.deck[0].rect
       card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
       self.WIN.blit(card_image, card_rect)
     l = len(self.inactivePlayer.deck)
     if l > 0:
-      card_image, card_rect = self.inactivePlayer.deck[0].scaled_image(self.target_cardw, self.target_cardh)
+      card_image, card_rect = self.inactivePlayer.deck[0].image, self.inactivePlayer.deck[0].rect
       card_rect.topleft = (self.deck1_rect.left, self.deck1_rect.top)
       self.WIN.blit(card_image, card_rect)
     if self.hovercard:
@@ -1253,19 +1263,16 @@ class Board():
         if not self.checkPlayStates(self.activePlayer.hand[chosen]):
           return # checkPlayStates will print the reason
         self.activePlayer.amber += self.activePlayer.hand[chosen].amber
-        flank = 1
+        flank = "Right"
         if self.activePlayer.hand[chosen].amber > 0:
           pyautogui.alert(self.activePlayer.hand[chosen].title + " gave you " + str(self.activePlayer.hand[chosen].amber) + " amber. You now have " + str(self.activePlayer.amber) + " amber.\n\nChange to a log when you fix the amber display issue.")
         cardType = self.activePlayer.hand[chosen].type
         if self.activePlayer.hand[chosen].type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
           # print("playCard area 1.3") # test line
-          try:
-            flank = int(input("Choose left flank [0] or right flank [1, default]:  "))
-            self.creaturesPlayed += 1
-          except:
-            pass
+          flank = pyautogui.confirm("Choose left or right flank:", buttons=["Left", 'Right'])
+          self.creaturesPlayed += 1
         # left flank
-        if self.activePlayer.hand[chosen].type != "Upgrade" and flank == 0:
+        if self.activePlayer.hand[chosen].type != "Upgrade" and flank == "Left":
           # save the cardType so I can use it after I've removed the card from the hand
           # print("playCard area 1.4") # test line
           self.activePlayer.board[cardType].insert(0, self.activePlayer.hand.pop(chosen))
@@ -1319,7 +1326,7 @@ class Board():
         if not self.checkPlayStates(self.activePlayer.deck[-1]):
           return # checkPlayStates will explain why
         self.activePlayer.amber += self.activePlayer.deck[-1].amber
-        flank = 1
+        flank = "Right"
         cardType = self.activePlayer.deck[-1].type
         if cardType == "Creature":
           print("playCard area 2.2") # test line

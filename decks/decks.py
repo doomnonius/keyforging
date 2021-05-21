@@ -6,7 +6,7 @@ import requests
 import json
 
 class Deck:
-    def __init__(self, name):
+    def __init__(self, name, card_width, card_height):
         with open('decks/deckList.json', encoding='UTF-8') as f:
             data = json.load(f)
             for deck in data:
@@ -16,7 +16,7 @@ class Deck:
                     deckcards = deck['deck']
                     self.deck = []
                     for card in deckcards:
-                        self.deck.append(cards.Card(card, self.name))
+                        self.deck.append(cards.Card(card, self.name, card_width, card_height))
                         # eventually will add edge cases here for errata, i.e. if self.deck[len(self.deck)-1].title == "Bait and Switch"
                     # card creation will give them the appropriate reap  and etc functions
                     random.shuffle(self.deck)

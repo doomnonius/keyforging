@@ -29,12 +29,14 @@ class Card(pygame.sprite.Sprite):
     """ Feed json.loads(returns a string) called the deck list (which will be a json file) to this to build classes.
         Possibly create a function defined here or elsewhere, if self.name = x, add these functions, if = y, add these.
     """
-    def __init__(self, cardInfo, deckName):
+    def __init__(self, cardInfo, deckName, width, height):
         # These are all the things that are not in the dict data but that I need to keep track of
         pygame.sprite.Sprite.__init__(self)
         # screen = pygame.display.get_surface()
         self.deck = deckName
         self.title = cardInfo['card_title'].lower().replace(" ", "_")
+        self.width = width
+        self.height = height
         self.damage = 0
         self.power = int(cardInfo['power'])
         self.extraPow = 0
@@ -57,8 +59,8 @@ class Card(pygame.sprite.Sprite):
         self.number = (cardInfo['card_number'])
         self.exp = cardInfo["expansion"]
         self.maverick = cardInfo['is_maverick']
-        self.image, self.rect = self.load_image()
-        self.orig_image, self.orig_rect = self.load_image()
+        self.load_image()
+        # self.orig_image, self.orig_rect = self.load_image()
         # conditionals to add?
         # status effects
         if self.type == "Creature":
@@ -107,10 +109,10 @@ class Card(pygame.sprite.Sprite):
                     logging.warn("The fight effect wasn't properly applied to " + self.title)
                     self.fight = False
             else: self.fight = False
-            if "Assault" in self.text: self.assault = True, int(self.text[self.text.index("Assault") + 8])
-            else: self.assault = False, 0
-            if "Hazardous" in self.text: self.hazard = True, int(self.text[self.text.index("Hazardous") + 10])
-            else: self.hazard = False, 0
+            if "Assault" in self.text: self.assault = [True, [int(self.text[self.text.index("Assault") + 8])]]
+            else: self.assault = [False, 0]
+            if "Hazardous" in self.text: self.hazard = [True, int(self.text[self.text.index("Hazardous") + 10])]
+            else: self.hazard = [False, 0]
             if "Destroyed:" in self.text:
                 try:
                     self.dest = eval("dest.key" + self.number)
@@ -333,7 +335,7 @@ class Card(pygame.sprite.Sprite):
         """
 
     def update(self):
-        """ Doesn't do anything yet, but this is for the sprite
+        """ Doesn't do anything yet, but this is for the sprite if I use those
         """
     
     def updateHealth(self):
@@ -342,6 +344,18 @@ class Card(pygame.sprite.Sprite):
             return True
         return False
 
+    def tap(self):
+        if self.image.get_width() > self.image.get_height():
+            return
+        rotated = pygame.transform.rotate(self.image, -90)
+        return rotated, rotated.get_rect()
+
+    def untap(self):
+        if self.image.get_height() > self.image.get_width():
+            return
+        rotated = pygame.transform.rotate(self.image, 90)
+        self.image, self.rect = rotated, rotated.get_rect()
+        
     def load_image(self, colorkey=None):
         fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', self.title + '.png')
         try:
@@ -356,10 +370,13 @@ class Card(pygame.sprite.Sprite):
             if colorkey == -1:
                 colorkey = image.get_at((0,0))
             image.set_colorkey(colorkey)
-        return image, image.get_rect()
+        self.orig_image, self.orig_rect = image, image.get_rect()
+        self.image, self.rect = self.scaled_image(self.width, self.height)
+        self.tapped, self.tapped_rect = self.tap()
+        # return self.scaled_image(self.width, self.height)
 
     def scaled_image(self, width, height):
-        scaled = pygame.transform.scale(self.image, (width, height))
+        scaled = pygame.transform.scale(self.orig_image, (width, height))
         self.image, self.rect = scaled, scaled.get_rect()
         return self.image, self.rect
             

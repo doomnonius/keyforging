@@ -8,7 +8,6 @@
  <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
  <li><s>Says who is going first twice</s> (though really a lot of the mulligan phase needs to be updated, not just that)</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
- <li>Cards aren't tapped when exhausted.</li>
  <li>Code not yet implemented to differentiate action from artifact v action from creature.</li>
  <li>Code not yet implemented to only display valid options for items, instead of all.</li>
  <li>Upgrades don't work</li>
@@ -17,18 +16,19 @@
  <li>State dictionaries.</li>
  <li>Hovering over deck or discard says how many cards are in it.</li>
  <li>Clicking on discard shows what cards are in it.</li>
- <li>Get rid of basically all print statements.</li>
+ <li>Get rid of remaining print statements.</li>
  <li>Enable dragging and dropping cards.</li>
  <li>Upgrades don't work. (Or things in later sets that give other cards abilities).</li>
  <li>Check all the card options properly (for example, checkActionStates tries to check if an artifact is stunned and crashes).</li>
- <li>Don't make the extra space for tapping in the hand, only the board.</li>
+ <li>Fix things going beyond bound of screen.</li>
  <li></li>
  <li></li>
  <li></li>
  <li></li>
  <li></li>
  <li></li>
- <li></li>
+ <li><s>Cards aren't tapped when exhausted.</s></li>
+ <li><s>Don't make the extra space for tapping in the hand, only the board.</s></li>
  <li><s>Amber doesn't update properly.</s></li>
  <li><s>Discard card always says cards aren't in active house.</s></li>
 </ul>
