@@ -9,6 +9,7 @@
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
  <li>Code not yet implemented to differentiate action from artifact v action from creature.</li>
  <li>Code not yet implemented to only display valid options for items, instead of all.</li>
+ <li>Lifeward preventing playing creatures</li>
  <li>Upgrades don't work</li>
  <li>Wild wormhole doesn't work</li>
  <li>Something I don't quite understand in line 1322 of game.py about things with play effects</li>
@@ -23,8 +24,7 @@
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, etc.</li>
  <li>The '#other play effects' section of checkPlayStates should be incorporated in checks made when a card ETBs.</li>
  <li>Implement self.played/discarded/used this/last turn</li>
- <li></li>
- <li></li>
+ <li>Now playCard is broken.</li>
  <li></li>
  <li></li>
  <li></li>
