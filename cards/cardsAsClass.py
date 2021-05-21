@@ -56,11 +56,10 @@ class Card(pygame.sprite.Sprite):
         self.amber = cardInfo['amber']
         self.rarity = cardInfo["rarity"]
         self.flavor = cardInfo["flavor_text"]
-        self.number = (cardInfo['card_number'])
+        self.number = cardInfo['card_number']
         self.exp = cardInfo["expansion"]
         self.maverick = cardInfo['is_maverick']
         self.load_image()
-        # self.orig_image, self.orig_rect = self.load_image()
         # conditionals to add?
         # status effects
         if self.type == "Creature":
@@ -143,7 +142,7 @@ class Card(pygame.sprite.Sprite):
                 self.play = play.passFunc
         else:
             self.play = play.passFunc
-        if "Action:" in self.text:
+        if "Action:" in self.text or "Action/" in self.text:
             try:
                 self.action = eval("action.key" + self.number)
             except:

@@ -23,7 +23,7 @@
  <li>Losing Amber from playing Truebaru</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, etc.</li>
  <li>The '#other play effects' section of checkPlayStates should be incorporated in checks made when a card ETBs.</li>
- <li>Implement self.played/discarded/used this/last turn</li>
+ <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
  <li>Now playCard is broken.</li>
  <li></li>
  <li></li>

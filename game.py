@@ -1274,9 +1274,7 @@ class Board():
       pyautogui.alert("You cannot play another card this turn. But how'd you get here?")
       return
     card = self.activePlayer.hand[chosen]
-    # print("playCard area 1") # test line
     if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0):
-      # print("playCard area 1.1") # test line
       self.activePlayer.states["phase_shift"] -= 1 # reset to false
       # Increases amber, adds the card to the action section of the board, then calls the card's play function
       # cardOptions() makes sure that you can't try to play a card you're not allowed to play
@@ -1285,23 +1283,19 @@ class Board():
       self.activePlayer.amber += card.amber
       pyautogui.alert(f"{self.activePlayer.hand[chosen].title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
     if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
-      # print("playCard area 1.3") # test line
       flank = pyautogui.confirm("Choose left or right flank:", buttons=["Left", 'Right'])
       self.creaturesPlayed += 1
     # left flank
     if card.type != "Upgrade" and flank == "Left":
-      # print("playCard area 1.4") # test line
       self.activePlayer.board[card.type].insert(0, self.activePlayer.hand.pop(chosen))
       print(f"numPlays: {self.numPlays}") # test line
     # default case: right flank
     elif card.type != "Upgrade":
-      # print("playCard area 1.5") # test line
       print(card.type)
       self.activePlayer.board[card.type].append(self.activePlayer.hand.pop(chosen))
       self.numPlays += 1
       print(f"numPlays: {self.numPlays}") # test line
     else:
-      print("playCard area 1.6") # test line
       print("Choose a creature to play this upgrade on: ")
       target, side = play.chooseSide(self)
       self.activePlayer.board[card.type].append(self.activePlayer.hand.pop(chosen))
@@ -1312,13 +1306,16 @@ class Board():
       else:
         return # shouldn't end up being triggered
     #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
-    # pyautogui.alert(location.text)
     self.playedThisTurn.append(card.title)
     try: 
-      if card.play:
-        card.play(self, card)
+      if "key" + card.number in dir(play):  # card.play:
+        eval(f"play.key{card.number}(self, card)")
+        # card.play(self, card)
     except:
       pyautogui.alert("this card's play action failed.")
+    # Also do all actions triggered by creatures entering
+    # Stuff triggered by playing actions should be earlier, I guess
+
     #   pass
     # if the card is an action, now add it to the discard pile
     if card.type == "Action":
