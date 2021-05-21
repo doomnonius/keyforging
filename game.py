@@ -47,6 +47,10 @@ class Board():
     self.endBool = True
     self.turnNum = 0
     self.creaturesPlayed = 0
+    self.playedThisTurn = []
+    self.discardedThisTurn = []
+    self.playedLastTurn = []
+    self.discardLastTurn = []
     self.extraFightHouses = []
     self.forgedLastTurn = False, 0
     self.turnStage = None
@@ -113,11 +117,32 @@ class Board():
   def turnOptions(self) -> List:
     return ['Hand', 'House', 'Turn', 'MyDiscard', 'OppDiscard', 'Board', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
     
-  def cardOptions(self) -> List:
+  def cardOptions(self, cardNum: int, loc: str) -> List:
     return ['Reap', 'Action', 'Fight', 'Omni', 'Unstun', 'No valid options']
 
-  def handOptions(self) -> List:
-    return ["Play", "Discard"]
+  def handOptions(self, cardNum: int) -> List:
+    # There are a bunch of other things that prevent playing cards that I want to include here as well
+    card = self.activePlayer.hand[cardNum]
+    if card.house in self.activeHouse or ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0):
+      if self.turnNum == 1 and self.numPlays >= 1:
+        return ["No remaining plays this turn"]
+      if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and self.numPlays >= 2:
+        return ["'Ember Imp' prevents playing this", "Discard"]
+      if card.type == "Upgrade" and len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
+        return ["Cannot play upgrade with no creatures in play", "Discard"]
+      if card.type == "Action" and "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
+        return ["'Scrambler Storm' prevents playing actions this turn", "Discard"]
+      if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
+        return ["'Treasure Map' prevents playing more cards this turn", "Discard"]
+      if card.title == "truebaru" and self.activePlayer.amber < 3:
+        return ["You must have 3 amber to sacrifice in order to play 'Truebaru'", "Discard"]
+      if "grommid" in [x.title for x in self.activePlayer.board["Creature"]] and card.type == "Creature":
+        return ["You can't play creatures with 'Grommid' in play", "Discard"]
+      if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
+        return ["You need 7 amber to play 'Kelifi Dragon'", "Discard"]
+      return ["Play", "Discard"]
+    else:
+      return ["Cannot interact with card not in active house."]
 
   def main(self):
     wid, hei = [int(x) for x in self.WIN.get_size()]
@@ -300,6 +325,9 @@ class Board():
         if pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)):
           self.hovercard.append(card)
           break
+        if pygame.Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)):
+          self.hovercard.append(card)
+          break
 
       ######################
       # Initial hand fill  #
@@ -310,8 +338,7 @@ class Board():
         ##########################
         # Build state dictionary #
         ##########################
-        # self.activePlayer.states = buildStateDict(self.activePlayer, self.inactivePlayer) # will look at all the cards, and add states that might be needed, not functional yet
-        # self.inactivePlayer.states = buildStateDict(self.activePlayer, self.inactivePlayer)
+        # this is now done automatically as part of initializing the deck
         #####################
         # Draw and mulligan #
         #####################
@@ -368,9 +395,9 @@ class Board():
           if self.activePlayer.amber >= self.activePlayer.keyCost:
             self.activePlayer.amber -= self.activePlayer.keyCost
             self.activePlayer.keys += 1
-            pyautogui.alert(f"You forged a key for {self.activePlayer.keyCost} amber. You now have {self.activePlayer.keys} key(s) and {self.activePlayer.amber} amber.\n") # it works!
-            if self.activePlayer.states["Forge"]["Interdimensional Graft"] and self.activePlayer.amber > 0:
-              pyautogui.alert(f"Your opponent played Interdimensional Graft last turn, so they gain your {self.activePlayer.amber} leftover amber.")
+            pyautogui.alert(f"You forged a key for {self.activePlayer.keyCost} amber. You now have {self.activePlayer.keys} key(s) and {self.activePlayer.amber} amber.\n")
+            if "interdimensional_graft" in self.inactivePlayer.states and self.inactivePlayer.states["interdimensional_graft"] and self.activePlayer.amber > 0:
+              pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {self.activePlayer.amber} leftover amber.")
               # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
               self.inactivePlayer.amber += self.activePlayer.amber
               self.activePlayer.amber = 0
@@ -481,10 +508,11 @@ class Board():
           elif self.response == "Play":
             # hands off the info to the "Fight" function
             self.playCard(self.targetCard)
+            # self.subStage = self.response
           elif self.response == "Fight":
             # hands off the info to the "Fight" function
             self.fightCard(self.targetCard)
-            self.subStage = self.reponse
+            self.subStage = self.response
           elif self.response == "Discard":
             if self.numPlays == 1 and self.turnNum == 1:
               pyautogui.alert("You've already taken your one action for turn one.")
@@ -493,10 +521,12 @@ class Board():
           elif self.response == "Action":
             # Shows friendly cards in play with "Action" keyword, prompts a choice
             self.actionCard(self.targetCard, self.loc)
+            self.subStage = self.response
           elif self.response == "Reap":
             # Shows friendly board, prompts choice.
             # Checks viability
             self.reapCard(self.targetCard)
+            self.subStage = self.response
 
           self.response = []
           self.targetCard = None
@@ -616,8 +646,8 @@ class Board():
           hover_rect.top += 10
       else:
         hover_rect.top = self.mousey
-        while hover_rect.top > HEIGHT:
-          hover_rect.top -= 10
+        while hover_rect.bottom > HEIGHT:
+          hover_rect.bottom -= 10
       if self.mousex > WIDTH / 2:
         hover_rect.left = self.mousex - CARDW
       else:
@@ -635,17 +665,17 @@ class Board():
       in_creature = [pygame.Rect.collidepoint(x.rect, pos) for x in self.activePlayer.board["Creature"]]
       in_artifact = [pygame.Rect.collidepoint(x.rect, pos) for x in self.activePlayer.board["Artifact"]]
       if True in in_hand: # check for collisions with a card: action options from clicking on a card
-        opt = self.handOptions()
         card_pos = in_hand.index(True)
+        opt = self.handOptions(card_pos)
         loc = "hand"
       elif True in in_creature:
-        opt = self.cardOptions()
         card_pos = in_creature.index(True)
         loc = "Creature"
+        opt = self.cardOptions(card_pos, loc)
       elif True in in_artifact:
-        opt = self.cardOptions()
         card_pos = in_artifact.index(True)
         loc = "Artifact"
+        opt = self.cardOptions(card_pos, loc)
       else: # action options from clicking not on a card: then check for a collision with a mat
         opt = self.turnOptions()
         board = True
@@ -670,39 +700,53 @@ class Board():
 
   def option_selected(self, options, pos):
     w = 350
+    bot_offset = right_offset = 0
     popupSurf = pygame.Surface((w, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
     popupSurf.convert()
+    popupRect = popupSurf.get_rect()
+    popupRect.centerx = pos[0] + w//2
+    popupRect.centery = pos[1] + (pygame.font.Font.get_linesize(self.BASICFONT)*len(options))/2
+    while popupRect.bottom > HEIGHT:
+      popupRect.bottom -= 10
+      bot_offset += 10
+    while popupRect.right > WIDTH:
+      popupRect.right -= 10
+      right_offset += 10
     #draw up the surf, but don't blit it to the screen
     top = pos[1]
     for i in range(len(options)):
       textSurf = self.BASICFONT.render(options[i], 1, COLORS['BLUE'])
       textRect = textSurf.get_rect()
-      textRect.top = top
-      textRect.left = pos[0]
+      textRect.top = top - bot_offset
+      textRect.left = pos[0] - right_offset
       top += pygame.font.Font.get_linesize(self.BASICFONT)
       popupSurf.blit(textSurf, textRect)
       if pygame.Rect.collidepoint(textRect, (self.mousex, self.mousey)):
         # print(options)
         return options[i]
-    popupRect = popupSurf.get_rect()
-    popupRect.centerx = pos[0] + w//2
-    popupRect.centery = pos[1] + (pygame.font.Font.get_linesize(self.BASICFONT)*len(options))/2
 
 
   def make_popup(self, options, pos):
     w = 350
+    bot_offset = right_offset = 0
     popupSurf = pygame.Surface((350, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
     popupSurf.fill(COLORS["BLACK"])
     top = pos[1]
     popupRect = popupSurf.get_rect()
     popupRect.centerx = pos[0] + w // 2
     popupRect.centery = pos[1] + (pygame.font.Font.get_linesize(self.BASICFONT)*len(options))/2
+    while popupRect.bottom > HEIGHT:
+      popupRect.bottom -= 10
+      bot_offset += 10
+    while popupRect.right > WIDTH:
+      popupRect.right -= 10
+      right_offset += 10
     self.WIN.blit(popupSurf, popupRect)
     for i in range(len(options)):
       textSurf = self.BASICFONT.render(options[i], 1, COLORS["YELLOW"])
       textRect = textSurf.get_rect()
-      textRect.top = top
-      textRect.left = pos[0]
+      textRect.top = top - bot_offset
+      textRect.left = pos[0] - right_offset
       top += pygame.font.Font.get_linesize(self.BASICFONT)
       self.WIN.blit(textSurf, textRect)
     pygame.display.update()
@@ -717,11 +761,6 @@ class Board():
     """
     logging.info(f"{self.activePlayer.name} is going first.")
     pyautogui.alert(f"\n{self.activePlayer.name} is going first.\n")
-    ##########################
-    # Build state dictionary #
-    ##########################
-    # self.activePlayer.states = buildStateDict(self.activePlayer, self.inactivePlayer) # will look at all the cards, and add states that might be needed, not functional yet
-    # self.inactivePlayer.states = buildStateDict(self.activePlayer, self.inactivePlayer)
     #####################
     # Draw and mulligan #
     #####################
@@ -767,10 +806,14 @@ class Board():
       show = 'Your hand is:\n'
       for card in self.activePlayer.hand:
         show += f"{card.title} ({card.house})\n"
-      if self.inactivePlayer.states["House"]["Control the Weak"] in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
-        self.activeHouse = [self.inactivePlayer.states["House"]["Control the Weak"]]
-        return
-      choice = pyautogui.confirm(text=f"{show}\nChoose a house:", buttons=[self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]])
+      if "control_the_weak" in self.inactivePlayer.states and self.inactivePlayer.states["control_the_weak"] in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+        # self.activeHouse = [self.inactivePlayer.states["control_the_weak"]]
+        choices = self.inactivePlayer.states["control_the_weak"]
+      else:
+        choices = [self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]]
+      choice = None
+      while choice == None:
+        choice = pyautogui.confirm(text=f"{show}\nChoose a house:", buttons=choices)
       if choice.title() in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
         if "restringuntus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
           self.activeHouse = [self.activePlayer.restring] # I was able to verify that there will never be more than one copy of Restringuntus in a deck
@@ -837,10 +880,10 @@ class Board():
     """
     # things that might return false
     # These two go first, because if you can't use a card, you can't unstun it
-    if self.activePlayer.states["Action"]["Skippy Timehog"]:
+    if "skippy_timehog" in self.activePlayer.states and self.activePlayer.states["skippy_timehog"]:
       pyautogui.alert("Your opponent played 'Skippy Timehog' last turn, so you can't use your action.")
       return False
-    if card.title == "Giant Sloth" and not card.usable:
+    if card.title == "Giant Sloth" and not card.usable: # implementation on this can be so much better
       pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
       return False
     if card.stun == True:

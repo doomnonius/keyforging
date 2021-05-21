@@ -31,14 +31,16 @@ class Deck:
         self.amber = 0
         self.keyCost = 6
         # whenever a state-creating card is played, it will add its state to this dict (use .update({key:value}) or [key]=value)
-        self.states = {"Forge": {"Interdimensional Graft":False, "Miasma":False}, \
-        "House": {"Control the Weak":False}, \
-        "Play": {"Charge!":False, "Full Moon":[False], "Library Access":False, "Lifeweb":0, "Phase Shift":[False], "Scrambler Storm":False, "Soft Landing":False, "Treasure Map":False}, \
-        "Fight": {"Fogbank":False, "Foggify":False, "Scout":[], "Shield of Justice":False, "Skippy Timehog":False, "Take Hostages":[False], "Warsong":[False]}, \
-        "Buff": {}, \
-        "Destroyed":{"Loot the Bodies":[False]}, \
-        "Reap": {"Dimension Door":False, "Skippy Timehog":False}, \
-        "Action": {"Skippy Timehog":False, "Stampede":0}}
+        # a couple notes: (1) I don't think I need the subcategories (2) 0 is equivalent to false
+        self.states = {card.title:0 for card in self.deck}
+        # {"Forge": {"Interdimensional Graft":False, "Miasma":False}, \
+        # "House": {"Control the Weak":False}, \
+        # "Play": {"Charge!":False, "Full Moon":[False], "Library Access":False, "Lifeweb":0, "Phase Shift":[False], "Scrambler Storm":False, "Soft Landing":False, "Treasure Map":False}, \
+        # "Fight": {"Fogbank":False, "Foggify":False, "Scout":[], "Shield of Justice":False, "Skippy Timehog":False, "Take Hostages":[False], "Warsong":[False]}, \
+        # "Buff": {}, \
+        # "Destroyed":{"Loot the Bodies":[False]}, \
+        # "Reap": {"Dimension Door":False, "Skippy Timehog":False}, \
+        # "Action": {"Skippy Timehog":False, "Stampede":0}}
         
     def __repr__(self):
         """ How to represent a deck when called.

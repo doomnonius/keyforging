@@ -373,7 +373,6 @@ class Card(pygame.sprite.Sprite):
         self.orig_image, self.orig_rect = image, image.get_rect()
         self.image, self.rect = self.scaled_image(self.width, self.height)
         self.tapped, self.tapped_rect = self.tap()
-        # return self.scaled_image(self.width, self.height)
 
     def scaled_image(self, width, height):
         scaled = pygame.transform.scale(self.orig_image, (width, height))

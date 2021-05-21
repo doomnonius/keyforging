@@ -4,7 +4,6 @@ from typing import Dict
 ##################
 # Contains modules:
 # absa
-# distance
 # makeChoice
 # chooseSide
 # stealAmber

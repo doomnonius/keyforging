@@ -3,7 +3,6 @@
 <h2>This project will attempt to create a graphical version of keyforge. If things go real well, I may attempt online play and a simple ai, but I've got a lot of work ahead of me.<h2>
 <h3>BUGS:<h3>
 <ul>
- <li>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</li>
  <li>https://www.pygame.org/docs/genindex.html</li>
  <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
  <li><s>Says who is going first twice</s> (though really a lot of the mulligan phase needs to be updated, not just that)</li>
@@ -20,13 +19,19 @@
  <li>Enable dragging and dropping cards.</li>
  <li>Upgrades don't work. (Or things in later sets that give other cards abilities).</li>
  <li>Check all the card options properly (for example, checkActionStates tries to check if an artifact is stunned and crashes).</li>
- <li>Fix things going beyond bound of screen.</li>
+ <li>Losing Amber from playing Truebaru</li>
+ <li>A whole lot more game assets, for stun, enrage, damage, card backs, etc.</li>
+ <li>The '#other play effects' section of checkPlayStates should be incorporated in checks made when a card ETBs.</li>
+ <li>Implement self.played/discarded/used this/last turn</li>
  <li></li>
  <li></li>
  <li></li>
  <li></li>
  <li></li>
  <li></li>
+ <li><s>Aember imp preventing playing more than two cards.</s></li>
+ <li><s>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</s></li>
+ <li><s>Fix things going beyond bound of screen.</s></li>
  <li><s>Cards aren't tapped when exhausted.</s></li>
  <li><s>Don't make the extra space for tapping in the hand, only the board.</s></li>
  <li><s>Amber doesn't update properly.</s></li>
