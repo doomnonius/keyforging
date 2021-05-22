@@ -37,8 +37,6 @@ class Board():
           show += f"{x}: {data[x]['name']}\n"
           b.append(str(x))
     self.second = int(pyautogui.confirm(show, buttons=b))
-    # if self.second >= self.first:
-    #   self.second += 1
     self.top = 0
     self.left = 0
     self.mousex = 0
@@ -118,10 +116,11 @@ class Board():
     return ['House', 'Turn', 'MyDiscard', 'OppDiscard', 'Board', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
     
   def cardOptions(self, cardNum: int, loc: str) -> List:
+    retVal = []
     return ['Reap', 'Action', 'Fight', 'Omni', 'Unstun', 'No valid options']
 
   def handOptions(self, cardNum: int) -> List:
-    # There are a bunch of other things that prevent playing cards that I want to include here as well
+    # There are other things that prevent playing cards that I want to include here as well, think I have most of them
     card = self.activePlayer.hand[cardNum]
     if card.house in self.activeHouse or ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0):
       if self.turnNum == 1 and self.numPlays >= 1:
@@ -986,55 +985,6 @@ class Board():
       return False
     return True
 
-  def checkPlayStates(self, card):
-    """ Checks for play states (full moon, etc.). By the time this is called, I already know if house matches.
-    """
-    
-    # other play effects - things that don't want returns
-    if card.type == "Creature":
-      # self.inactivePlayer.states["lifeweb"] += 1
-      if "full_moon" in self.activePlayer.states and self.activePlayer.states["full_moon"]:
-        self.activePlayer.amber += self.activePlayer.states["full_moon"]
-      if "teliga" in [x.title for x in self.inactivePlayer.board["Creature"]]:
-        count = 0
-        for x in self.inactivePlayer.board["Creature"]:
-          if x.title == "teliga":
-            count += 1
-        self.inactivePlayer.amber += count
-      if "hunting_witch" in [x.title for x in self.activePlayer.board["Creature"]]:
-        count = 0
-        for x in self.activePlayer.board["Creature"]:
-          if x.title == "hunting_witch":
-            count += 1
-        self.activePlayer.amber += count
-      if card.house == "Mars" and "tunk" in [x.title for x in self.activePlayer.board["Creature"]]:
-        location = [self.activePlayer.board["Creature"].index(x) for x in self.activePlayer.board["Creature"] if x.title == "tunk"]
-        for x in location:
-          self.activePlayer.board["Creature"][x].damage = 0
-      if "charge!" in self.activePlayer.states and self.activePlayer.states["charge!"]:
-        choice = makeChoice("Choose an enemy minion to deal 2 damage to: ", self.inactivePlayer.board["Creature"])
-        self.inactivePlayer.board["Creature"][choice].damageCalc(self, 2)
-        pending = []
-        [pending.append(self.inactivePlayer.board["Creature"].pop(choice)) for x in range(1) if self.inactivePlayer.board["Creature"][choice].update()]
-        self.pending(pending)
-    if card.type == "Artifact" and "carlo_phantom" in [x.title for x in self.activePlayer.board["Creature"]]:
-      play.stealAmber(self.activePlayer, self.inactivePlayer, 1)
-      pyautogui.alert("'Carlo Phantom' stole 1 amber for you. You now have " + str(self.activePlayer.amber) + " amber.")
-    if "library_access" and self.activePlayer.states and self.activePlayer.states["library_access"]:
-      self.activePlayer += 1
-      pyautogui.alert("You draw a card because you played 'Library Access' earlier this turn.")
-    if "soft_landing" in self.activePlayer.states and self.activePlayer.states["soft_landing"]:
-      card.ready = True
-      pyautogui.alert(card.title + " enters play ready!")
-      self.activePlayer.states["soft_landing"] = 0
-   
-
-
-
-
-
-    # only return True at the very end
-    return True
 
   def checkReapStates(self, card):
     """ Checks for things that disallow reaping.
@@ -1313,9 +1263,44 @@ class Board():
         # card.play(self, card)
     except:
       pyautogui.alert("this card's play action failed.")
-    # Also do all actions triggered by creatures entering
+    # Also do all actions triggered by creatures entering, so tunk, hunting witch
     # Stuff triggered by playing actions should be earlier, I guess
-
+    if card.type == "Crea-ture":
+      # self.inactivePlayer.states["lifeweb"] += 1
+      if "full_moon" in self.activePlayer.states and self.activePlayer.states["full_moon"]:
+        self.activePlayer.amber += self.activePlayer.states["full_moon"]
+      if "teliga" in [x.title for x in self.inactivePlayer.board["Creature"]]:
+        count = 0
+        for x in self.inactivePlayer.board["Creature"]:
+          if x.title == "teliga":
+            count += 1
+        self.inactivePlayer.amber += count
+      if "hunting_witch" in [x.title for x in self.activePlayer.board["Creature"]]:
+        count = 0
+        for x in self.activePlayer.board["Creature"]:
+          if x.title == "hunting_witch":
+            count += 1
+        self.activePlayer.amber += count
+      if card.house == "Mars" and "tunk" in [x.title for x in self.activePlayer.board["Creature"]]:
+        location = [self.activePlayer.board["Creature"].index(x) for x in self.activePlayer.board["Creature"] if x.title == "tunk"]
+        for x in location:
+          self.activePlayer.board["Creature"][x].damage = 0
+      if "charge!" in self.activePlayer.states and self.activePlayer.states["charge!"]:
+        choice = makeChoice("Choose an enemy minion to deal 2 damage to: ", self.inactivePlayer.board["Creature"])
+        self.inactivePlayer.board["Creature"][choice].damageCalc(self, 2)
+        pending = []
+        [pending.append(self.inactivePlayer.board["Creature"].pop(choice)) for x in range(1) if self.inactivePlayer.board["Creature"][choice].update()]
+        self.pending(pending)
+    if card.type == "Artifact" and "carlo_phantom" in [x.title for x in self.activePlayer.board["Creature"]]:
+      play.stealAmber(self.activePlayer, self.inactivePlayer, 1)
+      pyautogui.alert("'Carlo Phantom' stole 1 amber for you. You now have " + str(self.activePlayer.amber) + " amber.")
+    if "library_access" in self.activePlayer.states and self.activePlayer.states["library_access"]:
+      self.activePlayer += self.activePlayer.states["library_access"]
+      pyautogui.alert("You draw a card because you played 'Library Access' earlier this turn.")
+    if "soft_landing" in self.activePlayer.states and self.activePlayer.states["soft_landing"]:
+      card.ready = True
+      pyautogui.alert(card.title + " enters play ready!")
+      self.activePlayer.states["soft_landing"] = 0
     #   pass
     # if the card is an action, now add it to the discard pile
     if card.type == "Action":
