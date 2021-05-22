@@ -5,6 +5,7 @@
 <ul>
  <li>https://www.pygame.org/docs/genindex.html</li>
  <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
+ <li>Hitboxes for tapped cards.</li>
  <li>Code not yet implemented to only display valid options for items, instead of all.</li>
  <li>Actions say they don't work, but kind of do?</li>
  <li><s>Says who is going first twice</s> (though really a lot of the mulligan phase needs to be updated, not just that)</li>
@@ -24,7 +25,6 @@
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, etc.</li>
  <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
  <li>Now playCard is broken.</li>
- <li></li>
  <li></li>
  <li></li>
  <li><s>The '#other play effects' section of checkPlayStates should be incorporated in checks made when a card ETBs.</s></li>
