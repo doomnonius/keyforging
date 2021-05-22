@@ -116,8 +116,13 @@ class Board():
     return ['House', 'Turn', 'MyDiscard', 'OppDiscard', 'Board', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
     
   def cardOptions(self, cardNum: int, loc: str) -> List:
-    retVal = []
-    return ['Reap', 'Action', 'Fight', 'Omni', 'Unstun', 'No valid options']
+    retVal = ['Reap', 'Action', 'Fight', 'Omni']
+    card = self.activePlayer.board[loc][cardNum]
+    if not card.ready:
+      return ["Can't use a card that isn't ready."]
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+      return ["'Skippy Timehog' is preventing you from using cards"]
+    return retVal
 
   def handOptions(self, cardNum: int) -> List:
     # There are other things that prevent playing cards that I want to include here as well, think I have most of them
@@ -882,7 +887,7 @@ class Board():
     """
     # things that might return false
     # These two go first, because if you can't use a card, you can't unstun it
-    if "skippy_timehog" in self.activePlayer.states and self.activePlayer.states["skippy_timehog"]:
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
       pyautogui.alert("Your opponent played 'Skippy Timehog' last turn, so you can't use your action.")
       return False
     if card.title == "Giant Sloth" and not card.usable: # implementation on this can be so much better
