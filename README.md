@@ -5,15 +5,15 @@
 <ul>
  <li>https://www.pygame.org/docs/genindex.html</li>
  <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
+ <li>Code not yet implemented to only display valid options for items, instead of all.</li>
+ <li>Actions say they don't work, but kind of do?</li>
  <li><s>Says who is going first twice</s> (though really a lot of the mulligan phase needs to be updated, not just that)</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
  <li>Code not yet implemented to differentiate action from artifact v action from creature.</li>
- <li>Code not yet implemented to only display valid options for items, instead of all.</li>
- <li>Lifeward preventing playing creatures</li>
  <li>Upgrades don't work</li>
  <li>Wild wormhole doesn't work</li>
  <li>Something I don't quite understand in line 1322 of game.py about things with play effects</li>
- <li>State dictionaries.</li>
+ <li>Interacting with the state dictionaries.</li>
  <li>Hovering over deck or discard says how many cards are in it.</li>
  <li>Clicking on discard shows what cards are in it.</li>
  <li>Get rid of remaining print statements.</li>
@@ -22,13 +22,13 @@
  <li>Check all the card options properly (for example, checkActionStates tries to check if an artifact is stunned and crashes).</li>
  <li>Losing Amber from playing Truebaru</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, etc.</li>
- <li>The '#other play effects' section of checkPlayStates should be incorporated in checks made when a card ETBs.</li>
  <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
  <li>Now playCard is broken.</li>
  <li></li>
  <li></li>
  <li></li>
- <li></li>
+ <li><s>The '#other play effects' section of checkPlayStates should be incorporated in checks made when a card ETBs.</s></li>
+ <li><s>Lifeward preventing playing creatures</s></li>
  <li><s>Aember imp preventing playing more than two cards.</s></li>
  <li><s>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</s></li>
  <li><s>Fix things going beyond bound of screen.</s></li>

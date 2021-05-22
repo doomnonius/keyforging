@@ -1,3 +1,4 @@
+from tkinter.constants import E
 from pygame.constants import MOUSEBUTTONDOWN, MOUSEMOTION
 import decks.decks as deck
 import cards.cardsAsClass as card
@@ -47,8 +48,10 @@ class Board():
     self.creaturesPlayed = 0
     self.playedThisTurn = []
     self.discardedThisTurn = []
+    self.usedThisTurn = []
     self.playedLastTurn = []
     self.discardLastTurn = []
+    self.usedLastTurn = []
     self.extraFightHouses = []
     self.forgedLastTurn = False, 0
     self.turnStage = None
@@ -122,6 +125,10 @@ class Board():
       return ["Can't use a card that isn't ready."]
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
       return ["'Skippy Timehog' is preventing you from using cards"]
+    if card.title == "giant_sloth" and "Untamed" not in [x.title for x in self.discardedThisTurn]:
+      return ["You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'."]
+    if card.stun:
+      return ["Unstun"]
     return retVal
 
   def handOptions(self, cardNum: int) -> List:
@@ -534,6 +541,8 @@ class Board():
             # Checks viability
             self.reapCard(self.targetCard)
             self.subStage = self.response
+          elif self.response == "Unstun":
+            self.actionCard(self.targetCard, self.loc)
 
           self.response = []
           self.targetCard = None
@@ -932,22 +941,22 @@ class Board():
     pendingDiscard = []
     # things that might return false
     
-    # check for taunt
+    # # check for taunt
     
-    if attacker.title == "Giant Sloth" and not attacker.usable:
-      pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
-      return False
-    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      pyautogui.alert("Your opponent played 'Skippy Timehog' last turn, so you cannot fight.")
-      return False
-    if attacker.stun == True:
-      attacker.stun = False
-      attacker.ready = False
-      pyautogui.alert("This creature is stunned and cannot fight.")
-      return False
-    if attacker.ready == False:
-      pyautogui.alert("This creature is not ready to fight.")
-      return False
+    # if attacker.title == "Giant Sloth" and not attacker.usable:
+    #   pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+    #   return False
+    # if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+    #   pyautogui.alert("Your opponent played 'Skippy Timehog' last turn, so you cannot fight.")
+    #   return False
+    # if attacker.stun == True:
+    #   attacker.stun = False
+    #   attacker.ready = False
+    #   pyautogui.alert("This creature is stunned and cannot fight.")
+    #   return False
+    # if attacker.ready == False:
+    #   pyautogui.alert("This creature is not ready to fight.")
+    #   return False
     if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"]:
       pyautogui.alert("Your opponent played 'Foggify' last turn, so you cannot fight.")
       return False
@@ -958,7 +967,8 @@ class Board():
     
     
     # things to check if fight is good to go
-    self.activePlayer.states["stampede"] += 1
+    if "stampede" in self.activePlayer.states:
+      self.usedThisTurn += 1
     if "warsong" in self.activePlayer.states and self.activePlayer.states["warsong"]:
       self.activePlayer.amber += self.activePlayer.states["warsong"]
     if self.activePlayer.states["take_hostages"]:
@@ -1043,21 +1053,25 @@ class Board():
 # Card functions #
 ##################
 
-  def actionCard(self, cardNum: int, loc: str):
+  def actionCard(self, cardNum: int, loc: str, omni: bool = False):
     """ Trigger a card's action from within the turn.
     """
-    act = self.activePlayer.board[loc][cardNum]
-    if not self.checkActionStates(act): # checks stuns, ready as well
-      return # action states should explain why
-    if act.house in self.activeHouse:
+    card = self.activePlayer.board[loc][cardNum]
+    if card.house in self.activeHouse and not card.stun:
       # Trigger action
       try:
-        act.action(self, act)
+        eval(f"actions.key{card.number}(self, card)")
+        # act.action(self, act)
       except:
-        act.omni(self, act)
-    else:
-      pyautogui.alert("You can only use cards from the active house.")
-      return
+        pyautogui.alert("Action failed.")
+    elif card.stun:
+      card.stun = False
+    elif omni:
+      try:
+        eval(f"actions.key{card.number}(self, card)")
+      except:
+        pyautogui.alert("Omni failed.")
+    card.ready = False
   
   def discardCard(self, cardNum: int):
     """ Discard a card from hand, within the turn. Doesn't need to use pending for discards, but does use it for Rock-Hurling Giant.
@@ -1262,15 +1276,15 @@ class Board():
         return # shouldn't end up being triggered
     #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
     self.playedThisTurn.append(card.title)
-    try: 
-      if "key" + card.number in dir(play):  # card.play:
-        eval(f"play.key{card.number}(self, card)")
-        # card.play(self, card)
-    except:
-      pyautogui.alert("this card's play action failed.")
+    # try: 
+    if "key" + card.number in dir(play):  # card.play:
+      eval(f"play.key{card.number}(self, card)")
+      # card.play(self, card)
+    # except:
+    #   pyautogui.alert("this card's play action failed.")
     # Also do all actions triggered by creatures entering, so tunk, hunting witch
     # Stuff triggered by playing actions should be earlier, I guess
-    if card.type == "Crea-ture":
+    if card.type == "Creature":
       # self.inactivePlayer.states["lifeweb"] += 1
       if "full_moon" in self.activePlayer.states and self.activePlayer.states["full_moon"]:
         self.activePlayer.amber += self.activePlayer.states["full_moon"]
