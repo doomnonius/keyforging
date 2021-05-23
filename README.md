@@ -7,7 +7,7 @@
  <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
  <li>Hitboxes for tapped cards.</li>
  <li>Code not yet implemented to only display valid options for items, instead of all.</li>
- <li>Actions say they don't work, but kind of do?</li>
+ <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function.</li>
  <li><s>Says who is going first twice</s> (though really a lot of the mulligan phase needs to be updated, not just that)</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed.</li>
  <li>Code not yet implemented to differentiate action from artifact v action from creature.</li>
@@ -24,7 +24,12 @@
  <li>Losing Amber from playing Truebaru</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, etc.</li>
  <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
- <li>Now playCard is broken.</li>
+ <li>If a card is tapped, it's untapped rect should be outside the board, and vice versa</li>
+ <li>I want the algo for drawing creatures, artifacts, to put them in the middle of their area.</li>
+ <li>Should be able to cancel out of the chooseCards menu (this could also allow for selecting less than the full number of targets)</li>
+ <li>Check status of fighters after fight.</li>
+ <li></li>
+ <li></li>
  <li></li>
  <li></li>
  <li><s>The '#other play effects' section of checkPlayStates should be incorporated in checks made when a card ETBs.</s></li>
@@ -63,6 +68,7 @@
    </ol>
  </li>
  <li>Build a state dict that only has the relevant information</li>
+ <li>Logger wil be in main, and imported into everything else and called there.</li>
  <li>Sort hand by house</li>
  <li>Update Decks option from startup() so that people can examine what is in a deck</li>
  <li>Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.</li>

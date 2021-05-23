@@ -6,24 +6,7 @@ import cards.fight as fight
 import cards.play as play
 import cards.actions as action
 import cards.reap as reap 
-
-from constants import CARDW, CARDH
-
-def listOfWords (S):
-	""" Builds from the back of the list. Either adds a new item
-	to the list, or adds a character to the string at the head
-	of the list
-	"""
-	#base case
-	if len(S) == 0:
-		return ['']
-	else: 
-		c = S[0]
-		L = listOfWords(S[1:])
-		if S[0] == ' ':
-			return [''] + L
-		else:
-			return [c + L[0]] + L[1:]
+import cards.turnEffects as turnEffects
 
 class Card(pygame.sprite.Sprite):
     """ Feed json.loads(returns a string) called the deck list (which will be a json file) to this to build classes.
@@ -51,8 +34,6 @@ class Card(pygame.sprite.Sprite):
             self.traits = cardInfo['traits']
         else:
             self.traits = ''
-        if len(listOfWords(self.traits)[0]) > 0:
-            self.traitList = listOfWords(self.traits)
         self.amber = cardInfo['amber']
         self.rarity = cardInfo["rarity"]
         self.flavor = cardInfo["flavor_text"]
@@ -62,6 +43,23 @@ class Card(pygame.sprite.Sprite):
         self.load_image()
         # conditionals to add?
         # status effects
+        
+        # play abilities
+        if self.title in dir(play):
+            self.play = eval(f"play.{self.title}")
+        else:
+            self.play = play.passFunc
+        # action abilities
+        if self.title in dir(action):
+            self.action = eval(f"action.{self.title}")
+        else:
+            self.action = False
+        # omni abilitiestry:
+        if f"omni_{self.title}" in dir(action):
+            self.omni = eval("action.omni" + self.number)
+        else:
+            self.omni = False
+        # creature only abilities
         if self.type == "Creature":
             if self.title == "Giant Sloth":
                 self.usable = False
@@ -85,79 +83,58 @@ class Card(pygame.sprite.Sprite):
             else:
                 self.elusive = False
             # check for taunt in self.text
-            if "Taunt" in self.text: self.taunt = True
-            else: self.taunt = False
-            if "Reap:" in self.text:
-                try:
-                    self.reap = eval("reap.key" + self.number)
-                except:
-                    logging.warn("The reap effect wasn't properly applied to " + self.title)
-                    self.reap = reap.basicReap
-            else: self.reap = reap.basicReap
-            if "Fight:" in self.text or "Fight/" in self.text:
-                if "Before" in self.text:
-                    try: self.before = eval("fight.before" + self.number)
-                    except: 
-                        logging.warn("The before fight effect wasn't applied properly to " + self.title)
-                        self.before = False
-                    return
-                else:
-                    self.before = False
-                try: self.fight = eval("fight.key" + self.number)
-                except:
-                    logging.warn("The fight effect wasn't properly applied to " + self.title)
-                    self.fight = False
-            else: self.fight = False
-            if "Assault" in self.text: self.assault = [True, [int(self.text[self.text.index("Assault") + 8])]]
-            else: self.assault = [False, 0]
-            if "Hazardous" in self.text: self.hazard = [True, int(self.text[self.text.index("Hazardous") + 10])]
-            else: self.hazard = [False, 0]
-            if "Destroyed:" in self.text:
-                try:
-                    self.dest = eval("dest.key" + self.number)
-                except:
-                    logging.warn("The destroyed effect wasn't properly applied to " + self.title)
-                    self.dest = dest.basicLeaves
-            else: self.dest = dest.basicLeaves
-            if "Leaves Play:" in self.text:
-                try:
-                    self.leaves = eval("dest.lp" + self.number)
-                except:
-                    logging.warn("The leaves play effect wasn't properly applied to " + self.title)
-                    self.leaves = dest.basicLeaves
-            else: self.leaves = dest.basicLeaves
+            if "Taunt" in self.text:
+                self.taunt = True
+            else:
+                self.taunt = False
+            # check for reaping abilities
+            if self.title in dir(reap):
+                self.reap = eval(f"reap.{self.title}")
+            else:
+                self.reap = reap.basicReap
+            # check for before fight abilities
+            if f"before_{self.title}" in dir(fight):
+                self.before = eval(f"fight.before_{self.title}")
+            else:
+                self.before = fight.basicBeforeFight
+            # check for after fight abilities
+            if self.title in dir(fight):
+                self.fight = eval(f"fight.{self.title}")
+            else:
+                self.fight = fight.basicFight
+            # check for assault
+            if "Assault" in self.text:
+                self.assault = int(self.text[self.text.index("Assault") + 8])
+            else:
+                self.assault = 0
+            # check for hazardous
+            if "Hazardous" in self.text:
+                self.hazard = int(self.text[self.text.index("Hazardous") + 10])
+            else:
+                self.hazard = 0
+            # check for destroyed abilities
+            if self.title in dir(dest):
+                eval(f"dest.{self.title}")
+            else:
+                self.dest = dest.basicDest
+            if f"lp_{self.title}" in dir(dest):
+                self.leaves = eval(f"dest.lp_{self.title}")
+            else:
+                self.leaves = dest.basicLeaves
         # start of turn effects
-        
+        if f"eot_{self.title}" in dir(turnEffects):
+            self.eot = eval(f"turnEffects.eot_{self.title}")
+        else:
+            self.eot = False
         # end of turn effects
-        
-        # abilities
+        if f"sot_{self.title}" in dir(turnEffects):
+            self.sot = eval(f"turnEffects.sot_{self.title}")
+        else:
+            self.sot = False
+        # artifacts need to be able to be readied too, and can capture amber
         if self.type == "Artifact":
             self.captured = False
             self.ready = False
-        if "Play:" in self.text or "Play/" in self.text:
-            try:
-                self.play = eval("play.key" + self.number)
-            except:
-                logging.warn("The on play effect wasn't properly applied to " + self.title)
-                self.play = play.passFunc
-        else:
-            self.play = play.passFunc
-        if "Action:" in self.text or "Action/" in self.text:
-            try:
-                self.action = eval("action.key" + self.number)
-            except:
-                logging.warn("The action effect wasn't properly applied to " + self.title)
-                self.action = False
-        else:
-            self.action = False
-        if "Omni:" in self.text:
-            try:
-                self.omni = eval("action.omni" + self.number)
-            except:
-                logging.warn("The omni effect wasn't properly applied to " + self.title)
-                self.omni = False
-        else:
-            self.omni = False
         
 
     def __repr__(self):
@@ -262,7 +239,7 @@ class Card(pygame.sprite.Sprite):
     def damageCalc(self, game, num):
         """ Calculates damage, considering armor only.
         """
-        if game.activePlayer.states["Fight"]["Shield of Justice"] and self in game.activePlayer.board["Creature"]:
+        if "shield_of_justice" in game.activePlayer.states and game.activePlayer.states["shield_of_justice"] and self in game.activePlayer.board["Creature"]:
             print("No damage is dealt because of Shield of Justice.")
             return
         self.armor += self.extraArm # this means that extra armor only actually ends being applied when damage actually happens, which will make the reset armor function easier
@@ -274,30 +251,34 @@ class Card(pygame.sprite.Sprite):
         else:
             self.armor -= num
     
-    def fightCard(self, other, game):
+    def fightCard(self, other, game) -> None:
         print(self.title + " is fighting " + other.title + "!")
         # add hazardous and assault in here too
+        print("Hazardous and assault currently ignored.")
+        print("Before fight effects would go here too.")
+        self.before(game, self)
         if self.skirmish:
             print("The attacker has skirmish, and takes no damage.") # Test line
             self.damageCalc(game, 0)
         elif other.elusive:
-            # print("skir elif") # Test line
+            print("The defender has elusive, so no damage is dealt to the attacker.") # Test line
             self.damageCalc(game, 0)
         else:
-            # print("skir else") # Test line
+            print("Damage is dealt as normal to attacker.")
             self.damageCalc(game, other.power + other.extraPow)
         if other.elusive:
-            print("The defender has elusive, so no damage is dealt.")
+            print("The defender has elusive, so no damage is dealt to the defender.")
             other.damageCalc(game, 0) #other.power - self.armor
             other.elusive = False
         else:
-            # print("elu else") # test line
+            print("Damage is dealt as normal to defender.")
             other.damageCalc(game, self.power + self.extraPow)
         self.ready = False
-        print(self)
-        print(other)
+        print("After fight effects would go here, if attacker survives.")
+        print(other.damage)
+        print(self.damage)
 
-    def health(self):
+    def health(self) -> int:
         return (self.power + self.extraPow) - self.damage
 
     def neighbors(self, game):
@@ -337,7 +318,7 @@ class Card(pygame.sprite.Sprite):
         """ Doesn't do anything yet, but this is for the sprite if I use those
         """
     
-    def updateHealth(self):
+    def updateHealth(self) -> bool:
         if self.health() <= 0:
             print(self.title + " is dead.")
             return True
