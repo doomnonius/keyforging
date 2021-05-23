@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import pygame, logging
 import cards.destroyed as dest
@@ -17,7 +18,7 @@ class Card(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         # screen = pygame.display.get_surface()
         self.deck = deckName
-        self.title = cardInfo['card_title'].lower().replace(" ", "_")
+        self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("'", "").replace('"', "").replace(",", "").replace("!", "")
         self.width = width
         self.height = height
         self.damage = 0
@@ -77,6 +78,7 @@ class Card(pygame.sprite.Sprite):
                 self.skirmish = True
             else:
                 self.skirmish = False
+            self.temp_skirmish = False
             # check for elusive in self.text
             if "Elusive" in self.text:
                 self.elusive = True
@@ -242,9 +244,6 @@ class Card(pygame.sprite.Sprite):
         if "shield_of_justice" in game.activePlayer.states and game.activePlayer.states["shield_of_justice"] and self in game.activePlayer.board["Creature"]:
             print("No damage is dealt because of Shield of Justice.")
             return
-        self.armor += self.extraArm # this means that extra armor only actually ends being applied when damage actually happens, which will make the reset armor function easier
-        # but it means that extraArm will always be applied, even when it shouldn't be
-        # I might even only calculate
         if num >= self.armor:
             self.damage += (num - self.armor)
             self.armor = 0
@@ -257,7 +256,7 @@ class Card(pygame.sprite.Sprite):
         print("Hazardous and assault currently ignored.")
         print("Before fight effects would go here too.")
         self.before(game, self)
-        if self.skirmish:
+        if self.skirmish or self.temp_skirmish:
             print("The attacker has skirmish, and takes no damage.") # Test line
             self.damageCalc(game, 0)
         elif other.elusive:
@@ -275,13 +274,20 @@ class Card(pygame.sprite.Sprite):
             other.damageCalc(game, self.power + self.extraPow)
         self.ready = False
         print("After fight effects would go here, if attacker survives.")
+        if self.updateHealth():
+            game.pendingReloc.append(game.activePlayer.board["Creature"].pop(self))
+        else:
+            self.fight(game, self)
+        if other.updateHealth():
+            game.pendingReloc.append(game.inactivePlayer.board["Creature"].pop(other))
+        self.pending()
         print(other.damage)
         print(self.damage)
 
     def health(self) -> int:
         return (self.power + self.extraPow) - self.damage
 
-    def neighbors(self, game):
+    def neighbors(self, game) -> List[int]:
         """ Returns a list of the indexes of a card's neighbors.
         """
         active = game.activePlayer.board["Creature"]
@@ -309,7 +315,11 @@ class Card(pygame.sprite.Sprite):
                 return [index - 1, index + 1]
         else: print("This unit is not on the board, so it has no neighbors.")
 
-    
+    def isFlank(self):
+        if len(self.neighbors) < 2:
+            return True
+        return False
+
     def reset(self):
         """ Resets a card after it leaves the board.
         """
@@ -318,6 +328,12 @@ class Card(pygame.sprite.Sprite):
         """ Doesn't do anything yet, but this is for the sprite if I use those
         """
     
+    def resetArmor(self):
+        self.armor = self.base_armor + self.extraArm
+        if "Elusive" in self.text:
+            self.elusive = True
+        # I can change Gray Monk to match this by giving it a play effect and a leaves play effect.
+
     def updateHealth(self) -> bool:
         if self.health() <= 0:
             print(self.title + " is dead.")

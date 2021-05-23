@@ -12,6 +12,7 @@ def basicLeaves(game, card):
 def basicDest(game, card):
     """ Called for when a card is destroyed.
     """
+    # loot the bodies
 
 #############
 ## Brobnar ##

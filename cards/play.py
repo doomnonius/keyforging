@@ -11,34 +11,48 @@ from helpers import absa, makeChoice, chooseSide, stealAmber
 def passFunc(game, card):
   """ This catches on play abilities. It is called by all other play functions, and by default for card w/o play effects.
   """
+  passFunc(game, card)
+  active = game.activePlayer.board
+  inactive = game.inactivePlayer.board
   if card.type == "Creature":
     # game.inactivePlayer.states["lifeweb"] += 1
     if "full_moon" in game.activePlayer.states and game.activePlayer.states["full_moon"]:
       game.activePlayer.amber += game.activePlayer.states["full_moon"]
-    if "teliga" in [x.title for x in game.inactivePlayer.board["Creature"]]:
+    if "teliga" in [x.title for x in inactive["Creature"]]:
       count = 0
-      for x in game.inactivePlayer.board["Creature"]:
+      for x in inactive["Creature"]:
         if x.title == "teliga":
           count += 1
       game.inactivePlayer.amber += count
-    if "hunting_witch" in [x.title for x in game.activePlayer.board["Creature"]]:
-      count = sum(x.title == "hunting_witch" for x in game.activePlayer.board["Creature"])
+    if "hunting_witch" in [x.title for x in active["Creature"]]:
+      count = sum(x.title == "hunting_witch" for x in active["Creature"])
       if card.title == "hunting_witch":
         count -= 1 # this prevents hunting witch from triggering off itself
       game.activePlayer.amber += count
-    if card.house == "Mars" and "tunk" in [x.title for x in game.activePlayer.board["Creature"]]:
-      location = [game.activePlayer.board["Creature"].index(x) for x in game.activePlayer.board["Creature"] if x.title == "tunk"]
+    if card.house == "Mars" and "tunk" in [x.title for x in active["Creature"]]:
+      location = [active["Creature"].index(x) for x in active["Creature"] if x.title == "tunk"]
       for x in location:
-        game.activePlayer.board["Creature"][x].damage = 0
-    if "charge!" in game.activePlayer.states and game.activePlayer.states["charge!"]:
-      # choice = makeChoice("Choose an enemy minion to deal 2 damage to: ", game.inactivePlayer.board["Creature"])
-      choice = game.chooseCards("inactCreature")
-      game.inactivePlayer.board["Creature"][choice].damageCalc(game, 2)
-      if game.inactivePlayer.board["Creature"][choice].updateHealth():
-        game.pendingLoc.append(game.inactivePlayer.board["Creature"].pop(choice))
+        active["Creature"][x].damage = 0
+    if "charge" in game.activePlayer.states and game.activePlayer.states["charge!"]:
+      choice = []
+      while not choice:
+        choice = game.chooseCards("inactCreature", "Choose an enemy minion to deal 2 damage to:")[0]
+      inactive["Creature"][choice].damageCalc(game, 2)
+      if inactive["Creature"][choice].updateHealth():
+        game.pendingLoc.append(inactive["Creature"].pop(choice))
       game.pending()
-  if card.type == "Artifact" and "carlo_phantom" in [x.title for x in game.activePlayer.board["Creature"]]:
-    stealAmber(game.activePlayer, game.inactivePlayer, sum(x.title == "carlo_phantom" for x in game.activePlayer.board["Creature"]))
+    # stuff that gives armor
+    if "gray_monk" in active["Creature"]:
+      extra = sum(x.title == "gray_monk" for x in active["Creature"])
+      if card.name == "gray_monk":
+        extra -= 1 # so it doesn't hit itself
+      card.extraArm += extra
+    # this is deliberately after gray_monk
+    if "autocannon" in inactive["Artifact"] + active["Artifact"]:
+      count = sum(x.title == "autocannon" for x in inactive["Artifact"] + active["Artifact"])
+      card.calcDamage(game, count)
+  if card.type == "Artifact" and "carlo_phantom" in [x.title for x in active["Creature"]]:
+    stealAmber(game.activePlayer, game.inactivePlayer, sum(x.title == "carlo_phantom" for x in active["Creature"]))
     pyautogui.alert("'Carlo Phantom' stole 1 amber for you. You now have " + str(game.activePlayer.amber) + " amber.")
   if "library_access" in game.activePlayer.states and game.activePlayer.states["library_access"]:
     game.activePlayer += game.activePlayer.states["library_access"]
@@ -52,20 +66,18 @@ def passFunc(game, card):
 # Brobnar #
 ###########
 
+###########
+# Actions #
+###########
+
 def anger(game, card):
   """Anger. Ready and fight with a friendly creature.
   """
-  # print("\nYour creatures:")
-  # game.activePlayer.printShort(game.activePlayer.board["Creature"], False)
-  # print("")
-  # if len(game.activePlayer.board["Creature"]) == 0:
-  #   print("You have no creatures to target. The card is still played.")
-  #   return
-  # choice = makeChoice("Choose a friendly creature to ready: ", game.activePlayer.board["Creature"])
+  passFunc(game, card)
   passFunc(game, card)
   choice = []
-  while choice == []:
-    choice = game.chooseCards("actCreature")
+  while not choice:
+    choice = game.chooseCards("actCreature", "Choose a friendly creature:")[0]
   if not game.activePlayer.board["Creature"][choice].ready:
     game.activePlayer.board["Creature"][choice].ready = True
     game.fightCard(choice)
@@ -77,6 +89,7 @@ def barehanded(game, card):
   """Barehanded. Put each artifact on top of its owner's \
   deck.
   """
+  passFunc(game, card)
   passFunc(game, card)
   while len(game.activePlayer.board["Artifact"]) > 0:
     game.pendingDeck.append(game.activePlayer.board["Artifact"].pop())
@@ -90,40 +103,44 @@ def blood_money(game, card):
   """Blood Money: Place 2 amber from the common supply on an enemy creature.
   """
   passFunc(game, card)
+  passFunc(game, card)
   if len(game.inactivePlayer.board["Creature"]) == 0:
     pyautogui.alert("Your opponent has no creatures for you to target. The card is still played.")
   else:
     game.inactivePlayer.printShort(game.inactivePlayer.board["Creature"])
     choice = []
-    print("Choose an enemy creature to gain two amber:")
-    while choice == []:
-      choice = game.chooseCards("inactCreature")
-    choice = makeChoice("Choose an enemy creature to gain two amber: ", game.inactivePlayer.board["Creature"])
+    while not choice:
+      choice = game.chooseCards("inactCreature", "Choose an enemy creature to gain two amber:")[0]
     game.inactivePlayer.board["Creature"][choice].captured += 2
-    print(game.inactivePlayer.board["Creature"][choice].title + " now has " + game.inactivePlayer.board["Creature"][choice].amber + " amber.")
+    pyautogui.alert(game.inactivePlayer.board["Creature"][choice].title + " now has " + game.inactivePlayer.board["Creature"][choice].amber + " amber.")
     return
         
 def brothers_in_battle(game, card):
   """ Brothers in Battle: Value: 1 amber. Choose a house. For the remainder of the turn, each friendly creature of that house may fight.
   """
+  passFunc(game, card)
+  passFunc(game, card)
   game.chooseHouse("extraFight") # this function will add extra houses that only work for fighting
 
-def key005(game, card):
+def burn_the_stockpile(game, card):
   """Burn the Stockpile: If your opponent has 7 or more amber, they lose 4.
   """
+  passFunc(game, card)
+  passFunc(game, card)
   if game.inactivePlayer.amber > 6:
     game.inactivePlayer.amber -= 4
-    print("Your opponent had " + str(game.inactivePlayer.amber + 4) + " amber, and you destroyed 4, leaving them with " + str(game.inactivePlayer.amber) + " amber." )
+    pyautogui.alert("Your opponent had " + str(game.inactivePlayer.amber + 4) + " amber, and you destroyed 4, leaving them with " + str(game.inactivePlayer.amber) + " amber." )
   else:
-    print("Your opponent didn't have enough amber, so you didn't destroy anything. The card is still played.")
+    pyautogui.alert("Your opponent didn't have enough amber, so you didn't destroy anything. The card is still played.")
 
-def key006 (game, card):
+def champions_challenge(game, card):
   """ Champion's Challenge: Destroy each enemy creature except the most powerful enemy creature. Destroy each friendly creature except the most powerful friendly creature. Ready and fight with your remaining creature.
   """
+  passFunc(game, card)
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
 
-  pendingDiscard = []	# this one's fine b/c it does actually happen one at a time
   # inactive board first
   if len(inactiveBoard) > 1:
     # find highest power
@@ -132,21 +149,22 @@ def key006 (game, card):
     n = 0
     while min([x.power for x in inactiveBoard]) < high:
       if inactiveBoard[n].power < high:
-        pendingDiscard.append(inactiveBoard.pop(n))
+        game.pendingReloc.append(inactiveBoard.pop(n))
       else:
         n += 1
         if n == len(inactiveBoard):
           break
     # check length of inactiveBoard, if > 1, let player choose which one to keep
     if len(inactiveBoard) > 1: # at this point only creatures tied for highest power will be in play
-      game.inactivePlayer.printShort(inactiveBoard)
-      choice = makeChoice("Choose which enemy creature will survive: ", inactiveBoard)
-      # then discard all cards except choice
+      choice = []
+      while not choice:
+        choice = game.chooseCards("inactCreature", "Choose which enemy creature will survive:")[0]
+      # then destroy all cards except choice
       while len(inactiveBoard > 1):
         # easy part: choice at beginning of list
-        if choice == 0: pendingDiscard.append(inactiveBoard[1])
+        if choice == 0: game.pendingReloc.append(inactiveBoard[1])
         else:
-          pendingDiscard.append(inactiveBoard[0])
+          game.pendingReloc.append(inactiveBoard[0])
           choice -= 1
 
   # i don't need to restate pending discard as empty, because pending() will raise an error if the list isn't emptied
@@ -159,44 +177,46 @@ def key006 (game, card):
     n = 0
     while min([x.power for x in activeBoard]) < high:
       if activeBoard[n].power < high:
-        pendingDiscard.append(activeBoard.pop(n))
+        game.pendingReloc.append(activeBoard.pop(n))
       else:
         n += 1
         if n == len(activeBoard):
           break
     # check length of activeBoard, if > 1, let player choose which one to keep
     if len(activeBoard) > 1:
-      game.activePlayer.printShort(activeBoard)
-      choice = makeChoice("Choose which friendly creature will survive: ", activeBoard)
+      choice = []
+      while not choice:
+        choice = game.chooseCards("actCreature", "Choose which friendly creature will survive:")[0]
       # then discard all cards except choice
       while len(activeBoard > 1):
         # easy part: choice at beginning of list
-        if choice == 0: pendingDiscard.append(activeBoard[1])
+        if choice == 0: game.pendingReloc.append(activeBoard[1])
         else:
-          pendingDiscard.append(activeBoard[0])
+          game.pendingReloc.append(activeBoard[0])
           choice -= 1
-  game.pending(pendingDiscard)
+  game.pending()
 
   # then ready and fight with remaining minion
-  print("\nYour creature:")
-  game.activePlayer.printShort(game.activePlayer.board["Creature"], False)
-  print("")
   if len(game.activePlayer.board["Creature"]) == 0:
-    print("You have no creatures to target. The card is still played.")
+    pyautogui.alert("You have no creatures to target. The card is still played.")
     return
-  choice = 0 # because only 1 creature
+  choice = []
+  while not choice:
+    choice = game.chooseCards("actCreature", "Choose a creature to fight with:")[0] # because ward will be a thing, and something could happen
   if not game.activePlayer.board["Creature"][choice].ready:
     game.activePlayer.board["Creature"][choice].ready = True
     game.fightCard(choice)
   else:
     game.fightCard(choice)
 
-def key007 (game, card):
+def cowards_end (game, card):
   """Coward's End: Destroy each undamaged creature. Gain 3 chains.
   """
+  passFunc(game, card)
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
-  pendingDiscard = []
+  pendingDiscard = game.pendingReloc
   length = len(activeBoard)
   # active player
   undamageList = [x.damage for x in activeBoard if x.damage == 0]
@@ -204,11 +224,6 @@ def key007 (game, card):
   if len(undamageList) == len(activeBoard): pendingDiscard = activeBoard
   else:
     [pendingDiscard.append(activeBoard.pop(abs(x - length + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - length + 1)].damage == 0]
-    # for x in range(len(activeBoard)):
-      # so that i can work from right to left
-      # x = abs(x - len(activeBoard) + 1)
-      # if activeBoard[x].damage > 0:
-      # 	pendingDiscard.append(activeBoard.pop(x))
   length = len(inactiveBoard)
   # inactive player
   undamageList = [x.damage for x in inactiveBoard if x.damage == 0]
@@ -218,194 +233,197 @@ def key007 (game, card):
     inactiveBoard = []
   else:
     [pendingDiscard.append(inactiveBoard.pop(abs(x - length + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - length + 1)].damage == 0]
-    # for x in range(len(inactiveBoard)):
-    # 	# so that i can work from right to left
-    # 	x = abs(x - len(inactiveBoard) + 1)
-    # 	if inactiveBoard[x].damage > 0:
-    # 		pendingDiscard.append(inactiveBoard.pop(x))
   
-  game.pending(pendingDiscard)
+  game.pending()
   
   # finally, add chains
   game.activePlayer.chains += 3
 
-def key008(game, card):
+def follow_the_leader(game, card):
   """Follow the Leader: For the remainder of the turn, each friendly creature may fight.
   """
+  passFunc(game, card)
+  passFunc(game, card)
   # as easy as setting game.extraFightHouses to all houses
   game.extraFightHouses = ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]
 
-def key009 (game, card):
+def lava_ball (game, card):
   """Lava Ball: Deal 4 damage to a creature with 2 splash.
   """
+  passFunc(game, card)
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
-  pendingDiscard = [] # this one's fine because only one side is ever affected
+  pendingDiscard = game.pendingReloc # this one's fine because only one side is ever affected
 
-  choice, side = chooseSide(game)
+  side = None
+  if len(activeBoard) == 0:
+    side = "Enemy"
+  if len(inactiveBoard) == 0:
+    side = "Friendly"
+  while side == None:
+    side = pyautogui.confirm("Will you target an enemy creature or a friendly creature?", buttons=["Enemy", "Friendly"])
+  
+  choice = []
 
   # now that target is chosen, apply damages
-  if side == 0:
-    activeBoard[choice].damageCalc(game, 4)
-    try: 
-      activeBoard[choice + 1].damageCalc(game, 2)
-      right = True
-    except: print("This creature has no neighbor on the right.")
-    try: 
-      activeBoard[choice - 1].damageCalc(game, 2)
-      left = True
-    except: print("This creature has no neighbor on the left.")
-    if activeBoard[choice].update():
+  if side == "Friendly":
+    while not choice:
+      choice = game.chooseCards("actCreature", "Deal 4 damage with 2 splash to a friendly creature:")[0]
+    card = activeBoard[choice]
+    card.damageCalc(game, 4)
+    if card.updateHealth():
       pendingDiscard.append(activeBoard.pop(choice))
-    if right == True:
-      if activeBoard[choice + 1].update():
-        pendingDiscard.append(activeBoard.pop(choice + 1))
-    if left == True:
-      if activeBoard[choice - 1].update():
-        pendingDiscard.append(activeBoard.pop(choice - 1))
-  elif side == 1:
-    inactiveBoard[choice].damageCalc(game, 4)
-    try: 
-      inactiveBoard[choice + 1].damageCalc(game, 2)
-      right = True
-    except: print("This creature has no neighbor on the right.")
-    try: 
-      inactiveBoard[choice - 1].damageCalc(game, 2)
-      left = True
-    except: print("This creature has no neighbor on the left.")
-    if inactiveBoard[choice].update():
+    for neigh in card.neighbors():
+      activeBoard[neigh].damageCalc(game, 2)
+      if activeBoard[neigh].updateHealth():
+        pendingDiscard.append(activeBoard.pop(neigh))
+  else:
+    while not choice:
+      choice = game.chooseCards("inactCreature", "Deal 4 damage with 2 splash to an enemy creature:")[0]
+    card = inactiveBoard[choice]
+    card.damageCalc(game, 4)
+    if card.updateHealth():
       pendingDiscard.append(inactiveBoard.pop(choice))
-    if right == True:
-      if inactiveBoard[choice + 1].update():
-        pendingDiscard.append(inactiveBoard.pop(choice + 1))
-    if left == True:
-      if inactiveBoard[choice - 1].update():
+    for neigh in card.neighbors():
+      inactiveBoard[neigh].damageCalc(game, 2)
+      if inactiveBoard[neigh].updateHealth():
         pendingDiscard.append(inactiveBoard.pop(choice - 1))
-  game.pending(pendingDiscard)
+  game.pending()
 
-def key010(game, card):
+def loot_the_bodies (game, card):
   """ Loot the Bodies: For the remainder of the turn, gain 1 amber each time an enemy creature is destroyed.
   """
-  if not game.activePlayer.states["Destroyed"]["Loot the Bodies"][0]:
-    game.activePlayer.states["Destroyed"].update({"Loot the Bodies": [True]})
-  else: # for handling multiples of a card
-    game.activePlayer.states["Destroyed"]["Loot the Bodies"].append(True)
+  passFunc(game, card)
+  game.activePlayer.states["loot_the_bodies"] += 1
   # skipping the rest for now, until event emitters or etc are figured out
 
-def key011 (game, card):
+def take_that_smartypants (game, card):
   """Take that, Smartypants: Steal 2 amber if your opponent has 3 or more Logos cards in play.
   """
+  passFunc(game, card)
   inactiveBoard = game.inactivePlayer.board
   count = 0
   for x in (inactiveBoard["Creature"] + inactiveBoard["Artifact"]):
     if x.house == "Logos":
       count += 1
-  if count >= 3:
-    stealAmber(game.activePlayer, game.inactivePlayer, 2)
+      if count >= 3:
+        stealAmber(game.activePlayer, game.inactivePlayer, 2)
+        pyautogui.alert("You stole 2 amber from your opponent!")
+        break
   else:
-    print("Your opponent had less than 3 Logos cards in play, so you didn't steal anything. The card is still played.")
+    pyautogui.alert("Your opponent had less than 3 Logos cards in play, so you didn't steal anything. The card is still played.")
 
 
-def key012 (game, card):
+def punch (game, card):
   """ Punch: Deal 3 damage to a creature.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
-  pendingDiscard = [] # fine b/c only one side ever affected
+  pendingDiscard = game.pendingReloc # fine b/c only one side ever affected
 
-  choice, side = chooseSide(game)
+  if activeBoard or inactiveBoard:
+    side = game.chooseSide()
+
+  choice = []
   # side == 0, active board
-  if side == 0:
+  if side == "Friendly":
+    while not choice:
+      choice = game.chooseCards("actCreature", "Deal 3 damage to a friendly creature:")[0]
     activeBoard[choice].damageCalc(game, 3)
     if activeBoard[choice].update:
       pendingDiscard.append(activeBoard[choice])
   else:
+    while not choice:
+      choice = game.chooseCards("inactCreature", "Deal 3 damage to an enemy creature:")[0]
     inactiveBoard[choice].damageCalc(game, 3)
     if inactiveBoard[choice].update:
       pendingDiscard.append(inactiveBoard[choice])
 
-def key013(game, card):
+def relentless_assault (game, card):
   """ Relentless Assault: Ready and fight with up to 3 friendly creatures, one at a time.
   """
-  if len(game.activePlayer.board["Creature"]) >= 3:
-    count = 3
-  else:
-    count = len(game.activePlayer.board["Creature"])
-  disallow = []
-  died = True
-  while count > 0:
-    activeBoard = game.activePlayer.board["Creature"]
-    original = len(activeBoard)
-    game.activePlayer.printShort(activeBoard)
-    if False not in [(x in disallow) for x in activeBoard]:
-      print("There are no more valid targets.")
-      return
-    choice = makeChoice("Choose a creature to fight with: ", activeBoard)
-    # first choice should always be valid
-    if activeBoard[choice] not in disallow:
-      activeBoard[choice].ready = True
-      game, died = game.fightCard(choice)
-    else:
-      print("You've already chosen that minion. Try again.")
-      count += 1
-      died = True
-    # make game equal the result of this function call, so that if anything died we have the new board state
-    if died:
-      # this doesn't account for phoenix heart
-      pass
-    elif not died and original == len(game.activePlayer.board["Creature"]):
-      disallow.append(activeBoard[choice])
-    count -= 1
+  passFunc(game, card)
+  activeBoard = game.activePlayer.board["Creature"]
+  choices = []
+  while not choices:
+    choices = game.chooseCards("actCreature", "Choose up to three creatures, in the order you'd like them to fight:", 3)
 
-def key014 (game, card):
+  name_check = [activeBoard[x].title for x in choices]
+  
+  while len(choices) > 0:
+    original = len(activeBoard)
+    choice = choices.pop(0)
+    name = name_check.pop(0)
+    # first choice should always be valid, but not the rest
+    if choice < len(activeBoard) and activeBoard[choice].title == name:
+      activeBoard[choice].ready = True
+      game.fightCard(choice)
+    else:
+      continue
+    # make game equal the result of this function call, so that if anything died we have the new board state
+    # this doesn't account for phoenix heart
+    if original > len(activeBoard):
+      for x in choices:
+        if x > choice:
+          x -= 1
+
+def smith (game, card):
   """Smith: Gain 2 amber if you control more creatures than your opponent.
   """
+  passFunc(game, card)
   if len(game.activePlayer.board["Creature"]) > len(game.inactivePlayer.board["Creature"]):
     game.activePlayer.amber += 2
-    print("You have more creatures, so you gain 2 amber.")
+    pyautogui.alert("You have more creatures, so you gain 2 amber.")
   else:
-    print("You do not have more creatures, so you don't gain any amber. The card is still played.")
+    pyautogui.alert("You do not have more creatures, so you don't gain the 2 extra amber. The card is still played.")
 
-def key015 (game, card):
+def sound_the_horns (game, card):
   """Sound the Horns: Discard cards from the top of your deck until you either discard a Brobnar creature or run out of cards. If you discarded a Brobnar creature this way, put it into your hand.
   """
+  passFunc(game, card)
   discard = game.activePlayer.discard
   deck = game.activePlayer.deck
   hand = game.activePlayer.hand
-  if len(deck) > 0 and (deck[-1].house != "Brobnar" or deck[-1].type != "Creature"): # avoids indexerror because if len(deck) evaluates to False, it skips looking at the rest of the statement
+  while deck and (deck[-1].house != "Brobnar" or deck[-1].type != "Creature"):
     discard.append(deck.pop())
-    print(repr(discard[-1]))
-    time.sleep(3)
-  elif len(deck) == 0:
-    print("Your deck is empty, and you found no Brobnar creatures.")
+  if not deck:
+    pyautogui.alert("Your deck is empty, and you found no Brobnar creatures.")
   else: # House is brobnar and type is creature if we get here
     hand.append(deck.pop())
-    print(repr(hand[-1]))
 
-def key016(game, card):
+def tremor (game, card):
   """Tremor: Stun a creature and each of its neighbors.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.activePlayer.board["Creature"]
-  choice, side = chooseSide(game)
-  if side == 0:
-    game.activePlayer.printShort(activeBoard)
-    activeBoard[choice].stun = True
-    try: activeBoard[choice + 1].stun = True
-    except: print("This creature has no right neighbor.")
-    try: activeBoard[choice - 1].stun = True
-    except: print("This creature has no left neighbor.")
+  if activeBoard or inactiveBoard:
+    side = game.chooseSide()
   else:
-    game.activePlayer.printShort(inactiveBoard)
-    inactiveBoard[choice].stun = True
-    try: inactiveBoard[choice + 1].stun = True
-    except: print("This creature has no right neighbor.")
-    try: inactiveBoard[choice - 1].stun = True
-    except: print("This creature has no left neighbor.")
+    pyautogui.alert("No valid targets. Card is still played.")
+    return
+  choice = []
+  if side == "Friendly":
+    while not choice:
+      choice = game.chooseCards("actCreature", "Stun a friendly creature and its neighbors:")[0]
+    card = activeBoard[choice]
+    card.stun = True
+    for neigh in card.neighbors():
+      activeBoard[neigh].stun = True
+  else:
+    while not choice:
+      choice = game.chooseCards("inactCreature", "Stun an enemy creature and its neighbors:")[0]
+    card = inactiveBoard[choice]
+    card.stun = True
+    for neigh in card.neighbors():
+      inactiveBoard[neigh].stun = True
 
-def key017(game, card):
+def unguarded_camp (game, card):
   """Unguarded Camp: For each creature you have in excess of your opponent, a friendly creature captures 1 amber. Each creature cannot capture more than 1 amber this way.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   diff = len(activeBoard) - len(inactiveBoard)
@@ -416,30 +434,31 @@ def key017(game, card):
   elif diff == 0:
     print("You have as many creatures as your opponent, so no amber is captured. The card is still played.")
     return
-  print("You have " + diff + " more minions than your opponent, so you will capture " + diff + "amber.")
-  if diff == len(activeBoard):
+  print(f"You have {diff} more minions than your opponent, so you will capture {diff} amber.")
+  if diff == len(activeBoard) and game.inactivePlayer.amber >= diff:
     [x.capture(game, 1) for x in activeBoard]
     return
-  disallow = []
-  while diff > 0:
-    [print(x + ": " + str(activeBoard[x])) for x in range(len(activeBoard)) if activeBoard[x] not in disallow]
-    choice = makeChoice("Choose a minion to capture an amber. Only valid options are shown: ", activeBoard)
-    activeBoard[choice].capture(game, 1)
-    disallow.append(activeBoard[choice])
-    diff -= 1
+  diff = min(diff, game.inactivePlayer.amber)
+  choices = []
+  while not choices or len(choices) < diff:
+    choices = game.chooseCards("actCreature", f"Choose {diff} friendly creatures to capture an amber:", diff)
+  for x in choices:
+    activeBoard[x].capture(game, 1)
 
-def key018(game, card):
+def warsong (game, card):
   """Warsong: For the remainder of the turn, gain 1 amber each time a friendly creature fights.
   """
-  if not game.activePlayer.states["Fight"]["Warsong"][0]:
-    game.activePlayer.states["Fight"].update({"Warsong":[True]})
-  else:
-    game.activePlayer.states["Fight"]["Warsong"].append(True)
-  # should be able to account for multiple instances of warsong
+  passFunc(game, card)
+  game.activePlayer.states["warsong"] += 1
+
+#############
+# Creatures #
+#############
 
 def key030(game, card):
   """Bumpsy: Your opponent loses one amber.
   """
+  passFunc(game, card)
   victim = game.inactivePlayer.amber
   if victim > 0: 
     print("Your opponent had " + str(victim) + " amber.")
@@ -453,6 +472,7 @@ def key030(game, card):
 def key031(game, card):
   """Earthshaker: Destroy each creature with power 3 or lower.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDiscard= []
@@ -467,6 +487,7 @@ def key031(game, card):
 def key033(game, card):
   """Ganger Chieftain: You may ready and fight with a neighboring creature.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
 
   if len(activeBoard) == 1: # because there will always be at least ganger chieftain
@@ -488,6 +509,7 @@ def key033(game, card):
 def key036(game, card):
   """Hebe the Huge: Deal 2 damage to each other undamaged creature.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDiscard = []
@@ -498,15 +520,16 @@ def key036(game, card):
   [x.damageCalc(game, 2) for x in inactiveBoard if x.damage == 0]
   # check for deaths
   length = len(activeBoard)
-  [pendingDiscard.append(activeBoard.pop(abs(x - length + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - length + 1)].update()]
+  [pendingDiscard.append(activeBoard.pop(abs(x - length + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - length + 1)].updateHealth()]
   # check for deaths
   length = len(inactiveBoard)
-  [pendingDiscard.append(inactiveBoard.pop(abs(x - length + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - length + 1)].update()]
+  [pendingDiscard.append(inactiveBoard.pop(abs(x - length + 1))) for x in range(len(inactiveBoard)) if inactiveBoard[abs(x - length + 1)].updateHealth()]
   game.pending(pendingDiscard)
 
 def key040(game, card):
   """Lomir Flamefist: If your opponent has 7 or more amber, they lose 2.
   """
+  passFunc(game, card)
   victim = game.inactivePlayer.amber
   if victim >= 7:
     print("Your opponent had " + str(victim) + " amber. They now have " + str(victim - 2) + " amber.")
@@ -517,6 +540,7 @@ def key040(game, card):
 def key046(game, card):
   """Smaaash: Stun a creature.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   choice, side = chooseSide(game)
@@ -532,6 +556,7 @@ def key046(game, card):
 def key049(game, card):
   """Wardrummer: Return each other friendly Brobnar creature to your hand.
   """
+  passFunc(game, card)
   index = game.activePlayer.board["Creature"].index(card)
   activeBoard = game.activePlayer.board["Creature"]
   pending = []
@@ -542,6 +567,7 @@ def key049(game, card):
 def key052(game, card):
   """Yo Mama Mastery: Fully heal this creature
   """
+  passFunc(game, card)
   # I'm going to only handle the play effect, I'll write something else to handle upgrades later
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
@@ -553,15 +579,20 @@ def key052(game, card):
   game.inactivePlayer.printShort(inactiveBoard)
   inactiveBoard[choice].damage = 0
 
-## End House Brobnar
+## End house Brobnar
 
 #######
 # Dis #
 #######
 
+###########
+# Actions #
+###########
+
 def key053(game, card):
   """ A Fair Game: Discard top card of opp's deck, reveal their hand. Gain amber for each card in hand matching house of discarded card. Opponent repeats effect on you.
   """
+  passFunc(game, card)
   count = 0
   if len(game.inactivePlayer.deck) > 0:
     game.inactivePlayer.discard.append(game.inactivePlayer.deck.pop())
@@ -594,6 +625,7 @@ def key053(game, card):
 def key054(game, card):
   """Arise!: Choose a house. Return each creature of that house from your discard pile to your hand.
   """
+  passFunc(game, card)
   active = game.activePlayer.discard
   house = ''
   while house == '':
@@ -609,6 +641,7 @@ def key054(game, card):
 def key055(game, card):
   """ Control the Weak: Choose a house on opp's id card, they must choose that house on next turn.
   """
+  passFunc(game, card)
   house = ''
   while house == '':
     house = input("Choose a house: ").title()
@@ -619,6 +652,7 @@ def key055(game, card):
 def key056(game, card):
   """ Creeping Oblivion: purge up to 2 cards from a discard pile.
   """
+  passFunc(game, card)
   activeDisc = game.activePlayer.discard
   inactiveDisc = game.inactivePlayer.discard
   # chooseSide only works for things that target minions
@@ -663,6 +697,7 @@ def key056(game, card):
 def key057(game, card):
   """ Dance of Doom: Choose a number. Destroy each creature with power equal to that number.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.activePlayer.board["Creature"]
   pendingDestroyed = []
@@ -678,6 +713,7 @@ def key057(game, card):
 def key058(game, card):
   """ Fear: Return an enemy creature to its owner's hand.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
   if len(inactive) == 0:
@@ -693,6 +729,7 @@ def key058(game, card):
 def key059(game, card):
   """ Gateway to Dis: Destroy each creature. Gain three gains.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = []
@@ -711,13 +748,14 @@ def key059(game, card):
 def key060(game, card):
   """ Gongoozle: Deal 3 to a creature. If it is not destroyed, its owner discards a random card from their hand.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = [] # fine b/c only ever one side
   choice, side = chooseSide(game)
   if side == 0: # friendly side
     active[choice].damageCalc(game, 3)
-    if active[choice].update():
+    if active[choice].updateHealth():
       pendingDiscard.append(active.pop(choice))
       game.pending(pendingDiscard)
     else:
@@ -726,7 +764,7 @@ def key060(game, card):
       discardA = True
   # enemy side
   inactive[choice].damageCalc(game, 3)
-  if inactive[choice].update(): 
+  if inactive[choice].updateHealth(): 
     pendingDiscard.append(inactive.pop(choice))
     game.pending(pendingDiscard)
   else:
@@ -739,12 +777,12 @@ def key060(game, card):
     if side == 0:
       target = makeChoice("Choose a creature to target: ", active)
       active[target].damageCalc(game, 4)
-      if active[target].update():
+      if active[target].updateHealth():
         pendingDiscard.append(active.pop(target))
     else:
       target = makeChoice("Choose a creature to target: ", inactive)
       inactive[target].damageCalc(game, 4)
-      if inactive[target].update():
+      if inactive[target].updateHealth():
         pendingDiscard.append(inactive.pop(target))
     game.pending(pendingDiscard)
 
@@ -752,6 +790,7 @@ def key060(game, card):
 def key061(game, card):
   """ Guilty Hearts: Destroy each creature with any amber on it.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = []
@@ -766,6 +805,7 @@ def key061(game, card):
 def key062(game, card):
   """ Hand of Dis: Destroy a creature that is not on a flank.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = [] # fine b/c only one target
@@ -799,6 +839,7 @@ def key062(game, card):
 def key063(game, card):
   """ Hecatomb: Destroy each Dis creature. Each player gains 1 amber for each creature they control that was destroyed this way.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = []
@@ -817,6 +858,7 @@ def key063(game, card):
 def key064(game, card):
   """ Tendrils of Pain: Deal 1 to each creature. Deal an additional 3 to each creature if your opponent forged a key on their previous turn.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = []
@@ -824,11 +866,11 @@ def key064(game, card):
   # active
   length = len(active)
   [x.damageCalc(game, 1) for x in active]
-  [pendingDiscard.append(active.pop(abs(x - length + 1))) for x in active if active[abs(x - length + 1)].update()]
+  [pendingDiscard.append(active.pop(abs(x - length + 1))) for x in active if active[abs(x - length + 1)].updateHealth()]
   # inactive
   length = len(inactive)
   [x.damageCalc(game, 1) for x in inactive]
-  [pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in inactive if inactive[abs(x - length + 1)].update()]
+  [pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in inactive if inactive[abs(x - length + 1)].updateHealth()]
 
   # potential extra 3 damage to everything
   if not game.forgedLastTurn[0]:
@@ -836,16 +878,17 @@ def key064(game, card):
   # active
   length = len(active)
   [x.damageCalc(game, 3) for x in active]
-  [pendingDiscard.append(active.pop(abs(x - length + 1))) for x in active if active[abs(x - length + 1)].update()]
+  [pendingDiscard.append(active.pop(abs(x - length + 1))) for x in active if active[abs(x - length + 1)].updateHealth()]
   # inactive
   length = len(inactive)
   [x.damageCalc(game, 3) for x in inactive]
-  [pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in inactive if inactive[abs(x - length + 1)].update()]
+  [pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in inactive if inactive[abs(x - length + 1)].updateHealth()]
   game.pending(pendingDiscard)
 
 def key065(game, card):
   """ Hysteria: Return each creature to its owner's hand.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -860,6 +903,7 @@ def key065(game, card):
 def key066(game, card):
   """ Key Hammer: If your opponent forged a key on their previous turn, unforge it. Your opponent gains 6 amber.
   """
+  passFunc(game, card)
   if game.forgedLastTurn[0]:
     game.inactivePlayer.keys -= 1
   game.inactivePlayer.amber += 6
@@ -867,6 +911,7 @@ def key066(game, card):
 def key067(game, card):
   """ Mind Barb: Your opponent discards a random card from their hand.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.hand
   ran = random.choice(list(range(len(inactive))))
   game.inactivePlayer.discard.append(inactive.pop(ran))
@@ -875,6 +920,7 @@ def key067(game, card):
 def key068(game, card):
   """ Pandemonium: Each undamaged creature captures 1 from its opponent.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -887,6 +933,7 @@ def key068(game, card):
 def key069(game, card):
   """ Poltergeist: Use an artifact controlled by any player as if it were yours. Destroy that artifact.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Artifact"]
   inactive = game.inactivePlayer.board["Artifact"]
   # don't need pendingDestroyed for artifacts
@@ -901,6 +948,7 @@ def key069(game, card):
 def key070(game, card):
   """ Red-Hot Armor: Each enemy creature with armor loses all of its armor until the end of the turn and is dealt 1 for each point of armor it lost this way.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = [] # fine b/c only hits one side
   length = len(inactive)
@@ -911,12 +959,13 @@ def key070(game, card):
       inactive[abs(x - length + 1)].armor -= armorList[x]
       inactive[abs(x - length + 1)].damageCalc(game, armorList[x])
   # check for deaths
-  [pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
+  [pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].updateHealth()]
   game.pending(pendingDiscard)
 
 def key071(game, card):
   """ Three Fates: Destroy the three most powerful creatures.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard= []
@@ -970,17 +1019,20 @@ def key071(game, card):
 def key081(game, card):
   """ Charette: Capture 3 amber.
   """
+  passFunc(game, card)
   card.capture(game, 3)
 
 def key082(game, card):
   """ Drumble: if your opponent has 7 amber or more, capture all of it.
   """
+  passFunc(game, card)
   if game.inactivePlayer.amber >= 7:
     card.capture(game, game.inactivePlayer.amber)
 
 def key088(game, card):
   """ Guardian Demon: Heal up to 2 damage from a creature. Deal that amount of damage to another creature
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = []
@@ -1013,40 +1065,50 @@ def key088(game, card):
   choice, side = chooseSide(game)
   if side == 0: # friendly
     active[choice].damageCalc(game, heal)
-    if active[choice].update():
+    if active[choice].updateHealth():
       pendingDisc.append(active.pop(choice))
     game.pending(pendingDisc)
   if side == 1: #enemy
     inactive[choice].damageCalc(game, heal)
-    if inactive[choice].update():
+    if inactive[choice].updateHealth():
       pendingDisc.append(inactive.pop(choice))
     game.pending(pendingDisc)
 
 def key094(game, card):
   """ Restringuntus: Choose a house. Your opponent cannot choose that house as their active house until Restringuntus leaves play.
   """
+  passFunc(game, card)
   # no deck has more than one copy of this card
   game.chooseHouse(card.title)
 
 def key096(game, card):
   """ Shooler: if your opponent has 4 or more amber, steal 1.
   """
+  passFunc(game, card)
   if game.inactivePlayer.amber >= 4:
     stealAmber(game.activePlayer, game.inactivePlayer, 1)
   
 def key101(game, card):
   """ The Terror: If your opponent has no amber, gain 2.
   """
+  passFunc(game, card)
   if game.inactivePlayer.amber == 0:
     game.activePlayer.amber += 2
+
+## End house Dis
 
 #########
 # Logos #
 #########
 
+###########
+# Actions #
+###########
+
 def key107(game, card):
   """ Bouncing Deathquark: Destroy and enemy creature and a friendly creature. Repeat effect as many times as you want, as long as you can repeat entire effect.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = []
@@ -1077,12 +1139,14 @@ def key107(game, card):
 def key108(game, card):
   """ Dimension Door: For the remainder of the turn, any amber you would gain from reaping is stolen from your opponent instead.
   """
+  passFunc(game, card)
   # just set a state, effect doesn't stack from multiple copies
   game.activePlayer.states["Reap"].update({card.title:True})
 
 def key109(game, card):
   """ Effervescent Principle: Each player loses half their amber (rounding down the loss). Gain one chain.
   """
+  passFunc(game, card)
   if game.activePlayer.amber % 2 == 0:
     game.activePlayer.amber += 1
   if game.inactivePlayer.amber % 2 == 0:
@@ -1102,12 +1166,14 @@ def key109(game, card):
 def key110(game, card):
   """ Foggify: your opponent cannot use creatures to fight on their next turn.
   """
+  passFunc(game, card)
   # states should always be in deck that they affect
   game.inactivePlayer.states["Fight"].update({card.title:True})
 
 def key111(game, card):
   """ Help from Future Self: Search your deck and discard pile for a Timetraveller, reveal it, and put it into your hand. Shuffle your discard pile into your deck.
   """
+  passFunc(game, card)
   # multiples of these pairings is possible, but only come in pairs
   # let's use an iterative function to search with
   def search(hand, L):
@@ -1128,12 +1194,14 @@ def key111(game, card):
 def key112(game, card):
   """ Interdimensional Graft: If an opponent forges a key on their next turn, they must give you their remaining amber.
   """
+  passFunc(game, card)
   # update state
   game.inactivePlayer.states["Forge"].update({card.title:True})
 
 def key113(game, card):
   """ Knowledge is Power: Choose one: Archive a card, or, for each archived card you have, gain 1 amber.
   """
+  passFunc(game, card)
   # b/c this is only choose card in whole set, will give card text
   while True:
     choice = input(card.text + "\n[A]rchive/[G]ain\n>>>").title()
@@ -1157,6 +1225,7 @@ def key113(game, card):
 def key114(game, card):
   """ Labwork: Archive a card.
   """
+  passFunc(game, card)
   archive = makeChoice("Choose a card from hand to archive: ", game.activePlayer.hand)
   game.activePlayer.archive.append(game.activePlayer.hand.pop(archive))
   print(archive[-1].title + " archived! Type 'Archive' to view your archive.")
@@ -1164,6 +1233,7 @@ def key114(game, card):
 def key115(game, card):
   """ Library Access: Purge this card. For the remainder of the turn, each time you play another card, draw a card.
   """
+  passFunc(game, card)
   print(card.title + " is played, then immediately purged.")
   game.activePlayer.purge.append(game.activePlayer.board["Action"].pop()) # b/c library access will usually be only card, and if it isn't will definitely be last card
   game.activePlayer.states["Play"].update({card.title:True})
@@ -1171,6 +1241,7 @@ def key115(game, card):
 def key116(game, card):
   """ Neuro Syphon: If your opponent has more amber than you, steal 1 amber and draw a card.
   """
+  passFunc(game, card)
   if game.inactivePlayer.amber > game.activePlayer.amber:
     print("Your opponent has more amber than you, so the effect triggers.")
     stealAmber(game.activePlayer, game.inactivePlayer, 1)
@@ -1183,12 +1254,14 @@ def key116(game, card):
 def key117(game, card):
   """ Phase Shift: You may play one non-Logos card this turn.
   """
+  passFunc(game, card)
   # this is a tough one. effect can stack, so we'll use a list
   game.activePlayer.states["Play"].update({card.title:[True]})
 
 def key118(game, card):
   """ Positron Bolt: Deal 3 damage to a flank creature. Deal 2 damage to its neighbor. Deal 1 damage to the second creature's other neighbor.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = [] # fine b/c only one side
@@ -1213,14 +1286,14 @@ def key118(game, card):
         try: active[choice + 2].damageCalc(game, 1)
         except: print("No second neighbor.")
       except: print("No neighbor.")
-      [pendingDisc.append(active.pop(x)) for x in [choice + 2, choice + 1, choice] if active[x].update()]
+      [pendingDisc.append(active.pop(x)) for x in [choice + 2, choice + 1, choice] if active[x].updateHealth()]
     else:
       try: 
         active[choice - 1].damageCalc(game, 2)
         try: active[choice - 2].damageCalc(game, 1)
         except: print("No second neighbor.")
       except: print("No neighbor.")
-      [pendingDisc.append(active.pop(x)) for x in [choice, choice - 1, choice - 2] if active[x].update()]
+      [pendingDisc.append(active.pop(x)) for x in [choice, choice - 1, choice - 2] if active[x].updateHealth()]
     game.pending(pendingDisc)
     return
   if choice != 0: choice = len(inactive) - 1
@@ -1231,19 +1304,20 @@ def key118(game, card):
       try: inactive[choice + 2].damageCalc(game, 1)
       except: print("No second neighbor.")
     except: print("No neighbor.")
-    [pendingDisc.append(inactive.pop(x)) for x in [choice + 2, choice + 1, choice] if inactive[x].update()]
+    [pendingDisc.append(inactive.pop(x)) for x in [choice + 2, choice + 1, choice] if inactive[x].updateHealth()]
   else:
     try:
       inactive[choice - 1].damageCalc(game, 2)
       try: inactive[choice - 2].damageCalc(game, 1)
       except: print("No second neighbor.")
     except: print("No neighbor.")
-    [pendingDisc.append(inactive.pop(x)) for x in [choice, choice - 1, choice - 2] if inactive[x].update()]
+    [pendingDisc.append(inactive.pop(x)) for x in [choice, choice - 1, choice - 2] if inactive[x].updateHealth()]
   game.pending(pendingDisc)
 
-def key119(game, self):
+def key119(game, card):
   """ Random Access Archives: Archive the top card of your deck.
   """
+  passFunc(game, card)
   # if deck is empty, don't shuffle
   if len(game.activePlayer.deck) > 0:
     game.activePlayer.archive.append(game.activePlayer.deck.pop())
@@ -1251,9 +1325,10 @@ def key119(game, self):
     return
   print("Your deck is empty. Nothing happenss.")
 
-def key120(game, self):
+def key120(game, card):
   """ Remote Access: use an opponent's artifact as if it were yours.
   """
+  passFunc(game, card)
   if len(game.inactivePlayer.board["Artifact"]) > 1:
     game.activePlayer.printShort(game.inactivePlayer.board["Artifact"])
     choice = makeChoice("Choose one of your opponent's artifacts to use: ", game.inactivePlayer.board["Artifact"])
@@ -1267,17 +1342,20 @@ def key120(game, self):
 def key121(game, card):
   """ Reverse Time: Swap your deck and your discard pile. Then, shuffle your deck.
   """
+  passFunc(game, card)
   game.activePlayer.deck, game.activePlayer.discard = game.activePlayer.discard, game.activePlayer.deck
   random.shuffle(game.activePlayer.deck)
 
 def key122(game, card):
   """ Scrambler Storm: Your opponent cannot play action cards on their next turn.
   """
+  passFunc(game, card)
   game.inactivePlayer.states["Play"].update({card.title:True})
 
 def key123(game, card):
   """ Sloppy Labwork: Archive a card. Discard a card.
   """
+  passFunc(game, card)
   hand = game.activePlayer.hand
   archive = game.activePlayer.archive
   if len(hand) > 0:
@@ -1294,6 +1372,7 @@ def key123(game, card):
 def key124(game, card):
   """ Twin Bolt Emission: Deal 2 damage to a creature and deal 2 damage to a different creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = []
@@ -1318,23 +1397,27 @@ def key124(game, card):
 def key125(game, card):
   """ Wild Wormhole: Play the top card of your deck.
   """
+  passFunc(game, card)
   game.playCard(100, False)
 
 def key138(game, card):
   """ Dextre: Capture 1 amber.
   """
+  passFunc(game, card)
   card.capture(game, 1)
   print("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
 
 def key140(game, card):
   """ Dr. Escotera: Gain 1 amber for each key your opponent has.
   """
+  passFunc(game, card)
   game.activePlayer.amber += game.inactivePlayer.keys
   print("You now have " + str(game.activePlayer.amber) + " amber")
 
 def key141(game, card):
   """ Dysania: Your opponent discards each of their archived cards. You gain 1 amber for each card discarded this way.
   """
+  passFunc(game, card)
   # edge case: if your opponent has your cards in their archive, they don't get discarded, but sent to your hand
   if len(game.inactivePlayer.archive) > 0:
     count = 0
@@ -1349,6 +1432,7 @@ def key141(game, card):
 def key143(game, card):
   """ Harland Mindlock: Take control of an enemy flank creature until Harland Mindlock leaves play.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -1376,6 +1460,7 @@ def key143(game, card):
 def key146(game, card):
   """ Neutron Shark: Destroy an enemy creature or artifact and a friendly creature or artifact. Discard the top card of your deck. If that card is not a Logos card, trigger this effect again.
   """
+  passFunc(game, card)
   active = game.activePlayer.board
   inactive = game.inactivePlayer.board
   pendingDiscard = []
@@ -1436,6 +1521,7 @@ def key146(game, card):
 def key149(game, card):
   """ Psychic Bug: Look at your opponent's hand.
   """
+  passFunc(game, card)
   
   inhand = game.inactivePlayer.hand
 
@@ -1444,6 +1530,7 @@ def key149(game, card):
 def key152(game, card):
   """ Skippy Timehog: Your opponent canot use any cards next turn.
   """
+  passFunc(game, card)
   
   game.inactivePlayer.states["Reap"].update({card.title:True})
   game.inactivePlayer.states["Fight"].update({card.title:True})
@@ -1452,18 +1539,26 @@ def key152(game, card):
 def key153(game, card):
   """ Timetraveller: Draw two cards.
   """
+  passFunc(game, card)
   
   game.activePlayer += 2
 
 def key157(game, card):
   """ Experimental Therapy: Stun and exhaust this creature.
   """
+  passFunc(game, card)
   card.stun = True
   card.ready = False
+
+## End house Logos
 
 ########
 # Mars #
 ########
+
+###########
+# Actions #
+###########
 
 def reveal(game, L):
   """ A function to handle the Mars card revealing feature. Returns a list of revealed cards.
@@ -1488,6 +1583,7 @@ def reveal(game, L):
 def key160(game, card):
   """ Ammonia Clouds: Deal 3 damage to each creature.
   """
+  passFunc(game, card)
   
   active = game.activePlayer.board["Creature"]
   inactive = game.activePlayer.board["Creature"]
@@ -1496,14 +1592,15 @@ def key160(game, card):
   [x.damageCalc(game, 3) for x in active]
   [x.damageCalc(game, 3) for x in inactive]
   length = len(active)
-  [pendingDisc.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].update()]
+  [pendingDisc.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].updateHealth()]
   length = len(inactive)
-  [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
+  [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].updateHealth()]
   game.pending(pendingDisc)
 
 def key161(game, card):
   """ Battle Fleet: Reveal any number of Mars cards from your hand. For each card revealed this way, draw 1 card.
   """
+  passFunc(game, card)
   revealed = reveal(game, game.activePlayer.hand)
   game.activePlayer.printShort(revealed)
   game.activePlayer += len(revealed)
@@ -1512,6 +1609,7 @@ def key161(game, card):
 def key162(game, card):
   """ Deep Probe: Choose a house: Reveal your opponent's hand. Discard each creature of that house revealed this way.
   """
+  passFunc(game, card)
   
   discard = []
   house = ''
@@ -1527,6 +1625,7 @@ def key162(game, card):
 def key163(game, card):
   """ EMP Blast: Each Mars creature and each Robot creature is stunned. Each artifact is destroyed.
   """
+  passFunc(game, card)
   
   activeC = game.activePlayer.board["Creature"]
   activeA = game.activePlayer.board["Artifact"]
@@ -1544,6 +1643,7 @@ def key163(game, card):
 def key164(game, card):
   """ Hypnotic Command: For each friendly Mars creature, choose an enemy creature to capture one from their own side.
   """
+  passFunc(game, card)
   
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
@@ -1563,6 +1663,7 @@ def key164(game, card):
 def key165(game, card):
   """ Irradiated Amber: If your opponent has 6 or more amber, deal 3 damage to each enemy creature.
   """
+  passFunc(game, card)
   
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = [] # fine because only one side
@@ -1570,11 +1671,12 @@ def key165(game, card):
   if game.inactivePlayer.amber >= 6:
     length = len(inactive)
     [x.damageCalc(game, 3) for x in inactive]
-    [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
+    [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].updateHealth()]
 
 def key166(game, card):
   """ Key Abduction: Return each Mars creature to its owner's hand. Then you may forge a key at +9 current cost, reduced by 1 for each card in your hand.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   length = len(active)
@@ -1601,6 +1703,7 @@ def key166(game, card):
 def key167(game, card):
   """ Martian Hounds: Choose a creature. For each damaged creature, give the chosen creature two +1 power counters.
   """
+  passFunc(game, card)
   
   count = 0
   for x in (game.activePlayer.board["Creature"] + game.activePlayer.board["Creature"]):
@@ -1622,6 +1725,7 @@ def key167(game, card):
 def key168(game, card):
   """ Martians Make Bad Allies: Reveal your hand. Purge each revealed non-Mars creature and gain 1 amber for each card purged this way.
   """
+  passFunc(game, card)
   
   active = game.activePlayer.hand
   game.activePlayer.printShort(active)
@@ -1641,6 +1745,7 @@ def key168(game, card):
 def key169(game, card):
   """ Mass Abduction: Put up to 3 damaged enemy creatures into your archives. If any of these creatures leave your archives, they are put into their owner's hand instead.
   """
+  passFunc(game, card)
   
   inactive = game.inactivePlayer.board["Creature"]
   count = len([x for x in inactive if x.damage > 0])
@@ -1666,6 +1771,7 @@ def key169(game, card):
 def key170(game, card):
   """ Mating Season: Shuffle each Mars creature into its owner's deck. Each player gains 1 amber for each creature shuffled into their deck this way.
   """
+  passFunc(game, card)
   actDeck = game.activePlayer.deck
   inactDeck = game.inactivePlayer.deck
   active = game.activePlayer.board["Creature"]
@@ -1689,6 +1795,7 @@ def key170(game, card):
 def key171(game, card):
   """ Mothership Support: For each friendly ready Mars creature, deal 2 damage to a creature. (You may choose a different creature each time.)
   """
+  passFunc(game, card)
   
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
@@ -1704,14 +1811,14 @@ def key171(game, card):
     choice, side = chooseSide(game)
     if side == 0: # friendly
       active[choice].damageCalc(game, 2)
-      if active[choice].update():
+      if active[choice].updateHealth():
         pendingDisc.append(active.pop(choice))
         game.pending(pendingDisc)
         count -= 1
         continue
     if side == 1: # enemy
       inactive[choice].damageCalc(game, 2)
-      if active[choice].update():
+      if active[choice].updateHealth():
         pendingDisc.append(active.pop(choice))
         game.pending(pendingDisc)
         count -= 1
@@ -1722,6 +1829,7 @@ def key171(game, card):
 def key172(game, card):
   """ Orbital Bombardment: Reveal any number of Mars cards from your hand. For each card revealed this way, deal 2 damage to a creature. (you may choose a different creature each time.)
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = [] # fine because only one side
@@ -1734,14 +1842,14 @@ def key172(game, card):
     choice, side = chooseSide(game)
     if side == 0: # friendly
       active[choice].damageCalc(game, 2)
-      if active[choice].update():
+      if active[choice].updateHealth():
         pendingDisc.append(active.pop(choice))
         game.pending(pendingDisc)
         count -= 1
         continue
     if side == 1: # enemy
       inactive[choice].damageCalc(game, 2)
-      if active[choice].update():
+      if active[choice].updateHealth():
         pendingDisc.append(active.pop(choice))
         game.pending(pendingDisc)
         count -= 1
@@ -1752,6 +1860,7 @@ def key172(game, card):
 def key173(game, card):
   """ Phosphorous Stars: Stun each non-Mars creature. Gain 2 chains.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -1764,6 +1873,7 @@ def key173(game, card):
 def key174(game, card):
   """ Psychic Network: Steal 1 amber for each friendly ready Mars creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   count = 0
   for x in active:
@@ -1777,6 +1887,7 @@ def key174(game, card):
 def key175(game, card):
   """ Sample Collection: Put an enemy creature into your archives for each key your opponent has forged. If any of these creatures leave your archives, they are put into their owner's hand instead.
   """
+  passFunc(game, card)
   count = game.inactivePlayer.keys
   inactive = game.inactivePlayer.board["Creature"]
   archive = game.activePlayer.archive
@@ -1788,9 +1899,10 @@ def key175(game, card):
     choice = makeChoice("Choose an enemy creature to archive: ", inactive)
     archive.append(inactive.pop(choice))
 
-def key176(game, choice):
+def key176(game, card):
   """ Shatter Storm: Lose all your amber. Then, your opponent loses triple the amount of amber you lost this way.
   """
+  passFunc(game, card)
   count = game.activePlayer.amber
   if count == 0:
     print("You have no amber to lose, so your opponent loses no amber. The card is still played.")
@@ -1800,14 +1912,16 @@ def key176(game, choice):
   if game.inactivePlayer.amber < 0:
     game.inactivePlayer.amber = 0
 
-def key177(game, choice):
+def key177(game, card):
   """ Soft Landing: The next creature or artifact you play this turn enters play ready.
   """
+  passFunc(game, card)
   game.activePlayer.states["Play"].update({"Soft Landing":True})
 
-def key178(game, choice):
+def key178(game, card):
   """ Squawker: Ready a Mars creature or stun a non-Mars creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   choice, side = chooseSide(game)
@@ -1832,6 +1946,7 @@ def key178(game, choice):
 def key179(game, card):
   """ Total Recall: For each friendly ready creature, gain 1 amber. Return each friendly creature to your hand.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   pendingHand = []
   count = 0
@@ -1850,6 +1965,7 @@ def key179(game, card):
 def key203(game, card):
   """ Yxili Marauder: Capture 1 amber for each friendly ready Mars creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   count = 0
   for x in active:
@@ -1864,15 +1980,20 @@ def key203(game, card):
   print("Yxili Marauder captured " + str(card.captured) + " amber.")
   card.extraPow = card.captured
 
+## End house Mars
 
 ###########
 # Sanctum #
 ###########
 
+###########
+# Actions #
+###########
 
 def key212(game, card):
   """ Begone!: Choose one: destroy each Dis creature, or gain 1 amber.
   """
+  passFunc(game, card)
   while True:
     choice = input("Would you like to [D]estroy each Dis creature, or [G]ain 1 amber?").title()
     if choice[0] == "D":
@@ -1894,6 +2015,7 @@ def key212(game, card):
 def key213(game, card):
   """ Blinding Light: Choose a house. Stun each creature of that house.
   """
+  passFunc(game, card)
   while True:
     print(game)
     house = input("Choose a house. For handy reference, your opponent's houses are " + game.inactivePlayer.houses[0] + ", " + game.inactivePlayer.houses[1] + ", and " + game.inactivePlayer.houses[2] + ".\n>>>").title()
@@ -1911,11 +2033,13 @@ def key213(game, card):
 def key214(game, card):
   """ Charge!: For the remainder of the turn, each creature you play gains, "Play: Deal 2 to an enemy creature."
   """
+  passFunc(game, card)
   game.activePlayer.states["Play"].update({card.title:True})
 
 def key215(game, card):
   """ Cleansing Wave: Heal 1 damage from each creature. Gain 1 amber for each creature healed this way.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.board["Creature"]
   active = game.activePlayer.board["Creature"]
   count = 0
@@ -1928,6 +2052,7 @@ def key215(game, card):
 def key216(game, card):
   """ Clear Mind: Unstun each friendly creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   for x in active:
     if x.stun == True:
@@ -1937,6 +2062,7 @@ def key216(game, card):
 def key217(game, card):
   """ Doorstep to Heaven: Each player with 6 or more amber is reduced to five amber.
   """
+  passFunc(game, card)
   if game.activePlayer.amber >= 6:
     game.activePlayer.amber = 5
   if game.inactivePlayer.amber >= 6:
@@ -1945,6 +2071,7 @@ def key217(game, card):
 def key218(game, card):
   """ Glorious Few: For each creature your opponent controls in excess of you, gain 1 amber.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if len(inactive) > len(active):
@@ -1956,6 +2083,7 @@ def key218(game, card):
 def key219(game, card):
   """ Honorable Claim: Each friendly knight creature captures 1.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   count = 0
   knights = []
@@ -1979,6 +2107,7 @@ def key219(game, card):
 def key220(game, card):
   """ Inspiration: Ready and use a friendly creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   choice = makeChoice("Choose a friendly creature to ready and use: ", active)
   active[choice].ready = True
@@ -2003,6 +2132,7 @@ def key220(game, card):
 def key221(game, card):
   """ Mighty Lance: Deal 3 damage to a creature and 3 damage to a neighbor of that creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   choice, side = chooseSide(game)
@@ -2028,9 +2158,9 @@ def key221(game, card):
     active[choice].damageCalc(game, 3)
     active[other].damageCalc(game, 3)
     if choice > other:
-      [pendingD.append(active.pop(x)) for x in [choice, other] if active[x].update()]
+      [pendingD.append(active.pop(x)) for x in [choice, other] if active[x].updateHealth()]
     else: 
-      [pendingD.append(active.pop(x)) for x in [other, choice] if active[x].update()]
+      [pendingD.append(active.pop(x)) for x in [other, choice] if active[x].updateHealth()]
     game.pending(pendingD)
     return
   if side == 1: # enemy
@@ -2053,10 +2183,10 @@ def key221(game, card):
     inactive[choice].damageCalc(game, 3)
     inactive[other].damageCalc(game, 3)
     if choice > other:
-      [pendingD.append(inactive.pop(x)) for x in [choice, other] if inactive[x].update()]
+      [pendingD.append(inactive.pop(x)) for x in [choice, other] if inactive[x].updateHealth()]
       return
     else:
-      [pendingD.append(inactive.pop(x)) for x in [other, choice] if inactive[x].update()]
+      [pendingD.append(inactive.pop(x)) for x in [other, choice] if inactive[x].updateHealth()]
     game.pending(pendingD)
     return
   if side == '':
@@ -2065,6 +2195,7 @@ def key221(game, card):
 def key222(game, card):
   """ Oath of Poverty: Destroy each of your artifacts. Gain 2 amber for each artifact destroyed this way.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Artifact"]
   count = len(active)
   pending = []
@@ -2079,6 +2210,7 @@ def key222(game, card):
 def key223(game, card):
   """ One Stood Against Many: Ready and fight with a friendly creature 3 times, each time against a different enemy creature. Resolve these fights one at a time.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   count = 3
@@ -2098,10 +2230,10 @@ def key223(game, card):
       return # checkFightStates will explain why
     active[choice].fightCard(inactive[target], game)
     fought.append(inactive[target])
-    if inactive[target].update():
+    if inactive[target].updateHealth():
       pendingD.append(inactive.pop(target))
       game.pending(pendingD)
-    if active[choice].update():
+    if active[choice].updateHealth():
       pendingD.append(active.pop(choice))
       game.pending(pendingD)
       print("Your creature died, so the card's effect ends.")
@@ -2115,6 +2247,7 @@ def key223(game, card):
 def key224(game, card):
   """ Radiant Truth: Stun each enemy creature not on a flank.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.board["Creature"]
   for x in inactive[1:-1]:
     x.stun = True
@@ -2122,12 +2255,14 @@ def key224(game, card):
 def key225(game, card):
   """ Shield of Justice: For the remainder of the turn, each friendly creature cannot be dealt damage.
   """
+  passFunc(game, card)
   # create a state that is checked in damageCalc. which means damage calc needs more inputs
   game.activePlayer.states["Fight"].update({"Shield of Justice":True})
 
 def key226(game, card):
   """ Take Hostages: For the remainder of the turn, each time a friendly creature fights, it captures 1 amber.
   """
+  passFunc(game, card)
   # creates a state to be checked in checkFightStates
   if not game.activePlayer.states["Fight"][card.title][0]:
     game.activePlayer.states["Fight"].update({card.title:[True]})
@@ -2138,6 +2273,7 @@ def key226(game, card):
 def key227(game, card):
   """ Terms of Redress: Choose a friendly creature to capture 2.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   choice = makeChoice("Choose a friendly creature to capture two amber: ", active)
   active[choice].capture(2)
@@ -2145,6 +2281,7 @@ def key227(game, card):
 def key228(game, card):
   """ The Harder They Come: Purge a creature with power 5 or higher.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   purgableA = [x for x in active if x.power + x.extraPow >= 5]
@@ -2185,6 +2322,7 @@ def key228(game, card):
 def key229(game, card):
   """ The Spirit's Way: Destroy each creature with power 3 or higher.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingD = []
@@ -2197,6 +2335,7 @@ def key229(game, card):
 def key231(game, card):
   """ Epic Quest: Archive each friendly Knight creature in play.
   """
+  passFunc(game, card)
   archive = game.activePlayer.archive
   active = game.activePlayer.board["Creature"]
   length = len(active)
@@ -2205,6 +2344,7 @@ def key231(game, card):
 def key246(game, card):
   """ Horseman of Death: Return each Horseman creature from your discard pile to your hand.
   """
+  passFunc(game, card)
   discard = game.activePlayer.discard
   hand = game.activePlayer.hand
   length = len(discard)
@@ -2213,6 +2353,7 @@ def key246(game, card):
 def key247(game, card):
   """ Horseman of Famine: Destroy the least powerful creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   powers = [x.power for x in (active + inactive)]
@@ -2238,6 +2379,7 @@ def key247(game, card):
 def key248(game, card):
   """ Horseman of Pestilence: Deal 1 damage to each non-Horseman creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2245,19 +2387,21 @@ def key248(game, card):
     if "Horseman" not in x.traitList:
       x.damageCalc(game, 1)
   length = len(active)
-  [pending.append(active.pop(absa(x, length))) for x in range(length) if active[absa(x, length)].update()]
+  [pending.append(active.pop(absa(x, length))) for x in range(length) if active[absa(x, length)].updateHealth()]
   length = len(inactive)
-  [pending.append(inactive.pop(absa(x, length))) for x in range(length) if inactive[absa(x, length)].update()]
+  [pending.append(inactive.pop(absa(x, length))) for x in range(length) if inactive[absa(x, length)].updateHealth()]
   game.pending(pending)
 
 def key249(game, card):
   """ Horseman of War: For the remainder of the turn, each friendly creature can be used as if they were in the active house, but can only fight.
   """
+  passFunc(game, card)
   game.extraFightHouses = ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]
 
 def key251(game, card):
   """ Lady Maxena: Stun a creature.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   choice, side = chooseSide(game)
@@ -2271,6 +2415,7 @@ def key251(game, card):
 def key253(game, card):
   """ Numquid the Fair: Destroy an enemy creature. Repeat this card's effect if your opponent still controls more creatures than you.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2290,11 +2435,13 @@ def key253(game, card):
 def key255(game, card):
   """ Raiding Knight: Capture 1 amber.
   """
+  passFunc(game, card)
   card.capture(game, 1)
 
 def key258(game, card):
   """ Sergeant Zakiel: You may ready and fight with a neighboring creature.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
 
   if len(activeBoard) == 1:
@@ -2316,6 +2463,7 @@ def key258(game, card):
 def key260(game, card):
   """ Gatekeeper: If your opponent has 7 or more amber, capture all but 5 of it.
   """
+  passFunc(game, card)
   if game.inactivePlayer.amber >= 7:
     diff = game.inactivePlayer.amber - 5
   card.capture(game, diff)
@@ -2324,6 +2472,7 @@ def key260(game, card):
 def key262(game, card):
   """ Veemos Lightbringer: Destroy each elusive creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2332,13 +2481,20 @@ def key262(game, card):
   length = len(inactive)
   [pending.append(inactive.pop(absa(x, length))) for x in range(length) if inactive[absa(x, length)].elusive]
 
+## End house Sanctum
+
 ###########
 # Shadows #
+###########
+
+###########
+# Actions #
 ###########
 
 def key267(game, card):
   """ Bait and Switch: If your opponent has more amber than you, steal 1. Repeat the preceding effect if your opponent still has more amber than you.
   """
+  passFunc(game, card)
   count = 2
   while count > 0:
     if game.inactivePlayer.amber > game.activePlayer.amber:
@@ -2351,6 +2507,7 @@ def key267(game, card):
 def key268(game, card):
   """ Booby Trap: Deal 4 damage to a creature that is not on a flank with 2 splash.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2380,18 +2537,19 @@ def key268(game, card):
     # guaranteed to have two neighbors if can be targeted
     active[choice + 1].damageCalc(game, 2)
     active[choice - 1].damageCalc(game, 2)
-    [pending.append(active.pop(x)) for x in [choice + 1, choice, choice - 1] if active[x].update()]
+    [pending.append(active.pop(x)) for x in [choice + 1, choice, choice - 1] if active[x].updateHealth()]
   elif side == 1:
     inactive[choice].damageCalc(game, 4)
     # guaranteed to have two neighbors if can be targeted
     inactive[choice + 1].damageCalc(game, 2)
     inactive[choice - 1].damageCalc(game, 2)
-    [pending.append(inactive.pop(x)) for x in [choice + 1, choice, choice - 1] if inactive[x].update()]
+    [pending.append(inactive.pop(x)) for x in [choice + 1, choice, choice - 1] if inactive[x].updateHealth()]
   game.pending(pending)
 
 def key269(game, card):
   """ Finishing Blow: Destroy a damaged creature. If you do, steal 1 amber.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2440,6 +2598,7 @@ def key269(game, card):
 def key270(game, card):
   """ Ghostly Hand: If your opponent has exactly 1 amber, steal it.
   """
+  passFunc(game, card)
   if game.inactivePlayer.amber == 1:
     stealAmber(game.activePlayer, game.inactivePlayer, 1)
     print("You stole your opponent's only amber, you jerk. You now have " + str(game.activePlayer.amber) + " amber.")
@@ -2449,6 +2608,7 @@ def key270(game, card):
 def key271(game, card):
   """ Hidden Stash: Archive a card.
   """
+  passFunc(game, card)
   archive = makeChoice("Choose a card from hand to archive: ", game.activePlayer.hand)
   game.activePlayer.archive.append(game.activePlayer.hand.pop(archive))
   print(archive[-1].title + " archived! Type 'Archive' to view your archive.")
@@ -2456,6 +2616,7 @@ def key271(game, card):
 def key272(game, card):
   """ Imperial Traitor: Look at your opponent's hand. You may choose and purge a Sanctum card in it.
   """
+  passFunc(game, card)
   # check for Sanctum card in opp hand
   pending = []
   game.activePlayer.printShort(game.inactivePlayer.hand)
@@ -2469,6 +2630,7 @@ def key272(game, card):
 def key273(game, card):
   """ Key of Darkness: Forge a key at +6 current cost. If your opponent has no amber, forge a key at +2 current cost instead.
   """
+  passFunc(game, card)
   # whenever we forge a key, we calculate key cost
   # this will be a function in Game
   game.activePlayer.keyCost = game.calculateCost()
@@ -2487,6 +2649,7 @@ def key273(game, card):
 def key274(game, card):
   """ Lights Out: Return 2 enemy creature's to their owner's hand.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
   count = 2
@@ -2499,11 +2662,13 @@ def key274(game, card):
 def key275(game, card):
   """ Miamsa: Your opponent skips the "forge a key" step on their next turn.
   """
+  passFunc(game, card)
   game.inactivePlayer.states["Forge"].update({card.title:True})
 
 def key276(game, card):
   """ Nerve Blast: Steal 1 amber. If you do, deal 2 damage to a creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2517,17 +2682,18 @@ def key276(game, card):
     return
   if side == 0: #friendly
     active[choice].damageCalc(game, 2)
-    if active[choice].update():
+    if active[choice].updateHealth():
       pending.append(active.pop(choice))
   if side == 1: #enemy
     inactive[choice].damageCalc(game, 2)
-    if inactive[choice].update():
+    if inactive[choice].updateHealth():
       pending.append(inactive.pop(choice))
   game.pending(pending)
 
 def key277(game, card):
   """ One Last Job: Purge each friendly Shadows creature. Steal 1 amber for each creature purged this way.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   pending = []
   length = len(active)
@@ -2542,6 +2708,7 @@ def key277(game, card):
 def key278(game, card):
   """ Oubliette: Purge a creature with power 3 or lower.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   purgableA = [x for x in active if x.power + x.extraPow <= 3]
@@ -2582,6 +2749,7 @@ def key278(game, card):
 def key279(game, card):
   """ Pawn Sacrifice: Sacrifice a friendly creature. If you do, deal 3 damage each to 2 creatures.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2602,11 +2770,11 @@ def key279(game, card):
     choice, side = chooseSide(game)
     if side == 0: #friendly
       active[choice].damageCalc(game, 3)
-      if active[choice].update():
+      if active[choice].updateHealth():
         pending.append(active.pop(choice))
     if side == 1: #enemy
       inactive[choice].damageCalc(game, 3)
-      if inactive[choice].update():
+      if inactive[choice].updateHealth():
         pending.append(inactive.pop(choice))
     count -= 1
   game.pending(pending)
@@ -2614,6 +2782,7 @@ def key279(game, card):
 def key280(game, card):
   """ Poison Wave: Deal 2 damage to each creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.activePlayer.board["Creature"]
   pendingDisc = []
@@ -2621,14 +2790,15 @@ def key280(game, card):
   [x.damageCalc(game, 2) for x in active]
   [x.damageCalc(game, 2) for x in inactive]
   length = len(active)
-  [pendingDisc.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].update()]
+  [pendingDisc.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].updateHealth()]
   length = len(inactive)
-  [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
+  [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].updateHealth()]
   game.pending(pendingDisc)
 
 def key281(game, card):
   """ Relentless Whispers: Deal 2 damage to a creature. If this damage destroys that creature, steal 1 amber.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2641,12 +2811,12 @@ def key281(game, card):
 
   if side == 0: #friendly
     active[choice].damageCalc(game, 2)
-    if active[choice].update():
+    if active[choice].updateHealth():
       stealAmber(game.activePlayer, game.inactivePlayer, 1)
       pending.append(active.pop(choice))
   if side == 1: #enemy
     inactive[choice].damageCalc(game, 2)
-    if inactive[choice].update():
+    if inactive[choice].updateHealth():
       stealAmber(game.activePlayer, game.inactivePlayer, 1)
       pending.append(inactive.pop(choice))
   game.pending(pending)
@@ -2654,6 +2824,7 @@ def key281(game, card):
 def key282(game, card):
   """ Routine Job: Steal 1 amber. Then, steal 1 amber for each copy of Routine Job in your discard pile.
   """
+  passFunc(game, card)
   stealAmber(game.activePlayer, game.inactivePlayer, 1)
   count = len([x for x in game.activePlayer.discard if x.title == card.title])
   if count > 0:
@@ -2662,6 +2833,7 @@ def key282(game, card):
 def key283(game, card):
   """ Too Much to Protect: Steal all but 6 of your opponent's amber.
   """
+  passFunc(game, card)
   diff = 0
   if game.inactivePlayer.amber > 6:
     diff = game.inactivePlayer.amber - 6
@@ -2672,6 +2844,7 @@ def key283(game, card):
 def key284(game, card):
   """ Treasure Map: If you have not played any other cards this turn, gain 3 amber. For the remainder of the turn, you cannot play cards.
   """
+  passFunc(game, card)
   # game.numPlays is incremented before a card's action is called
   if game.numPlays - 1 == 0:
     game.activePlayer.amber += 3
@@ -2681,6 +2854,7 @@ def key284(game, card):
 def key288(game, card):
   """ Masterplan: Put a card from your hand facedown beneath Masterplan.
   """
+  passFunc(game, card)
   hand = game.activePlayer.hand
   game.activePlayer.board["Masterplan"] = []
   plan = game.activePlayer.board["Masterplan"]
@@ -2690,16 +2864,19 @@ def key288(game, card):
 def key303(game, card):
   """ Magda the Rat: Steal 2 amber.
   """
+  passFunc(game, card)
   stealAmber(game.activePlayer, game.inactivePlayer, 2)
 
 def key307(game, card):
   """ Old Bruno: Capture 3 amber.
   """
+  passFunc(game, card)
   card.capture(game, 3)
 
 def key313(game, card):
   """ Sneklifter: Take control of an enemy artifact. While under your control, if it does not belong to one of your three houses, it is considered to be of house Shadows.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Artifact"]
   inactive = game.inactivePlayer.board["Artifact"]
 
@@ -2714,15 +2891,23 @@ def key313(game, card):
 def key315(game, card):
   """ Urchin: Steal 1 amber.
   """
+  passFunc(game, card)
   stealAmber(game.activePlayer, game.inactivePlayer, 1)
+
+## End house Shadows
 
 ###########
 # Untamed #
 ###########
 
+###########
+# Actions #
+###########
+
 def key319(game, card):
   """ Cooperative Hunting: Deal 1 damage for each friendly creature in play. You may divide this damage among any number of creatures.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2735,7 +2920,7 @@ def key319(game, card):
       else:
         damage = makeChoice("How much damage would you like to deal to this creature?", list(range(1, active[choice].health() + 2)))
       active[choice].damageCalc(game, damage)
-      if active[choice].update():
+      if active[choice].updateHealth():
         pending.append(active.pop(choice))
         game.pending(pending)
         count -= 1
@@ -2746,7 +2931,7 @@ def key319(game, card):
       else:
         damage = makeChoice("How much damage would you like to deal to this creature?", list(range(1, inactive[choice].health() + 2)), show = False)
       inactive[choice].damageCalc(game, damage)
-      if inactive[choice].update():
+      if inactive[choice].updateHealth():
         pending.append(inactive.pop(choice))
         game.pending(pending)
         count -= 1
@@ -2757,6 +2942,7 @@ def key319(game, card):
 def key320(game, card):
   """ Curiosity: Destroy each Scientist creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2769,18 +2955,21 @@ def key320(game, card):
 def key321(game, card):
   """ Fertility Chant: Your opponent gains 2 amber.
   """
+  passFunc(game, card)
   game.inactivePlayer.amber += 2
   print("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
 
 def key322(game, card):
   """ Fogbank: Your opponent cannot use creatures to fight on their next turn.
   """
+  passFunc(game, card)
   # states should always be in deck that they affect
   game.inactivePlayer.states["Fight"].update({card.title:True})
 
 def key323(game, card):
   """ Full Moon: For the remainder of the turn, gain 1 amber each time you play a creature.
   """
+  passFunc(game, card)
   if not game.activePlayer.states["Play"][card.title][0]:
     game.activePlayer.states["Play"].update({card.title:[True]})
   else:
@@ -2790,6 +2979,7 @@ def key323(game, card):
 def key324(game, card):
   """ Grasping Vines: Return up to 3 artifacts to their owners' hands.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Artifact"]
   inactive = game.inactivePlayer.board["Artifact"]
   pending = []
@@ -2818,6 +3008,7 @@ def key324(game, card):
 def key325(game, card):
   """ Key Charge: Lost 1 amber. If you do, you may forge a key at current cost.
   """
+  passFunc(game, card)
   game.activePlayer.amber -= 1
   game.activePlayer.keyCost = game.calculateCost()
   if game.activePlayer.amber >= game.activePlayer.keyCost:
@@ -2836,6 +3027,7 @@ def key325(game, card):
 def key326(game, card):
   """ Lifeweb: If your opponent played 3 or more creatures on their previous turn, steal 2 amber.
   """
+  passFunc(game, card)
   # implement tracking how many creatures opponent played last turn
   # if a deck has lifeweb in it, it will set Lifeweb in states to [True, 0]. Whenever the opponent plays a creature, it will be incremented.
   if game.activePlayer.states["Play"][card.title] >= 3:
@@ -2847,6 +3039,7 @@ def key326(game, card):
 def key327(game, card):
   """ Lost in the Woods: Choose 2 friendly creatures and 2 enemy creatures. Shuffle each chosen creature into its owner's deck.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2879,6 +3072,7 @@ def key327(game, card):
 def key328(game, card):
   """ Mimicry: When you play this card, treat it as a copy of an action card in your opponent's discard pile.
   """
+  passFunc(game, card)
   options = [(x, game.inactivePlayer.discard.index(x)) for x in range(len(game.inactivePlayer.discard)) if x.type == "Action"]
   choice = makeChoice("Choose an action card to copy: ", [x[0] for x in options])
   print(game.inactivePlayer.discard[options[choice][1]].text)
@@ -2887,6 +3081,7 @@ def key328(game, card):
 def key329(game, card):
   """ Nature's Call: Return up to 3 creatures to their owners' hands.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2915,6 +3110,7 @@ def key329(game, card):
 def key330(game, card):
   """ Nocturnal Maneuver: Exhaust up to 3 creatures.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   count = 3
@@ -2940,6 +3136,7 @@ def key330(game, card):
 def key331(game, card):
   """ Perilous Wild: Destroy each elusive creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
@@ -2951,6 +3148,7 @@ def key331(game, card):
 def key332(game, card):
   """ Regrowth: Return a creature from your discard pile to your hand.
   """
+  passFunc(game, card)
   active = game.activePlayer.discard
   options = [(x, active.index(x)) for x in range(len(active)) if x.type == "Creature"]
   choice = makeChoice("Choose a creature to return to your hand: ", [x[0] for x in options])
@@ -2960,6 +3158,7 @@ def key332(game, card):
 def key333(game, card):
   """ Save the Pack: Destroy each damaged creature. Gain 1 chain.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDiscard = []
@@ -2987,6 +3186,7 @@ def key333(game, card):
 def key334(game, card):
   """ Scout: For the remainder of the turn, up to 2 friendly creatures gain skirmish. Then, fight with those creatures one at a time.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   count = 2
   choices = []
@@ -3013,6 +3213,7 @@ def key334(game, card):
 def key335(game, card):
   """ Stampede: If you used 3 or more creatures this turn, steal 2 amber.
   """
+  passFunc(game, card)
   if game.activePlayer.states["Action"][card.title] >= 3:
     print("You have used at least 3 creatures this turn, so you steal 2 amber.")
     stealAmber(game.activePlayer, game.inactivePlayer, 2)
@@ -3022,6 +3223,7 @@ def key335(game, card):
 def key336(game, card):
   """ The Common Cold: Deal 1 damage to each creature. You may destroy all Mars creatures.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = []
@@ -3029,11 +3231,11 @@ def key336(game, card):
   # active
   length = len(active)
   [x.damageCalc(game, 1) for x in active]
-  [pendingDiscard.append(active.pop(abs(x - length + 1))) for x in active if active[abs(x - length + 1)].update()]
+  [pendingDiscard.append(active.pop(abs(x - length + 1))) for x in active if active[abs(x - length + 1)].updateHealth()]
   # inactive
   length = len(inactive)
   [x.damageCalc(game, 1) for x in inactive]
-  [pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in inactive if inactive[abs(x - length + 1)].update()]
+  [pendingDiscard.append(inactive.pop(abs(x - length + 1))) for x in inactive if inactive[abs(x - length + 1)].updateHealth()]
   game.pending(pendingDiscard)
   # optional destroy Mars creatures
   marsA = [active.index(x) for x in active if x.house == "Mars"]
@@ -3075,6 +3277,7 @@ def key336(game, card):
 def key337(game, card):
   """ Troop Call: Return each friendly Niffle creature from your discard pile and from play to your hand.
   """
+  passFunc(game, card)
   disc = game.activePlayer.discard
   active = game.activePlayer.board["Creature"]
   pending = []
@@ -3092,6 +3295,7 @@ def key337(game, card):
 def key338(game, card):
   """ Vigor: Heal up to 3 damage from a creature. If you healed 3 damage, gain 1 amber.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   damage = reduce(lambda x,y: x + y, [x.damage for x in (active + inactive)])
@@ -3131,6 +3335,7 @@ def key338(game, card):
 def key339(game, card):
   """ Word of Returning: Deal 1 damage to each enemy for each amber on it. Return all amber from those creatures to your pool.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
   length = len(inactive)
@@ -3139,13 +3344,14 @@ def key339(game, card):
       inactive[absa(x, length)].damageCalc(game, inactive[absa(x, length)].captured)
       game.activePlayer.amber += inactive[absa(x, length)].captured
       inactive[absa(x, length)].captured = 0
-      if inactive[absa(x, length)].update():
+      if inactive[absa(x, length)].updateHealth():
         pending.append(inactive.pop(absa(x, length)))
   game.pending(pending)
 
 def key349(game, card):
   """ Chota Hazri: Lose 1 amber, if you do, you may forge a key at current cost.
   """
+  passFunc(game, card)
   game.activePlayer.amber -= 1
   game.activePlayer.keyCost = game.calculateCost()
   if game.activePlayer.amber >= game.activePlayer.keyCost:
@@ -3162,6 +3368,7 @@ def key349(game, card):
 def key352(game, card):
   """ Flaxia: If you control more creatures than your opponent, gain 2 amber.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.board["Creature"]
   active = game.activePlayer.board["Creature"]
 
@@ -3172,12 +3379,14 @@ def key352(game, card):
 def key353(game, card):
   """ Fuzzy Gruen: Your opponent gains 1 amber.
   """
+  passFunc(game, card)
   game.inactivePlayer.amber += 1
   print("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
 
 def key356(game, card):
   """ Inka the Spider: Stun a creature.
   """
+  passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   choice, side = chooseSide(game)
@@ -3193,6 +3402,7 @@ def key356(game, card):
 def key359(game, card):
   """ Lupo the Scarred: Deal 2 damage to an enemy creature.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
   if len(inactive) == 0:
@@ -3200,13 +3410,14 @@ def key359(game, card):
     return
   choice = makeChoice("Choose an enemy creature to damage: ", inactive)
   inactive[choice].damageCalc(game, 2)
-  if inactive[choice].update():
+  if inactive[choice].updateHealth():
     pending.append(inactive.pop(choice))
     game.pending(pending)
 
 def key360(game, card):
   """ Mighty Tiger: Deal 4 damage to an enemy creature.
   """
+  passFunc(game, card)
   inactive = game.inactivePlayer.board["Creature"]
   pending = []
   if len(inactive) == 0:
@@ -3214,24 +3425,26 @@ def key360(game, card):
     return
   choice = makeChoice("Choose an enemy creature to damage: ", inactive)
   inactive[choice].damageCalc(game, 4)
-  if inactive[choice].update():
+  if inactive[choice].updateHealth():
     pending.append(inactive.pop(choice))
     game.pending(pending)
 
 def key365(game, card):
   """ Piranha Monkeys: Deal 2 damage to each other creature.
   """
+  passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.activePlayer.board["Creature"]
   pendingDisc = []
   [x.damageCalc(game, 2) for x in active if x != card]
   [x.damageCalc(game, 2) for x in inactive]
   length = len(active)
-  [pendingDisc.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].update()]
+  [pendingDisc.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].updateHealth()]
   length = len(inactive)
-  [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].update()]
+  [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].updateHealth()]
   game.pending(pendingDisc)
 
+## End house Untamed
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly') 

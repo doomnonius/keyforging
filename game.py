@@ -85,7 +85,7 @@ class Board():
     pygame.init()
     pygame.font.init()
     self.BASICFONT = pygame.font.SysFont("Corbel", 20)
-    self.OTHERFONT = pygame.font.SysFont("Corbel", 80)
+    self.OTHERFONT = pygame.font.SysFont("Corbel", 60)
     self.FPS = 30
     self.WIN = pygame.display.set_mode((WIDTH, HEIGHT))#, flags = pygame.FULLSCREEN)
     pygame.display.set_caption('Keyforge')
@@ -130,10 +130,10 @@ class Board():
     if card.type == "Creature":
       if card.title == "giant_sloth" and "Untamed" not in [x.title for x in self.discardedThisTurn]:
         return ["You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'."]
-      if card.stun:
-        return ["Unstun"]
       if card.house in self.activeHouse:
         retVal.append("Reap")
+        if card.stun:
+          return ["Unstun"]
       if (card.house in self.activeHouse or card.house in self.extraFightHouses) and len(self.inactivePlayer.board["Creature"]) > 0:
         # put a check here for the cards that can't fight, or things that prevent fight
         if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] \
@@ -145,6 +145,8 @@ class Board():
       retVal.append("Action")
     if card.omni:
       retVal.append("Omni")
+    if not retVal:
+      return ["You can't use this card right now."]
     return retVal
 
   def handOptions(self, cardNum: int) -> List:
@@ -674,12 +676,12 @@ class Board():
     # going to need a card back of some sort to put here
     l = len(self.activePlayer.deck)
     if l > 0:
-      card_image, card_rect = self.activePlayer.deck[0].image, self.activePlayer.deck[0].rect
+      card_image, card_rect = self.activePlayer.deck[-1].image, self.activePlayer.deck[-1].rect
       card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
       self.WIN.blit(card_image, card_rect)
     l = len(self.inactivePlayer.deck)
     if l > 0:
-      card_image, card_rect = self.inactivePlayer.deck[0].image, self.inactivePlayer.deck[0].rect
+      card_image, card_rect = self.inactivePlayer.deck[-1].image, self.inactivePlayer.deck[-1].rect
       card_rect.topleft = (self.deck1_rect.left, self.deck1_rect.top)
       self.WIN.blit(card_image, card_rect)
     if self.hovercard:
@@ -903,9 +905,9 @@ class Board():
     """
     for creature in self.activePlayer.board["Creature"]:
       creature.ready = True
-      creature.armor = creature.base_armor
-      if "Elusive" in creature.text:
-        creature.elusive = True
+      creature.resetEOT()
+    for creature in self.inactivePlayer.board["Creature"]:
+      creature.resetEOT()
     for artifact in self.activePlayer.board["Artifact"]:
       artifact.ready = True
     if forgedThisTurn[1] == num:
@@ -913,6 +915,7 @@ class Board():
     else:
       self.forgedLastTurn = False, num
     self.activeHouse = []
+    self.extraFightHouses = []
 
 
 ############################
@@ -996,22 +999,19 @@ class Board():
     if card.house in self.activeHouse:
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       if "rock-hurling_giant" in [x.title for x in active] and self.activePlayer.discard[-1].house == "Brobnar":
-        # side = play.chooseSide(self, choices = False)
         side = None
         while side == None:
           side = pyautogui.confirm("Will you target an enemy creature or a friendly creature?", buttons=["Enemy", "Friendly"])
         target = []
         if side == "Enemy":
-          # target = makeChoice("Choose a creature to target: ", active)
           while target == []:
-            target = self.chooseCards("inactCreature")
+            target = self.chooseCards("inactCreature", "Deal 4 damage to:")[0]
           active[target].damageCalc(self, 4)
           if active[target].updateHealth():
             self.pendingReloc.append(active.pop(target))
         else:
-          # target = makeChoice("Choose a creature to target: ", inactive)
           while target == []:
-            target = self.chooseCards("actCreature")
+            target = self.chooseCards("actCreature", "Deal 4 damage to:")[0]
           inactive[target].damageCalc(self, 4)
           if inactive[target].updateHealth():
             self.pendingReloc.append(inactive.pop(target))
@@ -1032,20 +1032,16 @@ class Board():
     # this check is also in cardOptions, but sometimes things let you trigger a fight other ways
     if len(self.inactivePlayer.board["Creature"]) == 0:
       pyautogui.alert("Your opponent has no creatures for you to attack. Fight canceled.")
-      return self, None
+      return self
     defender = []
     while defender == []:
-      defender = self.chooseCards("inactCreature")[0]
+      defender = self.chooseCards("inactCreature", "Choose an enemy minion to attack:")[0]
     defenderCard = self.inactivePlayer.board["Creature"][defender]
     try:
       print("Trying to fight.")
       card.fightCard(defenderCard, self)
     except: print("Fight failed.")
-    if card.updateHealth():
-      self.pendingReloc.append(self.activePlayer.board["Creature"].pop(attacker))
-    if defenderCard.updateHealth():
-      self.pendingReloc.append(self.inactivePlayer.board["Creature"].pop(defender))
-    self.pending()
+    return self
 
   def pending(self, destination = "discard", destroyed = True):
     """ Pending is the function that handles when multiple cards leave play at the same time, whether it be to hand or to discard. It will trigger leaves play and destroyed effects. Allowable options for dest are 'purge', 'discard', 'hand', 'deck'.
@@ -1171,23 +1167,16 @@ class Board():
         pyautogui.alert("No valid targets for this upgrade.")
         return self
       print("Choose a creature to play this upgrade on: ")
-      b = []
-      if len(self.activePlayer.board["Creature"]) > 0:
-        b.append("Friendly")
-      if len(self.inactivePlayer.board["Creature"]) > 0:
-        b.append("Enemy")
-      side = None
-      while side == None:
-        side = pyautogui.confirm("Will you target an enemy creature or a friendly creature?", buttons=["Enemy", "Friendly"])
+      side = self.chooseSide()
       self.activePlayer.board[card.type].append(self.activePlayer.hand.pop(chosen))
       target = []
       if side == "Friendly": # friendly
         while target == []:
-          target = self.chooseCards("actCreature")[0]
+          target = self.chooseCards("actCreature", "Choose a friendly creature to attach the upgrade to:")[0]
         self.playUpgrade(self.activePlayer.board["Creature"][target])
       elif side == "Enemy": # enemy
         while target == []:
-          target = self.chooseCards("inactCreature")[0]
+          target = self.chooseCards("inactCreature", "Choose an enemy creature to attach the upgrade to:")[0]
         self.playUpgrade(self.inactivePlayer.board["Creature"][target])
       else:
         return # shouldn't end up being triggered
@@ -1207,11 +1196,23 @@ class Board():
     """
     reaper = self.activePlayer.board["Creature"][cardNum]
     # check reap states when building cardOptions
-    pyautogui("Reaping.") # test line
+    # pyautogui.alert("Reaping.") # test line
     reaper.reap(self, reaper)
+    # reaper.ready = False # commented out for testing
     return
   
-  def chooseCards(self, targetPool: str, count: int = 1) -> List[int]:
+  def chooseSide(self):
+    side = None
+    if not self.activePlayer.board["Creature"]:
+      side = "Enemy"
+      empty = True
+    if not self.inactivePlayer.board["Creature"]:
+      side = "Friendly"
+    while side == None:
+      side = pyautogui.confirm("Will you target an enemy creature or a friendly creature?", buttons=["Enemy", "Friendly"])
+    return side    
+
+  def chooseCards(self, targetPool: str, message: str = "Choose a target:", count: int = 1) -> List[int]:
     """ This can't deal with mixed pools, but I think that's temporarily ok?
         Also can't handle if there aren't enough choices.
         Valid targetPool options:\n
@@ -1221,9 +1222,13 @@ class Board():
           actArtifact\n
           actHand
     """
-    messageSurf = self.OTHERFONT.render("Choose a target:", 1, COLORS["BLACK"])
+    messageSurf = self.OTHERFONT.render(message, 1, COLORS["YELLOW"])
     messageRect = messageSurf.get_rect()
     messageRect.topleft = (0,0)
+    backgroundSurf = pygame.Surface((messageSurf.get_width(), messageSurf.get_height()))
+    backgroundRect = backgroundSurf.get_rect()
+    backgroundRect.topleft = (0,0)
+    self.WIN.blit(backgroundSurf, backgroundRect)
     self.WIN.blit(messageSurf, messageRect)
     pygame.display.update()
     retVal = []
