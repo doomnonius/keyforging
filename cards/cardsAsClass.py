@@ -18,7 +18,7 @@ class Card(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         # screen = pygame.display.get_surface()
         self.deck = deckName
-        self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("'", "").replace('"', "").replace(",", "").replace("!", "")
+        self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("’", "").replace('"', "").replace(",", "").replace("!", "")
         self.width = width
         self.height = height
         self.damage = 0
