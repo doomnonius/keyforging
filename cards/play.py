@@ -496,7 +496,7 @@ def ganger_chieftain (game, card):
       game.fightCard(1)
     return
   elif activeBoard.index(card) == len(activeBoard)-1:
-    maybe = input(f"Would you like to ready and fight with {activeBoard[-2].title}", buttons=["Yes", "No"])
+    maybe = pyautogui.confirm(f"Would you like to ready and fight with {activeBoard[-2].title}", buttons=["Yes", "No"])
     if maybe == "Yes":
       activeBoard[-2].ready = True
       game.fightCard(len(activeBoard)-2)

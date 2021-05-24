@@ -4,6 +4,8 @@ import pygame, logging
 
 def basic_eot (game, card):
   card.armor = card.base_armor + card.extraArm
+  if "Elusive" in card.text:
+    card.elusive = True
 
 
 ###########

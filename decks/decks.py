@@ -33,7 +33,6 @@ class Deck:
         # whenever a state-creating card is played, it will add its state to this dict (use .update({key:value}) or [key]=value)
         # a couple notes: (1) I don't think I need the subcategories (2) 0 is equivalent to false
         self.states = {card.title:0 for card in self.deck}
-        print(self.states)
         
     def __repr__(self):
         """ How to represent a deck when called.

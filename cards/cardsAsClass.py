@@ -281,6 +281,7 @@ class Card(pygame.sprite.Sprite):
             game.pendingReloc.append(game.activePlayer.board["Creature"].pop(game.activePlayer.board["Creature"].index(self)))
         else:
             self.fight(game, self)
+            print("I know it isn't self.fight that's failing.")
         if other.updateHealth():
             game.pendingReloc.append(game.inactivePlayer.board["Creature"].pop(game.inactivePlayer.board["Creature"].index(other)))
         self.pending()

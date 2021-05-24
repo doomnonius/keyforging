@@ -9,7 +9,7 @@ import cards.reap as reap
 import cards.fight as fight
 import json, random, logging, time, pygame, pyautogui, os
 from helpers import makeChoice, buildStateDict
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple
 from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW
 
 #####################
@@ -58,6 +58,7 @@ class Board():
     self.turnStage = None
     self.response = []
     self.pendingReloc = []
+    self.extraDraws = []
     self.do = False
     # self.allRects = []
     self.backgroundColor = COLORS["WHITE"]
@@ -329,7 +330,7 @@ class Board():
     while run:
       self.CLOCK.tick(self.FPS)
       
-      # this feels like a weird place to put this, but it works
+      # this feels like a weird place to put this, but it works?
       if "tireless_crocag" in [x.title for x in self.activePlayer.board["Creature"]] \
       and len(self.inactivePlayer.board["Creature"]) == 0:
         for x in range(len(self.activePlayer.board["Creature"])):
@@ -354,7 +355,7 @@ class Board():
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
           self.hovercard = []
-          self.draw()
+          self.draw() # this only works because of the update in doPopup
           self.doPopup()
           
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -368,15 +369,16 @@ class Board():
       # handle card hovering
 
       self.hovercard = []
-      hoverable = self.activePlayer.hand + self.inactivePlayer.hand + self.activePlayer.board["Creature"] + self.inactivePlayer.board["Creature"] + self.activePlayer.board["Artifact"] + self.inactivePlayer.board["Artifact"]
+      self.check_hover()
+      # hoverable = self.activePlayer.hand + self.inactivePlayer.hand + self.activePlayer.board["Creature"] + self.inactivePlayer.board["Creature"] + self.activePlayer.board["Artifact"] + self.inactivePlayer.board["Artifact"]
 
-      for card in hoverable:
-        if pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)):
-          self.hovercard.append(card)
-          break
-        if pygame.Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)):
-          self.hovercard.append(card)
-          break
+      # for card in hoverable:
+      #   if pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)):
+      #     self.hovercard.append(card)
+      #     break
+      #   if pygame.Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)):
+      #     self.hovercard.append(card)
+      #     break
 
       ######################
       # Initial hand fill  #
@@ -644,6 +646,17 @@ class Board():
     pygame.quit()
 
 
+  def check_hover (self):
+    hoverable = self.activePlayer.hand + self.inactivePlayer.hand + self.activePlayer.board["Creature"] + self.inactivePlayer.board["Creature"] + self.activePlayer.board["Artifact"] + self.inactivePlayer.board["Artifact"]
+
+    for card in hoverable:
+      if pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)):
+        self.hovercard = [card]
+        break
+      if pygame.Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)):
+        self.hovercard = [card]
+        break
+  
   def draw(self):
     self.allsprites.update()
     self.WIN.blits(self.board_blits)
@@ -730,6 +743,9 @@ class Board():
       else:
         hover_rect.left = self.mousex
       self.WIN.blit(hover, hover_rect)
+    if self.extraDraws:
+      for pair in self.extraDraws:
+        self.WIN.blit(pair[0], pair[1])
     self.allsprites.draw(self.WIN)
 
 
@@ -769,14 +785,17 @@ class Board():
               self.response = [OPTION]
             else:
               self.response = [OPTION, card_pos, loc]
+            self.extraDraws = []
             return OPTION
           else:
+            self.extraDraws = []
             return None
       self.CLOCK.tick(self.FPS)
+      # self.draw()
   
 
   def option_selected(self, options, pos):
-    w = 400
+    w = max(x.get_width()+5 for x in [self.BASICFONT.render(y, 1, COLORS['BLUE']) for y in options])
     bot_offset = right_offset = 0
     popupSurf = pygame.Surface((w, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
     popupSurf.convert()
@@ -804,7 +823,7 @@ class Board():
 
 
   def make_popup(self, options, pos):
-    w = 400
+    w = max(x.get_width()+5 for x in [self.BASICFONT.render(y, 1, COLORS['BLUE']) for y in options])
     bot_offset = right_offset = 0
     popupSurf = pygame.Surface((w, pygame.font.Font.get_linesize(self.BASICFONT)*len(options)))
     popupSurf.fill(COLORS["BLACK"])
@@ -1252,7 +1271,6 @@ class Board():
     side = None
     if not self.activePlayer.board["Creature"]:
       side = "Enemy"
-      empty = True
     if not self.inactivePlayer.board["Creature"]:
       side = "Friendly"
     while side == None:
@@ -1275,11 +1293,19 @@ class Board():
     backgroundSurf = pygame.Surface((messageSurf.get_width(), messageSurf.get_height()))
     backgroundRect = backgroundSurf.get_rect()
     backgroundRect.topleft = (0,0)
-    self.WIN.blit(backgroundSurf, backgroundRect)
-    self.WIN.blit(messageSurf, messageRect)
-    pygame.display.update()
+    confirmSurf = self.OTHERFONT.render("  CONFIRM  ", 1, COLORS["BLACK"])
+    confirmRect = confirmSurf.get_rect()
+    confirmRect.topright = (self.WIN.get_width(), self.WIN.get_height() - confirmSurf.get_height())
+    confirmBack = pygame.Surface((confirmSurf.get_width(), confirmSurf.get_height()))
+    confirmBack.fill(COLORS["LIGHT_GREEN"])
+    confirmBackRect = confirmBack.get_rect()
+    confirmBackRect.topright = confirmRect.topright
+    # self.WIN.blit(backgroundSurf, backgroundRect)
+    # self.WIN.blit(messageSurf, messageRect)
+    # pygame.display.update()
     retVal = []
-    while len(retVal) < count:
+    while True: #len(retVal) < count:
+      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect)]
       for e in pygame.event.get():
         if e.type == pygame.QUIT:
           pygame.quit()
@@ -1312,8 +1338,15 @@ class Board():
               if actHand.index(True) not in retVal:
                 retVal.append(actHand.index(True))
           else:
-            break
+            if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)):
+              self.extraDraws = []
+              break
       self.CLOCK.tick(self.FPS)
+      self.hovercard = []
+      self.check_hover()
+      self.draw()
+      pygame.display.flip()
+      self.extraDraws = []
     return retVal
   
                 #####################
