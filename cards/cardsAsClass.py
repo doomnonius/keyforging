@@ -60,8 +60,13 @@ class Card(pygame.sprite.Sprite):
             self.omni = eval("action.omni" + self.number)
         else:
             self.omni = False
+        if self.type == "Upgrade":
+            self.attached = None
+        else:
+            self.attached = False
         # creature only abilities
         if self.type == "Creature":
+            self.upgrade = []
             if self.title == "Giant Sloth":
                 self.usable = False
             if "enters play ready" in self.text:

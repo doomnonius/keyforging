@@ -128,19 +128,20 @@ class Board():
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
       return ["'Skippy Timehog' is preventing you from using cards"]
     if card.type == "Creature":
-      if card.title == "giant_sloth" and "Untamed" not in [x.title for x in self.discardedThisTurn]:
+      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
         return ["You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'."]
-      if card.house in self.activeHouse:
-        retVal.append("Reap")
+      if (card.house in self.activeHouse or card.house in self.extraFightHouses or card.title == "tireless_crocag"):
+        if card.house in self.activeHouse and card.title != "tireless_crocag":
+          retVal.append("Reap")
         if card.stun:
           return ["Unstun"]
-      if (card.house in self.activeHouse or card.house in self.extraFightHouses) and len(self.inactivePlayer.board["Creature"]) > 0:
+        if len(self.inactivePlayer.board["Creature"]) > 0:
         # put a check here for the cards that can't fight, or things that prevent fight
-        if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] \
-        or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
-          pass
-        else:
-          retVal.append("Fight")
+          if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] \
+          or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
+            pass
+          else:
+            retVal.append("Fight")
     if card.action:
       retVal.append("Action")
     if card.omni:
@@ -163,11 +164,11 @@ class Board():
         return ["'Scrambler Storm' prevents playing actions this turn", "Discard"]
       if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
         return ["'Treasure Map' prevents playing more cards this turn", "Discard"]
-      if card.title == "truebaru" and self.activePlayer.amber < 3:
-        return ["You must have 3 amber to sacrifice in order to play 'Truebaru'", "Discard"]
-      if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
-        return ["You need 7 amber to play 'Kelifi Dragon'", "Discard"]
       if card.type == "Creature":
+        if card.title == "truebaru" and self.activePlayer.amber < 3:
+          return ["You must have 3 amber to sacrifice in order to play 'Truebaru'", "Discard"]
+        if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
+          return ["You need 7 amber to play 'Kelifi Dragon'", "Discard"]
         if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
           return ["You can't play creatures with 'Grommid' in play", "Discard"]
         if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
@@ -327,6 +328,20 @@ class Board():
 
     while run:
       self.CLOCK.tick(self.FPS)
+      
+      # this feels like a weird place to put this, but it works
+      if "tireless_crocag" in [x.title for x in self.activePlayer.board["Creature"]] \
+      and len(self.inactivePlayer.board["Creature"]) == 0:
+        for x in range(len(self.activePlayer.board["Creature"])):
+          if self.activePlayer.board["Creature"][-x].title == "tireless_crocag":
+            self.pendingReloc.append(self.activePlayer.board["Creature"].pop(-x))
+      if "tireless_crocag" in [x.title for x in self.inactivePlayer.board["Creature"]] \
+      and len(self.activePlayer.board["Creature"]) == 0:
+        for x in range(len(self.inactivePlayer.board["Creature"])):
+          if self.inactivePlayer.board["Creature"][-x].title == "tireless_crocag":
+            self.pendingReloc.append(self.inactivePlayer.board["Creature"].pop(-x))
+      self.pending()
+
 
       for event in pygame.event.get():
         
@@ -1033,6 +1048,9 @@ class Board():
     if len(self.inactivePlayer.board["Creature"]) == 0:
       pyautogui.alert("Your opponent has no creatures for you to attack. Fight canceled.")
       return self
+    if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] \
+    or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
+      return self
     defender = []
     while defender == []:
       defender = self.chooseCards("inactCreature", "Choose an enemy minion to attack:")[0]
@@ -1137,10 +1155,29 @@ class Board():
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
     print(f"numPlays: {self.numPlays}")
-    if self.numPlays >= 1 and self.turnNum == 1:
+    if self.numPlays >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
       pyautogui.alert("You cannot play another card this turn. But how'd you get here?")
       return
     card = self.activePlayer.hand[chosen]
+    if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
+      if card.type == "Action":
+        if "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
+          pyautogui.alert("'Scrambler Storm' prevents playing actions this turn, so you can't cheat this card out.")
+          return
+      elif card.type == "Creature":
+        # game.inactivePlayer.states["lifeweb"] += 1
+        if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
+          pyautogui.alert("You need 7 amber to play 'Kelifi Dragon'")
+          return
+        if card.title == "truebaru" and self.activePlayer.amber < 3:
+          pyautogui.alert("You must have 3 amber to sacrifice in order to play 'Truebaru'")
+          return
+        if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
+          pyautogui.alert("You can't play creatures with 'Grommid' in play")
+          return
+        if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
+          pyautogui.alert("You can't play creatures because of 'Lifeward'")
+          return
     if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0):
       self.activePlayer.states["phase_shift"] -= 1 # reset to false
       # Increases amber, adds the card to the action section of the board, then calls the card's play function
@@ -1194,10 +1231,21 @@ class Board():
   def reapCard(self, cardNum: int):
     """ Triggers a card's reap effect from within the turn.
     """
-    reaper = self.activePlayer.board["Creature"][cardNum]
+    card = self.activePlayer.board["Creature"][cardNum]
     # check reap states when building cardOptions
-    # pyautogui.alert("Reaping.") # test line
-    reaper.reap(self, reaper)
+    if not card.ready:
+      pyautogui.alert("Can't reap with a card that isn't ready.")
+      return
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
+      return
+    if card.type == "Creature":
+      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
+        pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+        return
+      if card.title == "tireless_crocag":
+        pyautogui.alert("'Tireless Crocag' can't reap")
+    card.reap(self, card)
     # reaper.ready = False # commented out for testing
     return
   
