@@ -486,6 +486,8 @@ def ganger_chieftain (game, card):
   activeBoard = game.activePlayer.board["Creature"]
 
   # this can't handle the edge case where ganger chieftain is destroyed upon entering
+  if len(activeBoard) == 1:
+    return
 
   if activeBoard.index(card) == 0:
     maybe = pyautogui.confirm(f"Would you like to ready and fight with {activeBoard[1].title}", buttons=["Yes", "No"])

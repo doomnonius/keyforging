@@ -53,9 +53,9 @@ class Board():
     self.discardLastTurn = []
     self.usedLastTurn = []
     self.extraFightHouses = []
-    self.forgedLastTurn = False, 0
+    self.forgedThisTurn = False
+    self.forgedLastTurn = False
     self.turnStage = None
-    self.subStage = None
     self.response = []
     self.pendingReloc = []
     self.do = False
@@ -383,7 +383,7 @@ class Board():
       ######################
 
       if self.turnStage == None:
-        self.forgedThisTurn = False, 0
+        self.forgedThisTurn = False
         ##########################
         # Build state dictionary #
         ##########################
@@ -459,7 +459,7 @@ class Board():
                 if card.updateHealth():
                   self.pendingReloc.append(self.inactivePlayer.board["Creature"].pop(x))
               self.pending()
-            self.forgedThisTurn = True, self.turnNum
+            self.forgedThisTurn = True
           else:
             pyautogui.alert("No key forged this turn, not enough amber.")
         else:
@@ -570,7 +570,7 @@ class Board():
           elif self.response == "Fight":
             # hands off the info to the "Fight" function
             self.fightCard(self.targetCard)
-            self.subStage = self.response
+            # self.subStage = self.response
           elif self.response == "Discard":
             if self.numPlays == 1 and self.turnNum == 1:
               pyautogui.alert("You've already taken your one action for turn one.")
@@ -578,12 +578,12 @@ class Board():
               self.discardCard(self.targetCard)
           elif self.response == "Action":
             self.actionCard(self.targetCard, self.loc)
-            self.subStage = self.response
+            # self.subStage = self.response
           elif self.response == "Reap":
             # Shows friendly board, prompts choice.
             # Checks viability
             self.reapCard(self.targetCard)
-            self.subStage = self.response
+            # self.subStage = self.response
           elif self.response == "Omni":
             self.actionCard(self.targetCard, self.loc, True)
           elif self.response == "Unstun":
@@ -598,12 +598,15 @@ class Board():
         #     ...
 
 
-      ###################################################
-      # step 4: ready cards and reset things like armor #
-      ###################################################
+      ########################
+      # step 4: ready cards  #
+      ########################
 
       elif self.turnStage == 4: # ready and reset armor
-        self.reset(self.turnNum, self.forgedThisTurn)
+        for creature in self.activePlayer.board["Creature"]:
+          creature.ready = True
+        for artifact in self.activePlayer.board["Artifact"]:
+          artifact.ready = True
         self.turnStage += 1
       
       ######################
@@ -617,6 +620,19 @@ class Board():
 
         # switch players
         self.switch()
+        for creature in self.activePlayer.board["Creature"]:
+          creature.eot(self, creature)
+        for creature in self.inactivePlayer.board["Creature"]:
+          creature.eot(self, creature)
+        if self.forgedThisTurn:
+          self.forgedLastTurn = self.forgedThisTurn
+        else:
+          self.forgedThisTurn = False
+        self.activeHouse = []
+        self.extraFightHouses = []
+        self.playedLastTurn = self.playedThisTurn.copy()
+        self.playedThisTurn = []
+        self.discardedThisTurn = []
         self.turnNum += 1
         self.numPlays = 0
         self.numDiscards = 0
@@ -914,23 +930,6 @@ class Board():
     # Need to add a tag for affecting amber cost.
     cost = 6
     return cost
-
-  def reset(self, num, forgedThisTurn):
-    """ Resets all things that need to be reset at EOT, like some states, armor, elusive, ready
-    """
-    for creature in self.activePlayer.board["Creature"]:
-      creature.ready = True
-      creature.resetEOT()
-    for creature in self.inactivePlayer.board["Creature"]:
-      creature.resetEOT()
-    for artifact in self.activePlayer.board["Artifact"]:
-      artifact.ready = True
-    if forgedThisTurn[1] == num:
-      self.forgedLastTurn = forgedThisTurn
-    else:
-      self.forgedLastTurn = False, num
-    self.activeHouse = []
-    self.extraFightHouses = []
 
 
 ############################

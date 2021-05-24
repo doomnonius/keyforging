@@ -121,7 +121,7 @@ class Card(pygame.sprite.Sprite):
                 self.hazard = 0
             # check for destroyed abilities
             if self.title in dir(dest):
-                eval(f"dest.{self.title}")
+                self.dest = eval(f"dest.{self.title}")
             else:
                 self.dest = dest.basicDest
             if f"lp_{self.title}" in dir(dest):
@@ -132,7 +132,7 @@ class Card(pygame.sprite.Sprite):
         if f"eot_{self.title}" in dir(turnEffects):
             self.eot = eval(f"turnEffects.eot_{self.title}")
         else:
-            self.eot = False
+            self.eot = turnEffects.basic_eot
         # end of turn effects
         if f"sot_{self.title}" in dir(turnEffects):
             self.sot = eval(f"turnEffects.sot_{self.title}")
@@ -261,18 +261,16 @@ class Card(pygame.sprite.Sprite):
         print("Hazardous and assault currently ignored.")
         print("Before fight effects would go here too.")
         self.before(game, self)
+        print("If you're reading this, it's not self.before")
         if self.skirmish or self.temp_skirmish:
             print("The attacker has skirmish, and takes no damage.") # Test line
-            self.damageCalc(game, 0)
         elif other.elusive:
             print("The defender has elusive, so no damage is dealt to the attacker.") # Test line
-            self.damageCalc(game, 0)
         else:
             print("Damage is dealt as normal to attacker.")
             self.damageCalc(game, other.power + other.extraPow)
         if other.elusive:
             print("The defender has elusive, so no damage is dealt to the defender.")
-            other.damageCalc(game, 0) #other.power - self.armor
             other.elusive = False
         else:
             print("Damage is dealt as normal to defender.")
@@ -280,11 +278,11 @@ class Card(pygame.sprite.Sprite):
         self.ready = False
         print("After fight effects would go here, if attacker survives.")
         if self.updateHealth():
-            game.pendingReloc.append(game.activePlayer.board["Creature"].pop(self))
+            game.pendingReloc.append(game.activePlayer.board["Creature"].pop(game.activePlayer.board["Creature"].index(self)))
         else:
             self.fight(game, self)
         if other.updateHealth():
-            game.pendingReloc.append(game.inactivePlayer.board["Creature"].pop(other))
+            game.pendingReloc.append(game.inactivePlayer.board["Creature"].pop(game.inactivePlayer.board["Creature"].index(other)))
         self.pending()
         print(other.damage)
         print(self.damage)

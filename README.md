@@ -26,7 +26,7 @@
  <li>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work.</li>
  <li>game.pending() needs updates</li>
  <li>Mulligan phase - should be able to hover cards while choosing whether to keep.</li>
- <li></li>
+ <li>Things that could target themselves won't be drawn in yet during the targeting phase.</li>
  <li></li>
  <li></li>
  <li><s>Interacting with the state dictionaries.</s> - in progress</li>
