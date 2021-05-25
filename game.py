@@ -119,7 +119,7 @@ class Board():
     return s
 
   def turnOptions(self) -> List:
-    return ['House', 'Turn', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
+    return ['House', 'Turn', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Card', 'MyDeck', 'OppDeck','OppHand', 'Concede', 'Quit']
     
   def cardOptions(self, cardNum: int, loc: str) -> List:
     retVal = []
@@ -584,9 +584,9 @@ class Board():
             pyautogui.alert("Your opponent's deck has " + str(len(self.inactivePlayer.deck)) + " cards.")
           elif self.response == "OppHand":
             pyautogui.alert("Your opponent's hand has " + str(len(self.inactivePlayer.hand)) + " cards.")
-          elif self.response == "EndTurn":
-            pyautogui.alert("Ending Turn!")
-            self.turnStage += 1
+          # elif self.response == "EndTurn":
+          #   pyautogui.alert("Ending Turn!")
+          #   self.turnStage += 1
           elif self.response == "Concede":
             pyautogui.alert(f"{self.inactivePlayer.name} wins!")
             run = False
