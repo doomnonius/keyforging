@@ -5,6 +5,10 @@
 <ul>
  <li>https://www.pygame.org/docs/genindex.html</li>
  <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
+ <li><s>Should be able to cancel out of the chooseCards menu</s> (this could also allow for selecting less than the full number of targets)</li>
+ <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
+ <li>If a card is tapped, it's untapped rect should be outside the board, and vice versa</li>
+ <li>I want the algo for drawing creatures, artifacts, to put them in the middle of their area.</li>
  <li>Code not yet implemented to only display valid options for items, instead of all. - in progress</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed. - in progress</li>
@@ -15,26 +19,22 @@
  <li>Enable dragging and dropping cards.</li>
  <li>Upgrades don't work. (Or things in later sets that give other cards abilities).</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, etc.</li>
- <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
- <li>If a card is tapped, it's untapped rect should be outside the board, and vice versa</li>
- <li>I want the algo for drawing creatures, artifacts, to put them in the middle of their area.</li>
- <li><s>Should be able to cancel out of the chooseCards menu</s> (this could also allow for selecting less than the full number of targets)</li>
  <li><b>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</b></li>
  <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor.</li>
  <li>game.chooseCards: <s>(1) can infinite loop if the list they try to target is empty </s>(2) can't handle choosing from different lists at the same time (3) should highlight chosen cards</li>
  <li>Is captured amber returned, while amber on artifacts lost?</li>
  <li>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work.</li>
  <li>game.pending() needs updates</li>
- <li>Mulligan phase - should be able to hover cards while choosing whether to keep.</li>
  <li>Things that could target themselves won't be drawn in yet during the targeting phase.</li>
  <li>Change color of End Turn button when no more available actions.</li>
- <li>Key, amber, and chain locations not scaled to size.</li>
+ <li>Key locations not scaled to size.</li>
  <li></li>
  <li></li>
  <li></li>
  <li><s>Interacting with the state dictionaries.</s> - in progress</li>
  <li></li>
  <li></li>
+ <li><s>Mulligan phase - should be able to hover cards while choosing whether to keep.</s></li>
  <li><s>Something I don't quite understand in line 1322 of game.py about things with play effects</s> - changed implementation, still refactoring but should be much better.</li>
  <li><s>Code not yet implemented to differentiate action from artifact v action from creature.</s> - pretty sure this is fixed, but also not sure what I meant</li>
  <li><s>Check status of fighters after fight.</s> Actually problem here was checking the attacker twice, instead of checking attacker and defender. So if attacker survived, so did defender.</li>

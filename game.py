@@ -267,7 +267,7 @@ class Board():
     ## divider1
     self.divider = pygame.Surface((wid // 5, mat_third))
     self.divider.convert()
-    self.divider.fill(COLORS["LIGHT_GREEN"])
+    self.divider.fill(COLORS["GREEN"])
     self.divider_rect = self.divider.get_rect()
     self.divider_rect.topleft = (0, int(mat_third * 2.5))
     self.key1y, self.key1y_rect = load_image("yellow_key_back", -1)
@@ -298,7 +298,7 @@ class Board():
     # houses
     self.houses1 = pygame.Surface((self.target_cardw, mat_third // 2))
     self.houses1.convert()
-    self.houses1.fill(COLORS["LIGHT_GREEN"])
+    self.houses1.fill(COLORS["GREEN"])
     self.houses1_rect = self.houses1.get_rect()
     self.houses1_rect.topleft = (0, int(mat_third * 3.5))
     self.board_blits.append((self.houses1, self.houses1_rect))
@@ -306,7 +306,7 @@ class Board():
     # deck
     self.deck1 = pygame.Surface((self.target_cardw, mat_third))
     self.deck1.convert()
-    self.deck1.fill(COLORS["LIGHT_GREEN"])
+    self.deck1.fill(COLORS["GREEN"])
     self.deck1_rect = self.deck1.get_rect()
     self.deck1_rect.topleft = (0, mat_third * 4)
     self.board_blits.append((self.deck1, self.deck1_rect))
@@ -314,7 +314,7 @@ class Board():
     # creatures
     self.creatures1 = pygame.Surface((wid - (self.target_cardw + self.margin), mat_third))
     self.creatures1.convert()
-    self.creatures1.fill(COLORS["LIGHT_GREEN"])
+    self.creatures1.fill(COLORS["GREEN"])
     self.creatures1_rect = self.creatures1.get_rect()
     self.creatures1_rect.topright = (wid, int(mat_third * 3.5))
     self.board_blits.append((self.creatures1, self.creatures1_rect))
@@ -322,7 +322,7 @@ class Board():
     # discard
     self.discard1 = pygame.Surface((self.target_cardw, mat_third))
     self.discard1.convert()
-    self.discard1.fill(COLORS["LIGHT_GREEN"])
+    self.discard1.fill(COLORS["GREEN"])
     self.discard1_rect = self.discard1.get_rect()
     self.discard1_rect.topleft = (0, mat_third * 5)
     self.board_blits.append((self.discard1, self.discard1_rect))
@@ -330,7 +330,7 @@ class Board():
     # artifacts
     self.artifacts1 = pygame.Surface((wid - (self.target_cardw + self.margin), mat_third))
     self.artifacts1.convert()
-    self.artifacts1.fill(COLORS["LIGHT_GREEN"])
+    self.artifacts1.fill(COLORS["GREEN"])
     self.artifacts1_rect = self.artifacts1.get_rect()
     self.artifacts1_rect.topright = (wid, int(mat_third * 4.5))
     self.board_blits.append((self.artifacts1, self.artifacts1_rect))
@@ -338,7 +338,7 @@ class Board():
     # hand
     self.hand1 = pygame.Surface((wid - (self.target_cardw + self.margin), mat_third))
     self.hand1.convert()
-    self.hand1.fill(COLORS["LIGHT_GREEN"])
+    self.hand1.fill(COLORS["GREEN"])
     self.hand1_rect = self.hand1.get_rect()
     self.hand1_rect.topright = (wid, int(mat_third * 5.5))
     self.board_blits.append((self.hand1, self.hand1_rect))
@@ -428,11 +428,8 @@ class Board():
           pyautogui.alert(f"\n{self.activePlayer.name} is going first.\n")
           self.activePlayer += 7
         else:
-          show = f'{self.activePlayer.name}\'s hand:\n'
-          for card in self.activePlayer.hand:
-            show += f"{card.title} ({card.house})\n"
-          mull = pyautogui.confirm(f"Player 1, would you like to keep?\n{show}", buttons=["Yes","No"])
-          if mull == "No":
+          mull = self.chooseMulligan("Player 1")
+          if mull:
             for card in self.activePlayer.hand:
               self.activePlayer.deck.append(card)
             random.shuffle(self.activePlayer.deck)
@@ -441,11 +438,8 @@ class Board():
         if not self.do:
           self.inactivePlayer += 6
         else:
-          show = f'{self.inactivePlayer.name}\'s hand:\n'
-          for card in self.inactivePlayer.hand:
-            show += f"{card.title} ({card.house})\n"
-          mull2 = pyautogui.confirm(f"Player 2, would you like to keep?\n{show}", buttons=["Yes","No"])
-          if mull2 == "No":
+          mull2 = self.chooseMulligan("Player 2")
+          if mull2:
             for card in self.inactivePlayer.hand:
               self.inactivePlayer.deck.append(card)
             random.shuffle(self.inactivePlayer.deck)
@@ -585,9 +579,6 @@ class Board():
             pyautogui.alert("Your opponent's deck has " + str(len(self.inactivePlayer.deck)) + " cards.")
           elif self.response == "OppHand":
             pyautogui.alert("Your opponent's hand has " + str(len(self.inactivePlayer.hand)) + " cards.")
-          # elif self.response == "EndTurn":
-          #   pyautogui.alert("Ending Turn!")
-          #   self.turnStage += 1
           elif self.response == "Concede":
             pyautogui.alert(f"{self.inactivePlayer.name} wins!")
             run = False
@@ -659,6 +650,11 @@ class Board():
         self.numDiscards = 0
         self.turnStage = 0
       
+      if pygame.Rect.collidepoint(self.endBackRect, (self.mousex, self.mousey)):
+        self.endBack.fill(COLORS["LIGHT_GREEN"])
+      else:
+        self.endBack.fill(COLORS["GREEN"])
+      
       self.draw() # this will need hella updates
       pygame.display.flip()
 
@@ -681,12 +677,12 @@ class Board():
     self.WIN.blits(self.board_blits)
     
     # amber
-    self.amber1 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['BLACK'])
+    self.amber1 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['WHITE'])
     self.amber1_rect = self.amber1.get_rect()
     self.amber1_rect.topleft = (2 + self.target_cardw + 10 + self.key1y.get_width(), self.mat2_rect[1] + self.mat2_rect[3] + (3 * self.margin))
 
     # chains
-    self.chains1 = self.BASICFONT.render(f"{self.activePlayer.chains} chains", 1, COLORS['BLACK'])
+    self.chains1 = self.BASICFONT.render(f"{self.activePlayer.chains} chains", 1, COLORS['WHITE'])
     self.chains1_rect = self.chains1.get_rect()
     self.chains1_rect.bottomleft = (2 + self.target_cardw + 10 + self.key1y.get_width(), self.mat1_rect[1] - (3 * self.margin))
    
@@ -884,54 +880,10 @@ class Board():
     pygame.display.update()
 
 
-##################
-# Turn functions #
-##################
-
-  # def startGame(self): #called by choosedecks()
-  #   """Fills hands, allows for mulligans and redraws, then plays the first turn, because that turn follows special rules.
-  #   """
-  #   logging.info(f"{self.activePlayer.name} is going first.")
-  #   pyautogui.alert(f"\n{self.activePlayer.name} is going first.\n")
-  #   #####################
-  #   # Draw and mulligan #
-  #   #####################
-  #   self.activePlayer += 7
-  #   self.draw(False)
-  #   pygame.display.flip()
-  #   show = f'{self.activePlayer.name}\'s hand:\n'
-  #   for card in self.activePlayer.hand:
-  #     show += f"{card.title} ({card.house})\n"
-  #   mull = pyautogui.confirm(f"Player 1, would you like to keep?\n{show}", buttons=["Yes","No"])
-  #   if mull == "No":
-  #     for card in self.activePlayer.hand:
-  #       self.activePlayer.deck.append(card)
-  #     random.shuffle(self.activePlayer.deck)
-  #     self.activePlayer.hand = []
-  #     self.activePlayer += 6
-  #   self.inactivePlayer += 6
-  #   self.draw(False)
-  #   pygame.display.flip()
-  #   show = f'{self.inactivePlayer.name}\'s hand:\n'
-  #   for card in self.inactivePlayer.hand:
-  #     show += f"{card.title} ({card.house})\n"
-  #   mull2 = pyautogui.confirm(f"Player 2, would you like to keep?\n{show}", buttons=["Yes","No"])
-  #   if mull2 == "No":
-  #     for card in self.inactivePlayer.hand:
-  #       self.inactivePlayer.deck.append(card)
-  #     random.shuffle(self.inactivePlayer.deck)
-  #     self.inactivePlayer.hand = []
-  #     self.inactivePlayer += 5
-  #   self.numPlays = 0
-  #   self.numDiscards = 0
-  #   self.turnNum = 1
-  #   self.turnStage = 0
-
   def switch(self):
     """ Swaps active and inactive players.
     """
     self.activePlayer, self.inactivePlayer = self.inactivePlayer, self.activePlayer
-
 
   
   def calculateCost(self):
@@ -1279,16 +1231,63 @@ class Board():
     return side
   
 
-  def chooseMulligan(self):
+  def chooseMulligan(self, player: str) -> bool:
     """ Lets the user choose whether or not to keep their opening hand.
     """
-    ...
+    # message
+    messageSurf = self.BASICFONT.render(f"{player}, Keep or Mulligan?", 1, COLORS["WHITE"])
+    messageRect = messageSurf.get_rect()
+    messageRect.center = (WIDTH // 2, (HEIGHT // 2) - (self.target_cardh // 4))
+    # message background
+    backgroundSurf = pygame.Surface((messageSurf.get_width(), messageSurf.get_height()))
+    backgroundSurf.convert()
+    backgroundRect = backgroundSurf.get_rect()
+    backgroundRect.center = (WIDTH // 2, (HEIGHT // 2) - (self.target_cardh // 4))
+    # keep
+    keepSurf = self.BASICFONT.render("   KEEP   ", 1, COLORS["WHITE"])
+    keepRect = keepSurf.get_rect()
+    keepRect.topright = ((WIDTH // 2) - (self.margin // 2), messageRect[1] + messageRect[3] + self.margin)
+    # keep background
+    keepBack = pygame.Surface((keepSurf.get_width(), keepSurf.get_height()))
+    keepBack.convert()
+    keepBack.fill(COLORS["LIGHT_GREEN"])
+    keepBackRect = keepBack.get_rect()
+    keepBackRect.topright = ((WIDTH // 2) - (self.margin // 2), messageRect[1] + messageRect[3] + self.margin)
+    # mulligan
+    mullSurf = self.BASICFONT.render(" MULLIGAN ", 1, COLORS["WHITE"])
+    mullRect = mullSurf.get_rect()
+    mullRect.topleft = ((WIDTH // 2) + (self.margin // 2), messageRect[1] + messageRect[3] + self.margin)
+    # mulligan background
+    mullBack = pygame.Surface((mullSurf.get_width(), mullSurf.get_height()))
+    mullBack.convert()
+    mullBack.fill(COLORS["RED"])
+    mullBackRect = mullBack.get_rect()
+    mullBackRect.topleft = ((WIDTH // 2) + (self.margin // 2), messageRect[1] + messageRect[3] + self.margin)
+
+    while True:
+      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect),  (keepBack, keepBackRect), (keepSurf, keepRect), (mullBack, mullBackRect), (mullSurf, mullRect)]
+      for e in pygame.event.get():
+        if e.type == pygame.QUIT:
+          pygame.quit()
+        elif e.type == pygame.MOUSEMOTION:
+          self.mousex, self.mousey = e.pos
+        elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+          self.extraDraws = []
+          if pygame.Rect.collidepoint(keepBackRect, (self.mousex, self.mousey)):
+            return False
+          elif pygame.Rect.collidepoint(mullBackRect, (self.mousex, self.mousey)):
+            return True
+      self.CLOCK.tick(self.FPS)
+      self.hovercard = []
+      self.check_hover()
+      self.draw(False)
+      pygame.display.flip()
+      self.extraDraws = []
 
   
-  def chooseHouse(self, varAsStr, num = 1):
+  def chooseHouse(self, varAsStr: str) -> List[str]:
     """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak. Num is used for cards that allow extra houses to fight or be used.
     """
-    houses = [self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]]
     if varAsStr == "activeHouse":
       message = "Choose your house for this turn:"
       if "control_the_weak" in self.inactivePlayer.states and self.inactivePlayer.states["control_the_weak"]:
@@ -1373,6 +1372,10 @@ class Board():
               clicked = click.index(True)
               selected = clicked + 1
               houses_rects[clicked][0].fill(COLORS["LIGHT_GREEN"])
+      if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)):
+        confirmBack.fill(COLORS["LIGHT_GREEN"])
+      else:
+        confirmBack.fill(COLORS["GREEN"])
       self.CLOCK.tick(self.FPS)
       self.hovercard = []
       self.check_hover()
@@ -1403,26 +1406,26 @@ class Board():
     # confirm
     confirmSurf = self.BASICFONT.render("  CONFIRM  ", 1, COLORS["WHITE"])
     confirmRect = confirmSurf.get_rect()
-    confirmRect.top = messageRect[1] + messageRect[3]
-    confirmRect.right = WIDTH // 2
+    confirmRect.top = messageRect[1] + messageRect[3] + self.margin
+    confirmRect.right = (WIDTH // 2) - (self.margin // 2)
     # confirm background
     confirmBack = pygame.Surface((confirmSurf.get_width(), confirmSurf.get_height()))
     confirmBack.convert()
     confirmBack.fill(COLORS["GREEN"])
     confirmBackRect = confirmBack.get_rect()
-    confirmBackRect.top = messageRect[1] + messageRect[3]
-    confirmBackRect.right = WIDTH // 2
+    confirmBackRect.top = messageRect[1] + messageRect[3] + self.margin
+    confirmBackRect.right = (WIDTH // 2)  - (self.margin // 2)
     # cancel
     cancelSurf = self.BASICFONT.render("  RESET  ", 1, COLORS["WHITE"])
     cancelRect = cancelSurf.get_rect()
-    cancelRect.top = messageRect[1] + messageRect[3]
-    cancelRect.left = WIDTH // 2
+    cancelRect.top = messageRect[1] + messageRect[3] + self.margin
+    cancelRect.left = (WIDTH // 2)  + (self.margin // 2)
     # cancel background
     cancelBack = pygame.Surface((cancelSurf.get_width(), cancelSurf.get_height()))
     cancelBack.convert()
     cancelBackRect = cancelBack.get_rect()
-    cancelBackRect.top = messageRect[1] + messageRect[3]
-    cancelBackRect.left = WIDTH // 2
+    cancelBackRect.top = messageRect[1] + messageRect[3] + self.margin
+    cancelBackRect.left = (WIDTH // 2)  + (self.margin // 2)
     
     selected = []
     retVal = []
