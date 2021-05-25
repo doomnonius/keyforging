@@ -79,9 +79,11 @@ def anger(game, card):
   """Anger. Ready and fight with a friendly creature.
   """
   passFunc(game, card)
-  choice = []
+  choice = game.chooseCards("actCreature", "Choose a friendly creature:")
   while not choice:
-    choice = game.chooseCards("actCreature", "Choose a friendly creature:")[0]
+    print("Invalid submission.")
+    choice = game.chooseCards("actCreature", "Choose a friendly creature:")
+  choice = choice[0]
   if not game.activePlayer.board["Creature"][choice].ready:
     game.activePlayer.board["Creature"][choice].ready = True
     game.fightCard(choice)

@@ -1300,19 +1300,20 @@ class Board():
     confirmBack.fill(COLORS["LIGHT_GREEN"])
     confirmBackRect = confirmBack.get_rect()
     confirmBackRect.topright = confirmRect.topright
-    # self.WIN.blit(backgroundSurf, backgroundRect)
-    # self.WIN.blit(messageSurf, messageRect)
-    # pygame.display.update()
+    selected = []
     retVal = []
-    while True: #len(retVal) < count:
-      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect)]
+    while True:
+      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + selected
       for e in pygame.event.get():
         if e.type == pygame.QUIT:
           pygame.quit()
         elif e.type == pygame.MOUSEMOTION:
           self.mousex, self.mousey = e.pos
         elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
-          if targetPool == "inactCreature":
+          if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)) and retVal:
+            self.extraDraws = []
+            return retVal
+          elif targetPool == "inactCreature":
             inInactCreature = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.inactivePlayer.board["Creature"]]
             if True in inInactCreature:
               if inInactCreature.index(True) not in retVal:
@@ -1337,17 +1338,16 @@ class Board():
             if True in actHand:
               if actHand.index(True) not in retVal:
                 retVal.append(actHand.index(True))
-          else:
-            if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)):
-              self.extraDraws = []
-              break
+      if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)):
+        confirmBack.fill(COLORS["BLUE"])
+      else:
+        confirmBack.fill(COLORS["LIGHT_GREEN"])
       self.CLOCK.tick(self.FPS)
       self.hovercard = []
       self.check_hover()
       self.draw()
       pygame.display.flip()
       self.extraDraws = []
-    return retVal
   
                 #####################
                 # End of Game Class #
