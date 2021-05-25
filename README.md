@@ -18,10 +18,10 @@
  <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
  <li>If a card is tapped, it's untapped rect should be outside the board, and vice versa</li>
  <li>I want the algo for drawing creatures, artifacts, to put them in the middle of their area.</li>
- <li>Should be able to cancel out of the chooseCards menu (this could also allow for selecting less than the full number of targets)</li>
+ <li><s>Should be able to cancel out of the chooseCards menu</s> (this could also allow for selecting less than the full number of targets)</li>
  <li><b>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</b></li>
  <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor.</li>
- <li>game.chooseCards: (1) can infinite loop if the list they try to target is empty (2) can't handle choosing from different lists at the same time (3) should highlight chosen cards</li>
+ <li>game.chooseCards: <s>(1) can infinite loop if the list they try to target is empty </s>(2) can't handle choosing from different lists at the same time (3) should highlight chosen cards</li>
  <li>Is captured amber returned, while amber on artifacts lost?</li>
  <li>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work.</li>
  <li>game.pending() needs updates</li>

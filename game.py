@@ -85,10 +85,10 @@ class Board():
     # start pygame
     pygame.init()
     pygame.font.init()
-    self.BASICFONT = pygame.font.SysFont("Corbel", 20)
-    self.OTHERFONT = pygame.font.SysFont("Corbel", 60)
     self.FPS = 30
     self.WIN = pygame.display.set_mode((WIDTH, HEIGHT))#, flags = pygame.FULLSCREEN)
+    self.BASICFONT = pygame.font.SysFont("Corbel", HEIGHT // 27)
+    self.OTHERFONT = pygame.font.SysFont("Corbel", HEIGHT // 14)
     pygame.display.set_caption('Keyforge')
     self.CLOCK = pygame.time.Clock()
     self.target_cardh = HEIGHT // 7
@@ -119,7 +119,7 @@ class Board():
     return s
 
   def turnOptions(self) -> List:
-    return ['House', 'Turn', 'MyDiscard', 'OppDiscard', 'Board', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Amber', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
+    return ['House', 'Turn', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Card', 'MyDeck', 'OppDeck','OppHand', 'EndTurn', 'Concede', 'Quit']
     
   def cardOptions(self, cardNum: int, loc: str) -> List:
     retVal = []
@@ -140,6 +140,7 @@ class Board():
         # put a check here for the cards that can't fight, or things that prevent fight
           if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] \
           or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
+          # bigtwig can only attack stunned
             pass
           else:
             retVal.append("Fight")
@@ -181,149 +182,188 @@ class Board():
   def main(self):
     wid, hei = [int(x) for x in self.WIN.get_size()]
     self.board_blits = []
-    # print(self.target_cardw, self.target_cardh)
     
     ## inactive mat
-    self.mat1 = pygame.Surface((wid, hei//2 - 15))
-    self.mat1.convert()
-    self.mat1.fill(COLORS["BLACK"])
-    self.board_blits.append((self.mat1, (0,0)))
-    
-    mat_third = (self.mat1.get_height()) // 3
-    # print(f"size: {self.WIN.get_size()}")
-    # hand
-    self.hand1 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
-    self.hand1.convert()
-    self.hand1.fill(COLORS["GREY"])
-    self.hand1_rect = self.hand1.get_rect()
-    self.hand1_rect.topleft = (0, 0)
-    self.board_blits.append((self.hand1, self.hand1_rect))
+    self.mat2 = pygame.Surface((wid, hei // 2))
+    self.mat2.convert()
+    self.mat2_rect = self.mat2.get_rect()
+    mat_third = (self.mat2.get_height()) // 3
+    self.mat2.fill(COLORS["BLACK"])
+    self.mat2_rect.topleft = (0, -mat_third // 2)
+    self.board_blits.append((self.mat2, self.mat2_rect))
 
-    # purge/decklist
-    self.purge1 = pygame.Surface((self.target_cardw, mat_third))
-    self.purge1.convert()
-    self.purge1.fill(COLORS["GREY"])
-    self.purge1_rect = self.purge1.get_rect()
-    self.purge1_rect.topright = (wid, 0)
-    self.board_blits.append((self.purge1, self.purge1_rect))
+    # hand
+    self.hand2 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
+    self.hand2.convert()
+    self.hand2.fill(COLORS["GREY"])
+    self.hand2_rect = self.hand2.get_rect()
+    self.hand2_rect.topleft = (0, -mat_third // 2)
+    self.board_blits.append((self.hand2, self.hand2_rect))
 
     # artifacts
-    self.artifacts1 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
-    self.artifacts1.convert()
-    self.artifacts1.fill(COLORS["GREY"])
-    self.artifacts1_rect = self.artifacts1.get_rect()
-    self.artifacts1_rect.topleft = (0, mat_third)
-    self.board_blits.append((self.artifacts1, self.artifacts1_rect))
+    self.artifacts2 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
+    self.artifacts2.convert()
+    self.artifacts2.fill(COLORS["GREY"])
+    self.artifacts2_rect = self.artifacts2.get_rect()
+    self.artifacts2_rect.topleft = (0, mat_third // 2)
+    self.board_blits.append((self.artifacts2, self.artifacts2_rect))
 
     # discard
-    self.discard1 = pygame.Surface((self.target_cardw, mat_third))
-    self.discard1.convert()
-    self.discard1.fill(COLORS["GREY"])
-    self.discard1_rect = self.discard1.get_rect()
-    self.discard1_rect.topright = (wid, mat_third)
-    self.board_blits.append((self.discard1, self.discard1_rect))
-    
+    self.discard2 = pygame.Surface((self.target_cardw, mat_third))
+    self.discard2.convert()
+    self.discard2.fill(COLORS["GREY"])
+    self.discard2_rect = self.discard2.get_rect()
+    self.discard2_rect.topright = (wid, 0)
+    self.board_blits.append((self.discard2, self.discard2_rect))
+
     # creatures
-    self.creatures1 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
-    self.creatures1.convert()
-    self.creatures1.fill(COLORS["GREY"])
-    self.creatures1_rect = self.creatures1.get_rect()
-    self.creatures1_rect.topleft = (0, mat_third*2)
-    self.board_blits.append((self.creatures1, self.creatures1_rect))
+    self.creatures2 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
+    self.creatures2.convert()
+    self.creatures2.fill(COLORS["GREY"])
+    self.creatures2_rect = self.creatures2.get_rect()
+    self.creatures2_rect.topleft = (0, int(mat_third * 1.5))
+    self.board_blits.append((self.creatures2, self.creatures2_rect))
+
+    # deck
+    self.deck2 = pygame.Surface((self.target_cardw, mat_third))
+    self.deck2.convert()
+    self.deck2.fill(COLORS["GREY"])
+    self.deck2_rect = self.deck2.get_rect()
+    self.deck2_rect.topright = (wid, mat_third)
+    self.board_blits.append((self.deck2, self.deck2_rect))
+
+    # houses corner
+    self.houses2 = pygame.Surface((self.target_cardw, mat_third // 2))
+    self.houses2.convert()
+    self.houses2.fill(COLORS["GREY"])
+    self.houses2_rect = self.houses2.get_rect()
+    self.houses2_rect.topright = (wid, mat_third * 2)
+    self.board_blits.append((self.houses2, self.houses2_rect))
+
+    ## divider2
+    self.divider2 = pygame.Surface((wid // 5, mat_third))
+    self.divider2.convert()
+    self.divider2.fill(COLORS["GREY"])
+    div2_w = self.divider2.get_width()
+    self.divider2_rect = self.divider2.get_rect()
+    self.divider2_rect.topright = (wid, int(mat_third * 2.5))
+    self.key2y, self.key2y_rect = load_image("yellow_key_back", -1)
+    self.key2y_rect.topright = (div2_w - 2 - self.target_cardw - 5, 0)
+    self.key2r, self.key2r_rect = load_image("yellow_key_back", -1)
+    self.key2r_rect.topright = (div2_w - 2 - self.target_cardw - 5, 31)
+    self.key2b, self.key2b_rect = load_image("yellow_key_back", -1)
+    self.key2b_rect.topright = (div2_w - 2 - self.target_cardw - 5, 62)
+    self.board_blits.append((self.divider2, self.divider2_rect))
+
+    # purge2 / decklist2
+    self.purge2 = pygame.Surface((self.target_cardw + 5, mat_third))
+    self.purge2.convert()
+    self.purge2.fill(COLORS["RED"])
+    self.purge2_rect = self.purge2.get_rect()
+    self.purge2_rect.topright = (wid, int(mat_third * 2.5))
+    self.board_blits.append((self.purge2, self.purge2_rect))
+
+    ## divider1
+    self.divider = pygame.Surface((wid // 5, mat_third))
+    self.divider.convert()
+    self.divider.fill(COLORS["LIGHT_GREEN"])
+    self.divider_rect = self.divider.get_rect()
+    self.divider_rect.topleft = (0, int(mat_third * 2.5))
+    self.key1y, self.key1y_rect = load_image("yellow_key_back", -1)
+    self.key_forged, self.key_forged_rect = load_image("yellow_key_front", -1)
+    self.key1y_rect.topleft = (2 + self.target_cardw + 5, 0)
+    self.key1r, self.key1r_rect = load_image("yellow_key_back", -1)
+    self.key1r_rect.topleft = (2 + self.target_cardw + 5, 31)
+    self.key1b, self.key1b_rect = load_image("yellow_key_back", -1)
+    self.key1b_rect.topleft = (2 + self.target_cardw + 5, 62)
+    self.board_blits.append((self.divider, self.divider_rect))
+
+    # purge/decklist
+    self.purge1 = pygame.Surface((self.target_cardw + 5, mat_third))
+    self.purge1.convert()
+    self.purge1.fill(COLORS["RED"])
+    self.purge1_rect = self.purge1.get_rect()
+    self.purge1_rect.topleft = (0, int(mat_third * 2.5))
+    self.board_blits.append((self.purge1, self.purge1_rect))
+
+    ## active mat
+    self.mat1 = pygame.Surface((wid, mat_third))
+    self.mat1.convert()
+    self.mat1.fill(COLORS["BLACK"])
+    self.mat1_rect = self.mat1.get_rect()
+    self.mat1_rect = (0, int(mat_third * 3.5))
+    self.board_blits.append((self.mat1, self.mat1_rect))
+
+    # houses
+    self.houses1 = pygame.Surface((self.target_cardw, mat_third // 2))
+    self.houses1.convert()
+    self.houses1.fill(COLORS["LIGHT_GREEN"])
+    self.houses1_rect = self.houses1.get_rect()
+    self.houses1_rect.topleft = (0, int(mat_third * 3.5))
+    self.board_blits.append((self.houses1, self.houses1_rect))
 
     # deck
     self.deck1 = pygame.Surface((self.target_cardw, mat_third))
     self.deck1.convert()
-    self.deck1.fill(COLORS["GREY"])
+    self.deck1.fill(COLORS["LIGHT_GREEN"])
     self.deck1_rect = self.deck1.get_rect()
-    self.deck1_rect.topright = (wid, mat_third*2)
+    self.deck1_rect.topleft = (0, mat_third * 4)
     self.board_blits.append((self.deck1, self.deck1_rect))
 
-    ## active mat
-    self.mat2 = pygame.Surface((wid, hei//2 - 15))
-    self.mat2.convert()
-    self.mat2.fill(COLORS["BLACK"])
-    self.mat2_rect = self.mat2.get_rect()
-    self.mat2_rect = (0, mat_third * 3)
-    self.board_blits.append((self.mat2, self.mat2_rect))
+    # creatures
+    self.creatures1 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
+    self.creatures1.convert()
+    self.creatures1.fill(COLORS["LIGHT_GREEN"])
+    self.creatures1_rect = self.creatures1.get_rect()
+    self.creatures1_rect.topright = (wid, int(mat_third * 3.5))
+    self.board_blits.append((self.creatures1, self.creatures1_rect))
 
-    # deck2
-    self.deck2 = pygame.Surface((self.target_cardw, mat_third))
-    self.deck2.convert()
-    self.deck2.fill(COLORS["GREEN"])
-    self.deck2_rect = self.deck2.get_rect()
-    self.deck2_rect.topleft = (0, hei - mat_third * 3)
-    self.board_blits.append((self.deck2, self.deck2_rect))
+    # discard
+    self.discard1 = pygame.Surface((self.target_cardw, mat_third))
+    self.discard1.convert()
+    self.discard1.fill(COLORS["LIGHT_GREEN"])
+    self.discard1_rect = self.discard1.get_rect()
+    self.discard1_rect.topleft = (0, mat_third * 5)
+    self.board_blits.append((self.discard1, self.discard1_rect))
 
-    # creatures2
-    self.creatures2 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
-    self.creatures2.convert()
-    self.creatures2.fill(COLORS["GREEN"])
-    self.creatures2_rect = self.creatures2.get_rect()
-    self.creatures2_rect.topright = (wid, hei - mat_third * 3)
-    self.board_blits.append((self.creatures2, self.creatures2_rect))
+    # artifacts
+    self.artifacts1 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
+    self.artifacts1.convert()
+    self.artifacts1.fill(COLORS["LIGHT_GREEN"])
+    self.artifacts1_rect = self.artifacts1.get_rect()
+    self.artifacts1_rect.topright = (wid, int(mat_third * 4.5))
+    self.board_blits.append((self.artifacts1, self.artifacts1_rect))
 
-    # discard2
-    self.discard2 = pygame.Surface((self.target_cardw, mat_third))
-    self.discard2.convert()
-    self.discard2.fill(COLORS["GREEN"])
-    self.discard2_rect = self.discard2.get_rect()
-    self.discard2_rect.topleft = (0, hei - mat_third * 2)
-    self.board_blits.append((self.discard2, self.discard2_rect))
+    # hand
+    self.hand1 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
+    self.hand1.convert()
+    self.hand1.fill(COLORS["LIGHT_GREEN"])
+    self.hand1_rect = self.hand1.get_rect()
+    self.hand1_rect.topright = (wid, int(mat_third * 5.5))
+    self.board_blits.append((self.hand1, self.hand1_rect))
 
-    # artifacts2
-    self.artifacts2 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
-    self.artifacts2.convert()
-    self.artifacts2.fill(COLORS["GREEN"])
-    self.artifacts2_rect = self.artifacts2.get_rect()
-    self.artifacts2_rect.topright = (wid, hei - mat_third * 2)
-    self.board_blits.append((self.artifacts2, self.artifacts2_rect))
+    ## neutral zone - easier if we have this and can blit to it
+    self.neutral = pygame.Surface(((wid // 5) * 3, mat_third))
+    self.neutral.convert()
+    self.neutral.fill(COLORS["BLACK"])
+    self.neutral_rect = self.neutral.get_rect()
+    self.neutral_rect.topleft = (self.divider.get_width(), int(mat_third * 2.5))
+    self.board_blits.append((self.neutral, self.neutral_rect))
 
-    # purge2
-    self.purge2 = pygame.Surface((self.target_cardw, mat_third))
-    self.purge2.convert()
-    self.purge2.fill(COLORS["GREEN"])
-    self.purge2_rect = self.purge2.get_rect()
-    self.purge2_rect.topleft = (0, hei - mat_third)
-    self.board_blits.append((self.purge2, self.purge2_rect))
+    # end turn
+    self.endText = self.OTHERFONT.render(f"  End Turn  ", 1, COLORS['WHITE'])
+    self.endRect = self.endText.get_rect()
+    self.endRect.centerx = wid // 2
+    self.endRect.centery = hei // 2
+    self.endBack = pygame.Surface((self.endText.get_width() + 10, self.endText.get_height() + 10))
+    self.endBack.convert()
+    self.endBack.fill(COLORS["GREEN"])
+    self.endBackRect = self.endBack.get_rect()
+    self.endBackRect.centerx = wid // 2
+    self.endBackRect.centery = hei // 2
 
-    # hand2
-    self.hand2 = pygame.Surface((wid - (self.target_cardw + 5), mat_third))
-    self.hand2.convert()
-    self.hand2.fill(COLORS["GREEN"])
-    self.hand2_rect = self.hand2.get_rect()
-    self.hand2_rect.topright = (wid, hei - mat_third)
-    self.board_blits.append((self.hand2, self.hand2_rect))
+    # log
 
-    ## divider1
-    self.divider = pygame.Surface((wid//2, 30))
-    self.divider.convert()
-    self.divider.fill(COLORS["GREY"])
-    self.divider_rect = self.divider.get_rect()
-    self.divider_rect.topleft = (0, self.mat1.get_height())
-    self.key1y, self.key1y_rect = load_image("yellow_key_back", -1)
-    self.key_forged, self.key_forged_rect = load_image("yellow_key_front", -1)
-    self.key1y_rect.topleft = (2, 2)
-    self.key1r, self.key1r_rect = load_image("yellow_key_back", -1)
-    self.key1r_rect.topleft = (35, 2)
-    self.key1b, self.key1b_rect = load_image("yellow_key_back", -1)
-    self.key1b_rect.topleft = (68, 2)
-    self.board_blits.append((self.divider, self.divider_rect))
-    
-    ## divider2
-    self.divider2 = pygame.Surface((wid//2, 30))
-    self.divider2.convert()
-    self.divider2.fill(COLORS["GREEN"])
-    div2_w = self.divider2.get_width()
-    self.divider2_rect = self.divider2.get_rect()
-    self.divider2_rect.topright = (wid, self.mat1.get_height())
-    self.key2y, self.key2y_rect = load_image("yellow_key_back", -1)
-    self.key2y_rect.topright = (div2_w - 2, 2)
-    self.key2r, self.key2r_rect = load_image("yellow_key_back", -1)
-    self.key2r_rect.topright = (div2_w - 35, 2)
-    self.key2b, self.key2b_rect = load_image("yellow_key_back", -1)
-    self.key2b_rect.topright = (div2_w - 68, 2)
-    self.board_blits.append((self.divider2, self.divider2_rect))
 
     run = True
 
@@ -341,7 +381,8 @@ class Board():
         for x in range(len(self.inactivePlayer.board["Creature"])):
           if self.inactivePlayer.board["Creature"][-x].title == "tireless_crocag":
             self.pendingReloc.append(self.inactivePlayer.board["Creature"].pop(-x))
-      self.pending()
+      if self.pendingReloc:
+        self.pending()
 
 
       for event in pygame.event.get():
@@ -359,7 +400,8 @@ class Board():
           self.doPopup()
           
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-          self.backgroundColor = COLORS[random.choice(list(COLORS.keys()))]
+          if pygame.Rect.collidepoint(self.endBackRect, (self.mousex, self.mousey)):
+            self.turnStage += 1
           
         if event.type == pygame.KEYDOWN:
           # print(event)
@@ -370,15 +412,6 @@ class Board():
 
       self.hovercard = []
       self.check_hover()
-      # hoverable = self.activePlayer.hand + self.inactivePlayer.hand + self.activePlayer.board["Creature"] + self.inactivePlayer.board["Creature"] + self.activePlayer.board["Artifact"] + self.inactivePlayer.board["Artifact"]
-
-      # for card in hoverable:
-      #   if pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)):
-      #     self.hovercard.append(card)
-      #     break
-      #   if pygame.Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)):
-      #     self.hovercard.append(card)
-      #     break
 
       ######################
       # Initial hand fill  #
@@ -386,10 +419,6 @@ class Board():
 
       if self.turnStage == None:
         self.forgedThisTurn = False
-        ##########################
-        # Build state dictionary #
-        ##########################
-        # this is now done automatically as part of initializing the deck
         #####################
         # Draw and mulligan #
         #####################
@@ -564,15 +593,10 @@ class Board():
           elif self.response == "Quit":
             run = False
           
-          ## these will work slightly differently
           elif self.response == "Play":
-            # hands off the info to the "Fight" function
             self.playCard(self.targetCard)
-            # self.subStage = self.response
           elif self.response == "Fight":
-            # hands off the info to the "Fight" function
             self.fightCard(self.targetCard)
-            # self.subStage = self.response
           elif self.response == "Discard":
             if self.numPlays == 1 and self.turnNum == 1:
               pyautogui.alert("You've already taken your one action for turn one.")
@@ -580,12 +604,8 @@ class Board():
               self.discardCard(self.targetCard)
           elif self.response == "Action":
             self.actionCard(self.targetCard, self.loc)
-            # self.subStage = self.response
           elif self.response == "Reap":
-            # Shows friendly board, prompts choice.
-            # Checks viability
             self.reapCard(self.targetCard)
-            # self.subStage = self.response
           elif self.response == "Omni":
             self.actionCard(self.targetCard, self.loc, True)
           elif self.response == "Unstun":
@@ -594,10 +614,6 @@ class Board():
           self.response = []
           self.targetCard = None
           self.loc = None
-        
-        # elif self.subStage:
-        #   if self.subStage == "fight":
-        #     ...
 
 
       ########################
@@ -630,6 +646,8 @@ class Board():
           self.forgedLastTurn = self.forgedThisTurn
         else:
           self.forgedThisTurn = False
+        if "stampede" in self.activePlayer.states:
+          self.activePlayer.states["stampede"] = 0
         self.activeHouse = []
         self.extraFightHouses = []
         self.playedLastTurn = self.playedThisTurn.copy()
@@ -657,26 +675,40 @@ class Board():
         self.hovercard = [card]
         break
   
-  def draw(self):
-    self.allsprites.update()
+  def draw(self, drawEnd: bool = True):
+    # self.allsprites.update()
     self.WIN.blits(self.board_blits)
-    # amber1
-    self.amber1 = self.BASICFONT.render(f"{self.inactivePlayer.amber} amber", 1, COLORS['BLACK'])
+    
+    # amber
+    self.amber1 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['BLACK'])
     self.amber1_rect = self.amber1.get_rect()
-    self.amber1_rect.topright = (self.divider.get_width() - 10, 5 + self.mat1.get_height())
-    # amber2
-    self.amber2 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['BLACK'])
-    self.amber2_rect = self.amber2.get_rect()
-    self.amber2_rect.topleft = (self.divider.get_width() + 10, 5 + self.mat1.get_height())
+    self.amber1_rect.topleft = (2 + self.target_cardw + 10 + self.key1y.get_width(), self.mat2_rect[1] + self.mat2_rect[3] + 15)
 
-    self.inactive_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect)]#, (self.amber1, self.amber1_rect)]
-    self.active_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect)]#, (self.amber2, self.amber2_rect)]
-    self.divider.blits(self.inactive_info)
-    self.divider2.blits(self.active_info)
+    # chains
+    self.chains1 = self.BASICFONT.render(f"{self.activePlayer.chains} chains", 1, COLORS['BLACK'])
+    self.chains1_rect = self.chains1.get_rect()
+    self.chains1_rect.bottomleft = (2 + self.target_cardw + 10 + self.key1y.get_width(), self.mat1_rect[1] - 15)
+   
+    # amber
+    self.amber2 = self.BASICFONT.render(f"{self.inactivePlayer.amber} amber", 1, COLORS['BLACK'])
+    self.amber2_rect = self.amber2.get_rect()
+    self.amber2_rect.topright = (self.mat2_rect[0] + self.mat2_rect[2] - 2 - self.target_cardw - 10 - self.key2y.get_width(), self.mat2_rect[1] + self.mat2_rect[3] + 15)
+
+    # chains
+    self.chains2 = self.BASICFONT.render(f"{self.inactivePlayer.chains} chains", 1, COLORS['BLACK'])
+    self.chains2_rect = self.chains2.get_rect()
+    self.chains2_rect.bottomright = (self.mat2_rect[0] + self.mat2_rect[2] - 2 - self.target_cardw - 10 - self.key2y.get_width(), self.mat1_rect[1] - 15)
+
+    self.active_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect)]#, (self.amber1, self.amber1_rect)]
+    self.inactive_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect)]#, (self.amber2, self.amber2_rect)]
+    self.divider.blits(self.active_info)
+    self.divider2.blits(self.inactive_info)
     self.WIN.blit(self.amber1, self.amber1_rect)
     self.WIN.blit(self.amber2, self.amber2_rect)
+    self.WIN.blit(self.chains1, self.chains1_rect)
+    self.WIN.blit(self.chains2, self.chains2_rect)
     # card areas
-    for board,area in [(self.activePlayer.board["Creature"], self.creatures2_rect), (self.inactivePlayer.board["Creature"], self.creatures1_rect), (self.activePlayer.board["Artifact"], self.artifacts2_rect), (self.inactivePlayer.board["Artifact"], self.artifacts1_rect)]:
+    for board,area in [(self.activePlayer.board["Creature"], self.creatures1_rect), (self.inactivePlayer.board["Creature"], self.creatures2_rect), (self.activePlayer.board["Artifact"], self.artifacts1_rect), (self.inactivePlayer.board["Artifact"], self.artifacts2_rect)]:
       x = 0
       for card in board:
         if card.ready:
@@ -687,7 +719,7 @@ class Board():
         x += 1
         self.WIN.blit(card_image, card_rect)
     # hands
-    for board,area in [(self.activePlayer.hand, self.hand2_rect), (self.inactivePlayer.hand, self.hand1_rect)]:
+    for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
       x = 0
       for card in board:
         card_image, card_rect = card.image, card.rect #= card.scaled_image(self.target_cardw, self.target_cardh)
@@ -698,36 +730,43 @@ class Board():
     l = len(self.activePlayer.discard)
     if l > 0:
       card_image, card_rect = self.activePlayer.discard[l - 1].image, self.activePlayer.discard[l - 1].rect
-      card_rect.topleft = (self.discard2_rect.left, self.discard2_rect.top)
+      card_rect.topleft = (self.discard1_rect.left, self.discard1_rect.top)
       self.WIN.blit(card_image, card_rect)
     l = len(self.inactivePlayer.discard)
     if l > 0: 
       card_image, card_rect = self.inactivePlayer.discard[l - 1].image, self.inactivePlayer.discard[l - 1].rect
-      card_rect.topleft = (self.discard1_rect.left, self.discard1_rect.top)
+      card_rect.topleft = (self.discard2_rect.left, self.discard2_rect.top)
       self.WIN.blit(card_image, card_rect)
     # purged
     l = len(self.activePlayer.purged)
     if l > 0:
       card_image, card_rect = self.activePlayer.purged[l - 1].image, self.activePlayer.purged[l - 1].rect
-      card_rect.topleft = (self.purge2_rect.left, self.purge2_rect.top)
+      card_rect.topleft = (self.purge1_rect.left, self.purge1_rect.top)
       self.WIN.blit(card_image, card_rect)
     l = len(self.inactivePlayer.purged)
     if l > 0: 
       card_image, card_rect = self.inactivePlayer.purged[l - 1].image, self.inactivePlayer.purged[l - 1].rect
-      card_rect.topleft = (self.purge1_rect.left, self.purge1.top)
+      card_rect.topleft = (self.purge2_rect.left, self.purge2.top)
       self.WIN.blit(card_image, card_rect)
     # decks
     # going to need a card back of some sort to put here
     l = len(self.activePlayer.deck)
     if l > 0:
       card_image, card_rect = self.activePlayer.deck[-1].image, self.activePlayer.deck[-1].rect
-      card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
+      card_rect.topleft = (self.deck1_rect.left, self.deck1_rect.top)
       self.WIN.blit(card_image, card_rect)
     l = len(self.inactivePlayer.deck)
     if l > 0:
       card_image, card_rect = self.inactivePlayer.deck[-1].image, self.inactivePlayer.deck[-1].rect
-      card_rect.topleft = (self.deck1_rect.left, self.deck1_rect.top)
+      card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
       self.WIN.blit(card_image, card_rect)
+    if self.extraDraws:
+      for pair in self.extraDraws:
+        self.WIN.blit(pair[0], pair[1])
+    # self.allsprites.draw(self.WIN)
+    if drawEnd:
+      self.WIN.blit(self.endBack, self.endBackRect)
+      self.WIN.blit(self.endText, self.endRect)
     if self.hovercard:
       hover, hover_rect = self.hovercard[0].orig_image, self.hovercard[0].orig_rect
       if self.mousey > HEIGHT / 2:
@@ -743,10 +782,6 @@ class Board():
       else:
         hover_rect.left = self.mousex
       self.WIN.blit(hover, hover_rect)
-    if self.extraDraws:
-      for pair in self.extraDraws:
-        self.WIN.blit(pair[0], pair[1])
-    self.allsprites.draw(self.WIN)
 
 
   def doPopup(self):
@@ -861,7 +896,8 @@ class Board():
     # Draw and mulligan #
     #####################
     self.activePlayer += 7
-    self.draw()
+    self.draw(False)
+    pygame.display.flip()
     show = f'{self.activePlayer.name}\'s hand:\n'
     for card in self.activePlayer.hand:
       show += f"{card.title} ({card.house})\n"
@@ -873,7 +909,8 @@ class Board():
       self.activePlayer.hand = []
       self.activePlayer += 6
     self.inactivePlayer += 6
-    self.draw()
+    self.draw(False)
+    pygame.display.flip()
     show = f'{self.inactivePlayer.name}\'s hand:\n'
     for card in self.inactivePlayer.hand:
       show += f"{card.title} ({card.house})\n"
@@ -1022,6 +1059,9 @@ class Board():
       except:
         pyautogui.alert("Omni failed.")
     card.ready = False
+    if "stampede" in self.activePlayer.states:
+      self.activePlayer.states["stampede"] += 1
+      
   
   def discardCard(self, cardNum: int):
     """ Discard a card from hand, within the turn. Doesn't need to use pending for discards, but does use it for Rock-Hurling Giant.
@@ -1077,6 +1117,8 @@ class Board():
       print("Trying to fight.")
       card.fightCard(defenderCard, self)
     except: print("Fight failed.")
+    if "stampede" in self.activePlayer.states:
+      self.activePlayer.states["stampede"] += 1
     return self
 
   def pending(self, destination = "discard", destroyed = True):
@@ -1086,7 +1128,7 @@ class Board():
     inactive = self.inactivePlayer.board
     L = self.pendingReloc
 
-    if L == []:
+    if not L:
       return # just in case we feed it an empty list
     if destination not in ['purge', 'discard', 'hand', 'deck']:
       pyautogui.alert("Pending was given an invalid destination.")
@@ -1287,23 +1329,37 @@ class Board():
           actArtifact\n
           actHand
     """
-    messageSurf = self.OTHERFONT.render(message, 1, COLORS["YELLOW"])
+    messageSurf = self.BASICFONT.render(message, 1, COLORS["WHITE"])
     messageRect = messageSurf.get_rect()
-    messageRect.topleft = (0,0)
+    messageRect.center = (WIDTH // 2, (HEIGHT // 2) - (self.target_cardh // 4))
     backgroundSurf = pygame.Surface((messageSurf.get_width(), messageSurf.get_height()))
+    backgroundSurf.convert()
     backgroundRect = backgroundSurf.get_rect()
-    backgroundRect.topleft = (0,0)
-    confirmSurf = self.OTHERFONT.render("  CONFIRM  ", 1, COLORS["BLACK"])
+    backgroundRect.center = (WIDTH // 2, (HEIGHT // 2) - (self.target_cardh // 4))
+    confirmSurf = self.BASICFONT.render("  CONFIRM  ", 1, COLORS["WHITE"])
     confirmRect = confirmSurf.get_rect()
-    confirmRect.topright = (self.WIN.get_width(), self.WIN.get_height() - confirmSurf.get_height())
+    confirmRect.top = messageRect[1] + messageRect[3]
+    confirmRect.right = WIDTH // 2
     confirmBack = pygame.Surface((confirmSurf.get_width(), confirmSurf.get_height()))
-    confirmBack.fill(COLORS["LIGHT_GREEN"])
+    confirmBack.convert()
+    confirmBack.fill(COLORS["GREEN"])
     confirmBackRect = confirmBack.get_rect()
-    confirmBackRect.topright = confirmRect.topright
+    confirmBackRect.top = messageRect[1] + messageRect[3]
+    confirmBackRect.right = WIDTH // 2
+    cancelSurf = self.BASICFONT.render("  RESET  ", 1, COLORS["WHITE"])
+    cancelRect = cancelSurf.get_rect()
+    cancelRect.top = messageRect[1] + messageRect[3]
+    cancelRect.left = WIDTH // 2
+    cancelBack = pygame.Surface((cancelSurf.get_width(), cancelSurf.get_height()))
+    cancelBack.convert()
+    cancelBackRect = cancelBack.get_rect()
+    cancelBackRect.top = messageRect[1] + messageRect[3]
+    cancelBackRect.left = WIDTH // 2
+    
     selected = []
     retVal = []
     while True:
-      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + selected
+      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect), (cancelBack, cancelBackRect), (cancelSurf, cancelRect)] + selected
       for e in pygame.event.get():
         if e.type == pygame.QUIT:
           pygame.quit()
@@ -1313,6 +1369,10 @@ class Board():
           if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)) and retVal:
             self.extraDraws = []
             return retVal
+          elif pygame.Rect.collidepoint(cancelBackRect, (self.mousex, self.mousey)):
+            retVal = []
+            selected = []
+            confirmBack.fill(COLORS["GREEN"])
           elif targetPool == "inactCreature":
             inInactCreature = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.inactivePlayer.board["Creature"]]
             if True in inInactCreature:
@@ -1338,14 +1398,12 @@ class Board():
             if True in actHand:
               if actHand.index(True) not in retVal:
                 retVal.append(actHand.index(True))
-      if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)):
-        confirmBack.fill(COLORS["BLUE"])
-      else:
+      if retVal:
         confirmBack.fill(COLORS["LIGHT_GREEN"])
       self.CLOCK.tick(self.FPS)
       self.hovercard = []
       self.check_hover()
-      self.draw()
+      self.draw(False)
       pygame.display.flip()
       self.extraDraws = []
   

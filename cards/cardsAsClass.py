@@ -284,9 +284,10 @@ class Card(pygame.sprite.Sprite):
             print("I know it isn't self.fight that's failing.")
         if other.updateHealth():
             game.pendingReloc.append(game.inactivePlayer.board["Creature"].pop(game.inactivePlayer.board["Creature"].index(other)))
-        self.pending()
-        print(other.damage)
+        game.pending()
+        print("The problem is in pending, but weirdly pending was failing even with an empty list which it really shouldn't?")
         print(self.damage)
+        print(other.damage)
 
     def health(self) -> int:
         return (self.power + self.extraPow) - self.damage
