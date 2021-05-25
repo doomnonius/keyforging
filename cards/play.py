@@ -123,7 +123,7 @@ def brothers_in_battle(game, card):
   """ Brothers in Battle: Value: 1 amber. Choose a house. For the remainder of the turn, each friendly creature of that house may fight.
   """
   passFunc(game, card)
-  game.chooseHouse("extraFight") # this function will add extra houses that only work for fighting
+  game.extraFightHouses.append(game.chooseHouse("extraFight")[0]) # this function will add extra houses that only work for fighting
 
 def burn_the_stockpile(game, card):
   """Burn the Stockpile: If your opponent has 7 or more amber, they lose 4.

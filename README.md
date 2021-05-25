@@ -27,6 +27,9 @@
  <li>game.pending() needs updates</li>
  <li>Mulligan phase - should be able to hover cards while choosing whether to keep.</li>
  <li>Things that could target themselves won't be drawn in yet during the targeting phase.</li>
+ <li>Change color of End Turn button when no more available actions.</li>
+ <li>Key, amber, and chain locations not scaled to size.</li>
+ <li></li>
  <li></li>
  <li></li>
  <li><s>Interacting with the state dictionaries.</s> - in progress</li>

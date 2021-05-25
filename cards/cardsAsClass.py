@@ -366,7 +366,7 @@ class Card(pygame.sprite.Sprite):
             image = pygame.image.load(fullname)
             logging.error(f'Cannot load image: {self.title}, {message}')
             raise SystemExit(message)
-        image = image.convert()
+        image = image.convert_alpha()
         if colorkey is not None:
             if colorkey == -1:
                 colorkey = image.get_at((0,0))
