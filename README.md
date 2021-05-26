@@ -6,7 +6,7 @@
  <li>https://www.pygame.org/docs/genindex.html</li>
  <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
  <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
- <li>If a card is tapped, it's untapped rect should be outside the board, and vice versa</li>
+ <li>If a card is tapped, it's untapped rect should be outside the board, and vice versa - this could be put in game.switch()</li>
  <li>I want the algo for drawing creatures, artifacts, to put them in the middle of their area.</li>
  <li>Code not yet implemented to only display valid options for items, instead of all. - in progress</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>

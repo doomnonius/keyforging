@@ -1382,7 +1382,6 @@ class Board():
     active = self.activePlayer.board
     inactive = self.inactivePlayer.board
 
-
     # message
     messageSurf = self.BASICFONT.render(message, 1, COLORS["WHITE"])
     messageRect = messageSurf.get_rect()
