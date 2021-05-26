@@ -1,5 +1,5 @@
 from tkinter.constants import E
-from pygame.constants import MOUSEBUTTONDOWN, MOUSEMOTION
+from pygame.constants import MOUSEBUTTONDOWN, MOUSEMOTION, SRCALPHA
 import decks.decks as deck
 import cards.cardsAsClass as card
 import cards.destroyed as dest
@@ -982,22 +982,14 @@ class Board():
     if card.house in self.activeHouse:
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       if "rock-hurling_giant" in [x.title for x in active] and self.activePlayer.discard[-1].house == "Brobnar":
-        side = None
-        while side == None:
-          side = pyautogui.confirm("Will you target an enemy creature or a friendly creature?", buttons=["Enemy", "Friendly"])
-        target = []
-        if side == "Enemy":
-          while target == []:
-            target = self.chooseCards("inactCreature", "Deal 4 damage to:")[0]
-          active[target].damageCalc(self, 4)
-          if active[target].updateHealth():
-            self.pendingReloc.append(active.pop(target))
+        targeting = self.chooseCards("Creature", "Deal 4 damage to:")[0]
+        if targeting[0] == "fr":
+          target = active[targeting[1]]
         else:
-          while target == []:
-            target = self.chooseCards("actCreature", "Deal 4 damage to:")[0]
-          inactive[target].damageCalc(self, 4)
-          if inactive[target].updateHealth():
-            self.pendingReloc.append(inactive.pop(target))
+          target = inactive[targeting[1]]
+        active[target].damageCalc(self, 4)
+        if active[target].updateHealth():
+          self.pendingReloc.append(active.pop(target))
         self.pending()
       if self.turnNum == 1:
         self.numPlays += 1
@@ -1021,8 +1013,8 @@ class Board():
       return self
     defender = []
     while defender == []:
-      defender = self.chooseCards("inactCreature", "Choose an enemy minion to attack:")[0]
-    defenderCard = self.inactivePlayer.board["Creature"][defender]
+      defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0]
+    defenderCard = self.inactivePlayer.board["Creature"][defender[1]]
     try:
       print("Trying to fight.")
       card.fightCard(defenderCard, self)
@@ -1174,27 +1166,22 @@ class Board():
         pyautogui.alert("No valid targets for this upgrade.")
         return self
       print("Choose a creature to play this upgrade on: ")
-      side = self.chooseSide()
-      self.activePlayer.board[card.type].append(self.activePlayer.hand.pop(chosen))
-      target = []
-      if side == "Friendly": # friendly
-        while target == []:
-          target = self.chooseCards("actCreature", "Choose a friendly creature to attach the upgrade to:")[0]
-        self.playUpgrade(self.activePlayer.board["Creature"][target])
-      elif side == "Enemy": # enemy
-        while target == []:
-          target = self.chooseCards("inactCreature", "Choose an enemy creature to attach the upgrade to:")[0]
-        self.playUpgrade(self.inactivePlayer.board["Creature"][target])
+      targeted = self.chooseCards("Creature", "Choose a creature to attach the upgrade to:")[0]
+      if targeted[0] == "fr":
+        card = self.activePlayer.board["Creature"][targeted[1]]
       else:
-        return # shouldn't end up being triggered
+        card = self.activePlayer.board["Creature"][targeted[1]]
+      self.playUpgrade(card)
     #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
     self.playedThisTurn.append(card.title)
+    self.draw()
+    pygame.display.update()
     card.play(self, card)
     # if the card is an action, now add it to the discard pile
     if card.type == "Action":
       self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
 
-  def playUpgrade(self, target):
+  def playUpgrade(self, card: card.Card):
     """ Plays an upgrade on a creature.
     """
 
@@ -1384,16 +1371,18 @@ class Board():
       self.extraDraws = []
 
 
-  def chooseCards(self, targetPool: str, message: str = "Choose a target:", count: int = 1) -> List[int]:
-    """ This can't deal with mixed pools, but I think that's temporarily ok?
-        Also can't handle if there aren't enough choices.
-        Valid targetPool options:\n
-          inactCreature\n
-          inactArfifact\n
-          actCreature\n
-          actArtifact\n
-          actHand
+  def chooseCards(self, targetPool: str, message: str = "Choose a target:", canHit: str = "both", count: int = 1, full: bool = False) -> List[int]:
+    """ This can't deal with something that could target artifacts and creatures simultaneously. Also, the onus is on the caller to handle the results as creatures or artifacts or hand, as appropriate.\n
+        Valid targetPool options: Creature, Artifact, Hand\n
+        Valid message: any string
+        Valid canHit: either, both, enemy, friend\n
+        Count is max number of choices
+        If full is True, you can only submit when your target list length is equal to count
     """
+    active = self.activePlayer.board
+    inactive = self.inactivePlayer.board
+
+
     # message
     messageSurf = self.BASICFONT.render(message, 1, COLORS["WHITE"])
     messageRect = messageSurf.get_rect()
@@ -1423,10 +1412,21 @@ class Board():
     # cancel background
     cancelBack = pygame.Surface((cancelSurf.get_width(), cancelSurf.get_height()))
     cancelBack.convert()
+    cancelBack.fill(COLORS["RED"])
     cancelBackRect = cancelBack.get_rect()
     cancelBackRect.top = messageRect[1] + messageRect[3] + self.margin
     cancelBackRect.left = (WIDTH // 2)  + (self.margin // 2)
     
+    selectedSurf = pygame.Surface((self.target_cardw, self.target_cardh))
+    selectedSurf.convert_alpha()
+    selectedSurf.set_alpha(80)
+    selectedSurf.fill(COLORS["LIGHT_GREEN"])
+
+    selectedSurfTapped = pygame.Surface((self.target_cardh, self.target_cardw))
+    selectedSurfTapped.convert_alpha()
+    selectedSurfTapped.set_alpha(80)
+    selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
+
     selected = []
     retVal = []
     while True:
@@ -1439,37 +1439,117 @@ class Board():
         elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
           if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)) and retVal:
             self.extraDraws = []
-            return retVal
+            if len(retVal) <= count and not full:
+              return retVal
+            else:
+              pyautogui.alert("Not enough targets selected!")
           elif pygame.Rect.collidepoint(cancelBackRect, (self.mousex, self.mousey)):
             retVal = []
             selected = []
             confirmBack.fill(COLORS["GREEN"])
-          elif targetPool == "inactCreature":
-            inInactCreature = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.inactivePlayer.board["Creature"]]
-            if True in inInactCreature:
-              if inInactCreature.index(True) not in retVal:
-                retVal.append(inInactCreature.index(True))
-          elif targetPool == "inactArtifact":
-            inInactArtifact = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.inactivePlayer.board["Artifact"]]
-            if True in inInactArtifact:
-              if inInactArtifact.index(True) not in retVal:
-                retVal.append(inInactArtifact.index(True))
-          elif targetPool == "actCreature":
-            actCreature = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.activePlayer.board["Creature"]]
-            if True in actCreature:
-              if actCreature.index(True) not in retVal:
-                retVal.append(actCreature.index(True))
-          elif targetPool == "actArtifact":
-            actArtifact = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.activePlayer.board["Artifact"]]
-            if True in actArtifact:
-              if actArtifact.index(True) not in retVal:
-                retVal.append(actArtifact.index(True))
-          elif targetPool == "actHand":
-            actHand = [pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) for x in self.activePlayer.hand]
-            if True in actHand:
-              if actHand.index(True) not in retVal:
-                retVal.append(actHand.index(True))
-      if retVal:
+          # if the list is full, don't let more be added
+          if len(retVal) == count:
+            break
+          # selection
+          if targetPool != "Hand":
+            if canHit == "both": # this means I can select from both boards at the same time, eg natures call
+              friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
+              if True in friend:
+                index = friend.index(True)
+                card = active[targetPool][index]
+                if card.ready:
+                  selected.append((selectedSurf, card.rect))
+                else:
+                  selected.append((selectedSurfTapped, card.tapped_rect))
+                retVal.append(("fr", index))
+                print(retVal)
+              foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
+              if True in foe:
+                index = foe.index(True)
+                card = inactive[targetPool][index]
+                if card.ready:
+                  selected.append((selectedSurf, card.rect))
+                else:
+                  selected.append((selectedSurfTapped, card.tapped_rect))
+                retVal.append(("fo", index))
+                print(retVal)
+            elif canHit == "either": # this means I can select multiples, but only all from same side
+              friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
+              if True in friend and retVal[0][0] == "fr":
+                index = friend.index(True)
+                card = active[targetPool][index]
+                if card.ready:
+                  selected.append((selectedSurf, card.rect))
+                else:
+                  selected.append((selectedSurfTapped, card.tapped_rect))
+                retVal.append(("fr", index))
+                print(retVal)
+              foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
+              if True in foe and retVal[0][0] == "fo":
+                index = foe.index(True)
+                card = inactive[targetPool][index]
+                if card.ready:
+                  selected.append((selectedSurf, card.rect))
+                else:
+                  selected.append((selectedSurfTapped, card.tapped_rect))
+                retVal.append(("fo", index))
+                print(retVal)
+            elif canHit == "enemy": # this means I can only target unfriendlies
+              foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
+              if True in foe:
+                index = foe.index(True)
+                card = inactive[targetPool][index]
+                if card.ready:
+                  selected.append((selectedSurf, card.rect))
+                else:
+                  selected.append((selectedSurfTapped, card.tapped_rect))
+                retVal.append(("fo", index))
+                print(retVal)
+            elif canHit == "friend": # this means I can only target friendlies
+              friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
+              if True in friend:
+                index = friend.index(True)
+                card = active[targetPool][index]
+                if card.ready:
+                  selected.append((selectedSurf, card.rect))
+                else:
+                  selected.append((selectedSurfTapped, card.tapped_rect))
+                retVal.append(("fr", index))
+                print(retVal)
+          else:
+            hand = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.hand]
+            if True in hand:
+              index = hand.index(True)
+              card = self.activePlayer.hand[index]
+              selected.append((selectedSurf, card.rect))
+              retVal.append(("fr", index))
+              print(retVal)
+          # elif targetPool == "inactCreature":
+          #   inInactCreature = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.inactivePlayer.board["Creature"]]
+          #   if True in inInactCreature:
+          #     if inInactCreature.index(True) not in retVal:
+          #       retVal.append(inInactCreature.index(True))
+          # elif targetPool == "inactArtifact":
+          #   inInactArtifact = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.inactivePlayer.board["Artifact"]]
+          #   if True in inInactArtifact:
+          #     if inInactArtifact.index(True) not in retVal:
+          #       retVal.append(inInactArtifact.index(True))
+          # elif targetPool == "actCreature":
+          #   actCreature = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.activePlayer.board["Creature"]]
+          #   if True in actCreature:
+          #     if actCreature.index(True) not in retVal:
+          #       retVal.append(actCreature.index(True))
+          # elif targetPool == "actArtifact":
+          #   actArtifact = [(pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in self.activePlayer.board["Artifact"]]
+          #   if True in actArtifact:
+          #     if actArtifact.index(True) not in retVal:
+          #       retVal.append(actArtifact.index(True))
+          # elif targetPool == "actHand":
+          #   actHand = [pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) for x in self.activePlayer.hand]
+          #   if True in actHand:
+          #     if actHand.index(True) not in retVal:
+          #       retVal.append(actHand.index(True))
+      if (retVal and not full) or (retVal and full and len(retVal) == count):
         confirmBack.fill(COLORS["LIGHT_GREEN"])
       self.CLOCK.tick(self.FPS)
       self.hovercard = []
@@ -1494,7 +1574,7 @@ def load_image(title, colorkey=None):
       if colorkey == -1:
           colorkey = image.get_at((0,0))
       image.set_colorkey(colorkey)
-  scaled = pygame.transform.scale(image, (26, 26))
+  scaled = pygame.transform.scale(image, (HEIGHT // 21, HEIGHT // 21))
   return scaled, scaled.get_rect()
 
 def developer(game):

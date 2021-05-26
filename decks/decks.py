@@ -57,16 +57,14 @@ class Deck:
             if self.chains % 6 != 0:
                 reduced += 1
             draw -= reduced
-            if len(self.hand) >= self.handSize:
-                pass
-            else:
+            if len(self.hand) <= draw:
                 self.chains -= 1
         while (len(self.hand)) < draw:
-            if self.deck != []:
+            if self.deck:
                 self.hand.append(self.deck.pop())
             else:
                 self.shuffleDiscard()
-        # self.deck.sort(key = lambda x: x.house) # why was this even here?
+        self.deck.sort(key = lambda x: x.house, reverse=True) # why was this even here? testing
     
     def shuffleDiscard(self):
         """ Deals with an empty deck.

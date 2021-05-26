@@ -1,3 +1,4 @@
+from os import path
 import time
 import random
 import pyautogui, pygame
@@ -31,19 +32,21 @@ def passFunc(game, card):
       location = [active["Creature"].index(x) for x in active["Creature"] if x.title == "tunk"]
       for x in location:
         active["Creature"][x].damage = 0
-    if "charge" in game.activePlayer.states and game.activePlayer.states["charge!"]:
-      choice = []
-      while not choice:
-        choice = game.chooseCards("inactCreature", "Choose an enemy minion to deal 2 damage to:")[0]
+    if "charge" in game.activePlayer.states and game.activePlayer.states["charge!"] and inactive["Creature"]:
+      # above line makes sure there will be at least one potential target
+      choice = game.chooseCards("Creature", "Choose an enemy minion to deal 2 damage to:", "enemy")[0][1]
       inactive["Creature"][choice].damageCalc(game, 2)
       if inactive["Creature"][choice].updateHealth():
         game.pendingLoc.append(inactive["Creature"].pop(choice))
     # stuff that gives armor
-    if "gray_monk" in active["Creature"]:
+    if "gray_monk" in [x.title for x in active["Creature"]]:
       extra = sum(x.title == "gray_monk" for x in active["Creature"])
       if card.name == "gray_monk":
         extra -= 1 # so it doesn't hit itself
       card.extraArm += extra
+    if "banner_of_battle" in [x.title for x in active["Creature"]]:
+      extra = sum(x.title == "banner_of_battle" for x in active["Creature"])
+      card.extraPow += extra
     # this is deliberately after gray_monk
     if "autocannon" in inactive["Artifact"] + active["Artifact"]:
       count = sum(x.title == "autocannon" for x in inactive["Artifact"] + active["Artifact"])
@@ -79,11 +82,12 @@ def anger(game, card):
   """Anger. Ready and fight with a friendly creature.
   """
   passFunc(game, card)
-  choice = game.chooseCards("actCreature", "Choose a friendly creature:")
-  while not choice:
-    print("Invalid submission.")
-    choice = game.chooseCards("actCreature", "Choose a friendly creature:")
-  choice = choice[0]
+  
+  if not game.activePlayer.board["Creature"]:
+    pyautogui.alert("No valid targets. The card is still played.")
+    return
+  
+  choice = game.chooseCards("Creature", "Choose a friendly creature:", "friend")[0][1]
   if not game.activePlayer.board["Creature"][choice].ready:
     game.activePlayer.board["Creature"][choice].ready = True
     game.fightCard(choice)
@@ -111,10 +115,7 @@ def blood_money(game, card):
   if len(game.inactivePlayer.board["Creature"]) == 0:
     pyautogui.alert("Your opponent has no creatures for you to target. The card is still played.")
   else:
-    game.inactivePlayer.printShort(game.inactivePlayer.board["Creature"])
-    choice = []
-    while not choice:
-      choice = game.chooseCards("inactCreature", "Choose an enemy creature to gain two amber:")[0]
+    choice = game.chooseCards("Creature", "Choose an enemy creature to gain two amber:", "enemy")[0][1]
     game.inactivePlayer.board["Creature"][choice].captured += 2
     pyautogui.alert(game.inactivePlayer.board["Creature"][choice].title + " now has " + game.inactivePlayer.board["Creature"][choice].amber + " amber.")
     return
@@ -157,9 +158,7 @@ def champions_challenge(game, card):
           break
     # check length of inactiveBoard, if > 1, let player choose which one to keep
     if len(inactiveBoard) > 1: # at this point only creatures tied for highest power will be in play
-      choice = []
-      while not choice:
-        choice = game.chooseCards("inactCreature", "Choose which enemy creature will survive:")[0]
+      choice = game.chooseCards("Creature", "Choose which enemy creature will survive:", "enemy")[0][1]
       # then destroy all cards except choice
       while len(inactiveBoard > 1):
         # easy part: choice at beginning of list
@@ -185,9 +184,7 @@ def champions_challenge(game, card):
           break
     # check length of activeBoard, if > 1, let player choose which one to keep
     if len(activeBoard) > 1:
-      choice = []
-      while not choice:
-        choice = game.chooseCards("actCreature", "Choose which friendly creature will survive:")[0]
+      choice = game.chooseCards("Creature", "Choose which friendly creature will survive:", "friend")[0][1]
       # then discard all cards except choice
       while len(activeBoard > 1):
         # easy part: choice at beginning of list
@@ -199,11 +196,9 @@ def champions_challenge(game, card):
 
   # then ready and fight with remaining minion
   if len(game.activePlayer.board["Creature"]) == 0:
-    pyautogui.alert("You have no creatures to target. The card is still played.")
+    pyautogui.alert("You have no creatures to target.")
     return
-  choice = []
-  while not choice:
-    choice = game.chooseCards("actCreature", "Choose a creature to fight with:")[0] # because ward will be a thing, and something could happen
+  choice = game.chooseCards("Creature", "Choose a creature to fight with:", "friend")[0][1] # because ward will be a thing, and something could happen
   if not game.activePlayer.board["Creature"][choice].ready:
     game.activePlayer.board["Creature"][choice].ready = True
     game.fightCard(choice)
@@ -252,41 +247,31 @@ def lava_ball (game, card):
   passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
-  pendingDiscard = game.pendingReloc # this one's fine because only one side is ever affected
+  pendingDiscard = game.pendingReloc # this one's fine because only one side is ever affected; pending would be able to handle it anyway though
 
-  side = None
-  if len(activeBoard) == 0:
-    side = "Enemy"
-  if len(inactiveBoard) == 0:
-    side = "Friendly"
-  while side == None:
-    side = pyautogui.confirm("Will you target an enemy creature or a friendly creature?", buttons=["Enemy", "Friendly"])
-  
-  choice = []
+  if not activeBoard and not inactiveBoard:
+    pyautogui.alert("No valid targets. The card is still played.")
+    return
 
-  # now that target is chosen, apply damages
-  if side == "Friendly":
-    while not choice:
-      choice = game.chooseCards("actCreature", "Deal 4 damage with 2 splash to a friendly creature:")[0]
-    card = activeBoard[choice]
+  choice = game.chooseCards("Creature", "Deal 4 damage with 2 splash to a creature:")[0]
+  if choice[0] == "fr":
+    card = activeBoard[choice[1]]
     card.damageCalc(game, 4)
-    if card.updateHealth():
-      pendingDiscard.append(activeBoard.pop(choice))
     for neigh in card.neighbors():
       activeBoard[neigh].damageCalc(game, 2)
       if activeBoard[neigh].updateHealth():
         pendingDiscard.append(activeBoard.pop(neigh))
-  else:
-    while not choice:
-      choice = game.chooseCards("inactCreature", "Deal 4 damage with 2 splash to an enemy creature:")[0]
-    card = inactiveBoard[choice]
-    card.damageCalc(game, 4)
     if card.updateHealth():
-      pendingDiscard.append(inactiveBoard.pop(choice))
+      pendingDiscard.append(activeBoard.pop(choice))
+  else:
+    card = inactiveBoard[choice[1]]
+    card.damageCalc(game, 4)
     for neigh in card.neighbors():
       inactiveBoard[neigh].damageCalc(game, 2)
       if inactiveBoard[neigh].updateHealth():
         pendingDiscard.append(inactiveBoard.pop(choice - 1))
+    if card.updateHealth():
+      pendingDiscard.append(inactiveBoard.pop(choice))
   game.pending()
 
 def loot_the_bodies (game, card):
@@ -321,33 +306,32 @@ def punch (game, card):
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only one side ever affected
 
-  if activeBoard or inactiveBoard:
-    side = game.chooseSide()
+  if not activeBoard and not inactiveBoard:
+    pyautogui.alert("No valid targets. The card is still played.")
+    return
 
-  choice = []
-  # side == 0, active board
-  if side == "Friendly":
-    while not choice:
-      choice = game.chooseCards("actCreature", "Deal 3 damage to a friendly creature:")[0]
+  choice = game.chooseCards("Creature", "Deal 3 damage to a creature:")[0]
+  if choice[0] == "fr":
     activeBoard[choice].damageCalc(game, 3)
     if activeBoard[choice].update:
       pendingDiscard.append(activeBoard[choice])
   else:
-    while not choice:
-      choice = game.chooseCards("inactCreature", "Deal 3 damage to an enemy creature:")[0]
     inactiveBoard[choice].damageCalc(game, 3)
     if inactiveBoard[choice].update:
       pendingDiscard.append(inactiveBoard[choice])
+  game.pending()
 
 def relentless_assault (game, card):
   """ Relentless Assault: Ready and fight with up to 3 friendly creatures, one at a time.
   """
   passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
-  choices = []
-  while not choices:
-    choices = game.chooseCards("actCreature", "Choose up to three creatures, in the order you'd like them to fight:", 3)
-
+  if activeBoard:
+    choices = game.chooseCards("Creature", "Choose up to three creatures, in the order you'd like them to fight:", "friend", 3)
+  else:
+    pyautogui.alert("No friendly creatures to target.")
+    return
+  choices = [x[1] for x in choices]
   name_check = [activeBoard[x].title for x in choices]
   
   while len(choices) > 0:
@@ -361,7 +345,7 @@ def relentless_assault (game, card):
     else:
       continue
     # make game equal the result of this function call, so that if anything died we have the new board state
-    # this doesn't account for phoenix heart
+    # this doesn't account for phoenix heart, or anything else that might kill the creature before we get to it
     if original > len(activeBoard):
       for x in choices:
         if x > choice:
@@ -397,23 +381,20 @@ def tremor (game, card):
   passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.activePlayer.board["Creature"]
-  if activeBoard or inactiveBoard:
-    side = game.chooseSide()
-  else:
+
+  if not activeBoard and not inactiveBoard:
     pyautogui.alert("No valid targets. Card is still played.")
     return
-  choice = []
-  if side == "Friendly":
-    while not choice:
-      choice = game.chooseCards("actCreature", "Stun a friendly creature and its neighbors:")[0]
-    card = activeBoard[choice]
+  
+  choice = game.chooseCards("Creature", "Stun a creature and its neighbors:")[0]
+
+  if choice[0] == "fr":
+    card = activeBoard[choice[1]]
     card.stun = True
     for neigh in card.neighbors():
       activeBoard[neigh].stun = True
   else:
-    while not choice:
-      choice = game.chooseCards("inactCreature", "Stun an enemy creature and its neighbors:")[0]
-    card = inactiveBoard[choice]
+    card = inactiveBoard[choice[1]]
     card.stun = True
     for neigh in card.neighbors():
       inactiveBoard[neigh].stun = True
@@ -432,14 +413,12 @@ def unguarded_camp (game, card):
   elif diff == 0:
     pyautogui.alert("You have as many creatures as your opponent, so no amber is captured. The card is still played.")
     return
-  pyautogui.alert(f"You have {diff} more minions than your opponent, so you will capture {diff} amber.")
+  # pyautogui.alert(f"You have {diff} more minions than your opponent, so you will capture {diff} amber.")
   if diff == len(activeBoard) and game.inactivePlayer.amber >= diff:
     [x.capture(game, 1) for x in activeBoard]
     return
   diff = min(diff, game.inactivePlayer.amber)
-  choices = []
-  while not choices or len(choices) < diff:
-    choices = game.chooseCards("actCreature", f"Choose {diff} friendly creatures to capture an amber:", diff)
+  choices = [x[1] for x in game.chooseCards("Creature", f"Choose {diff} friendly creatures to capture an amber:", "friend", diff, True)]
   for x in choices:
     activeBoard[x].capture(game, 1)
 
@@ -541,18 +520,17 @@ def smaaash (game, card):
   passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
-  side = game.chooseSide()
-  choice = []
-  if side == "Friendly":
-    while not choice:
-      choice = game.chooseCards("actCreature", "Stun a friendly creature:")[0]
-    activeBoard[choice].stun = True
-  elif side == "Enemy":
-    while not choice:
-      choice = game.chooseCards("inactCreature", "Stun an enemy creature:")[0]
-    inactiveBoard[choice].stun = True
+  
+  if not activeBoard and not inactiveBoard:
+    pyautogui.alert("No valid targets.")
+    return
+
+  choice = game.chooseCards("Creature", "Stun a friendly creature:")[0]
+
+  if choice[0] == "fr":
+    activeBoard[choice[1]].stun = True
   else:
-    return # board is empty, which could happen
+    inactiveBoard[choice[1]].stun = True
 
 def wardrummer (game, card):
   """Wardrummer: Return each other friendly Brobnar creature to your hand.
