@@ -65,14 +65,14 @@
       <li>EOT effects, and declare "Check!"</li>
    </ol>
  </li>
- <li>Build a state dict that only has the relevant information</li>
+ <li><s>Build a state dict that only has the relevant information</s></li>
  <li>Logger wil be in main, and imported into everything else and called there.</li>
  <li><s>Sort hand by house</s></li>
- <li>Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.</li>
+ <li>Write all the functions for all the cards.</li>
  <li><s>Rewrite the base code to reflect the implementation of the cards (ie in responses())</s></li>
  <li><s>update the play card function to tell the player how much amber they got for playing the card.</s></li>
  <li>Also, update it to make it more succinct (hint: use return statements?). - I think its good enough as is for now</li>
- <li>need to implement hazardous and assault in fights</li>
+ <li>need to implement hazardous and assault and poison in fights</li>
  <li>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</li>
  <li>figure out where destroyed abilities get called from <b>Answer: from pending, if destroyed = True</b></li>
  <li>write after fights for Krump and creatures of his ilk - this means after fight will need to fed three variables</li>
