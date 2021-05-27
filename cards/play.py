@@ -59,6 +59,9 @@ def passFunc(game, card):
       if card.updateHealth():
         game.pendingReloc.append(active["Creature"].pop(active["Creature"].index(card)))
     game.pending()
+    if card.title == "silvertooth":
+      card.ready = True
+      pyautogui.alert(card.title + " enters play ready!")
     if card.house == "Mars":
       if "blypyp" in activeS and activeS["blypyp"] and card.house == "Mars":
         card.ready = True
@@ -429,9 +432,10 @@ def unguarded_camp (game, card):
     [x.capture(game, 1) for x in activeBoard]
     return
   diff = min(diff, game.inactivePlayer.amber)
-  choices = [x[1] for x in game.chooseCards("Creature", f"Choose {diff} friendly creatures to capture an amber:", "friend", diff)]
-  for x in choices:
-    activeBoard[x].capture(game, 1)
+  if diff:
+    choices = [x[1] for x in game.chooseCards("Creature", f"Choose {diff} friendly creatures to capture an amber:", "friend", diff)]
+    for x in choices:
+      activeBoard[x].capture(game, 1)
 
 def warsong (game, card):
   """Warsong: For the remainder of the turn, gain 1 amber each time a friendly creature fights.
@@ -721,7 +725,7 @@ def gongoozle (game, card):
       game.pending()
     else:
       ran = random.choice(list(range(len(active))))
-      game.discardCard(ran)
+      game.discardCard(ran, True)
   # enemy side
   else:
     inactive[choice[1]].damageCalc(game, 3)
@@ -1364,11 +1368,11 @@ def twin_bolt_emission (game, card):
       if choice[0] == "fr":
         active[choice[1]].damageCalc(game, 2)
         if active[choice[1]].update:
-          pendingDisc.append(active.pop(choice))
+          pendingDisc.append(active.pop(choice[1]))
       else:
         inactive[choice[1]].damageCalc(game, 2)
         if inactive[choice[1]].update:
-          pendingDisc.append(active.pop(choice))
+          pendingDisc.append(inactive.pop(choice[1]))
   game.pending()
 
 def wild_wormhole (game, card):

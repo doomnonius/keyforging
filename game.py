@@ -496,6 +496,7 @@ class Board():
       ######################################
 
       elif self.turnStage == 2: # choose a house, optionally pick up archive
+        archive = self.activePlayer.archive
         self.activeHouse = self.chooseHouse("activeHouse")
         if len(self.activePlayer.archive) > 0:
           # self.activePlayer.printShort(self.activePlayer.archive)
@@ -504,7 +505,8 @@ class Board():
             show += f"{card.title} [{card.house}]\n"
           archive = pyautogui.confirm(show, buttons=["Yes", "No"])
           if archive == "Yes":
-            self.pendingReloc = self.activePlayer.archive
+            for card in archive:
+              self.pendingReloc.append(archive.pop(archive.index(card)))
             self.pending('hand')
         self.turnStage += 1
 
@@ -553,7 +555,7 @@ class Board():
               show += f"{card.title}\n"
             pyautogui.alert(show)
           elif self.response == "OppArchive":
-            pyautogui.alert("There are " + str(len(self.inactivePlayer.archive) + " cards in your opponent's archive."))
+            pyautogui.alert("There are " + str(len(self.inactivePlayer.archive)) + " cards in your opponent's archive.")
           elif self.response == "OppHouses":
             show = 'Your opponent\'s houses are:\n'
             for house in self.inactivePlayer.houses:
@@ -1041,13 +1043,13 @@ class Board():
     self.usedThisTurn.append(card)
       
   
-  def discardCard(self, cardNum: int):
+  def discardCard(self, cardNum: int, cheat: bool = False):
     """ Discard a card from hand, within the turn. Doesn't need to use pending for discards, but does use it for Rock-Hurling Giant.
     """
     active = self.activePlayer.board["Creature"]
     inactive = self.inactivePlayer.board["Creature"]
     card = self.activePlayer.hand[cardNum]
-    if card.house in self.activeHouse:
+    if card.house in self.activeHouse or cheat:
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       if "rock_hurling_giant" in [x.title for x in active] and self.activePlayer.discard[-1].house == "Brobnar":
         targeting = self.chooseCards("Creature", "Deal 4 damage to:")[0]
@@ -1103,6 +1105,8 @@ class Board():
 
     if not L:
       return # just in case we feed it an empty list
+    for card in L:
+      card.reset()
     if destination not in ['purge', 'discard', 'hand', 'deck']:
       pyautogui.alert("Pending was given an invalid destination.")
       return
@@ -1561,10 +1565,59 @@ class Board():
     selectedSurfTapped.set_alpha(80)
     selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
 
+    invalidSurf = pygame.Surface((self.target_cardw, self.target_cardh))
+    invalidSurf.convert_alpha()
+    invalidSurf.set_alpha(80)
+    invalidSurf.fill(COLORS["RED"])
+
+    invalidSurfTapped = pygame.Surface((self.target_cardh, self.target_cardw))
+    invalidSurfTapped.convert_alpha()
+    invalidSurfTapped.set_alpha(80)
+    invalidSurf.fill(COLORS["RED"])
+
+    invalid = []
+
+    if canHit == "friend":
+      target = self.activePlayer
+    elif canHit == "enemy":
+      target = self.inactivePlayer
+    elif canHit == "both":
+      target = self.activePlayer
+    elif canHit == "either":
+      target = self.activePlayer
+    else:
+      print(f"Invalid canhit: {canHit}")
+      raise ValueError
+    
+    if targetPool == "Hand":
+      for card in target.hand:
+        if not condition(card):
+          invalid.append((invalidSurf, card.rect))
+    elif targetPool == "Discard":
+      for card in target.discard:
+        if not condition(card):
+          invalid.append((invalidSurf, card.rect))
+    else: # targetPool == "Artifact" or "Creature"
+      if canHit == "both" or canHit == "either":
+        target = self.activePlayer.board[targetPool] + self.inactivePlayer.board[targetPool]
+        for card in target:
+          if not condition(card):
+            if card.ready:
+              invalid.append((invalidSurf, card.rect))
+            else:
+              invalid.append((invalidSurfTapped, card.tapped_rect))
+      if canHit == "friend" or canHit == "enemy":
+        for card in target.board[targetPool]:
+          if not condition(card):
+            if card.ready:
+              invalid.append((invalidSurf, card.rect))
+            else:
+              invalid.append((invalidSurfTapped, card.tapped_rect))  
+        
     selected = []
     retVal = []
     while True:
-      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect), (cancelBack, cancelBackRect), (cancelSurf, cancelRect)] + selected
+      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect), (cancelBack, cancelBackRect), (cancelSurf, cancelRect)] + invalid + selected
       for e in pygame.event.get():
         if e.type == pygame.QUIT:
           pygame.quit()
@@ -1620,6 +1673,8 @@ class Board():
                     toAdd = ("fr", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1634,6 +1689,8 @@ class Board():
                     toAdd = ("fo", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1649,6 +1706,8 @@ class Board():
                     toAdd = ("fr", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1663,6 +1722,8 @@ class Board():
                     toAdd = ("fo", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1678,6 +1739,8 @@ class Board():
                     toAdd = ("fo", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1693,6 +1756,8 @@ class Board():
                     toAdd = ("fr", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1715,6 +1780,8 @@ class Board():
                     toAdd = ("fr", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1732,6 +1799,8 @@ class Board():
                     toAdd = ("fo", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1752,6 +1821,8 @@ class Board():
                     toAdd = ("fr", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1769,6 +1840,8 @@ class Board():
                     toAdd = ("fo", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1787,6 +1860,8 @@ class Board():
                     toAdd = ("fo", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1807,6 +1882,8 @@ class Board():
                     toAdd = ("fr", index)
                     if toAdd not in retVal:
                       retVal.append(toAdd)
+                    else:
+                      retVal.remove(toAdd)
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1823,6 +1900,8 @@ class Board():
                   toAdd = ("fo", index)
                   if toAdd not in retVal:
                     retVal.append(toAdd)
+                  else:
+                    retVal.remove(toAdd)
                   print(retVal)
                 else:
                   pyautogui.alert(con_message)
@@ -1838,6 +1917,8 @@ class Board():
                   toAdd = ("fr", index)
                   if toAdd not in retVal:
                     retVal.append(toAdd)
+                  else:
+                    retVal.remove(toAdd)
                   print(retVal)
                 else:
                   pyautogui.alert(con_message)
