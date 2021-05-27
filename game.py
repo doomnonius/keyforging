@@ -1610,6 +1610,7 @@ class Board():
                 if True in friend:
                   index = friend.index(True)
                   card = self.activePlayer.discard[index]
+                  print("before condition")
                   if condition(card):
                     selected.append((selectedSurf, card.rect))
                     toAdd = ("fr", index)
@@ -1623,6 +1624,7 @@ class Board():
                 if True in foe:
                   index = foe.index(True)
                   card = self.inactivePlayer.discard[index]
+                  print("before condition")
                   if condition(card):
                     selected.append((selectedSurf, card.rect))
                     toAdd = ("fo", index)
@@ -1637,6 +1639,7 @@ class Board():
                 if True in friend and (not retVal or retVal[0][0] == "fr"):
                   index = friend.index(True)
                   card = self.activePlayer.discard[index]
+                  print("before condition")
                   if condition(card):
                     selected.append((selectedSurf, card.rect))
                     toAdd = ("fr", index)
@@ -1650,6 +1653,7 @@ class Board():
                 if True in foe and (not retVal or retVal[0][0] == "fo"):
                   index = foe.index(True)
                   card = self.inactivePlayer.discard[index]
+                  print("before condition")
                   if condition(card):
                     selected.append((selectedSurf, card.rect))
                     toAdd = ("fo", index)
@@ -1664,6 +1668,7 @@ class Board():
                 if True in foe:
                   index = foe.index(True)
                   card = self.inactivePlayer.discard[index]
+                  print("before condition")
                   if condition(card):
                     selected.append((selectedSurf, card.rect))
                     toAdd = ("fo", index)
@@ -1678,6 +1683,7 @@ class Board():
                 if True in friend:
                   index = friend.index(True)
                   card = self.activePlayer.discard[index]
+                  print("before condition")
                   if condition(card):
                     selected.append((selectedSurf, card.rect))
                     toAdd = ("fr", index)
@@ -1696,6 +1702,7 @@ class Board():
                 if True in friend:
                   index = friend.index(True)
                   card = active[targetPool][index]
+                  print("before condition")
                   if condition(card):
                     if card.ready:
                       selected.append((selectedSurf, card.rect))
@@ -1712,6 +1719,7 @@ class Board():
                 if True in foe:
                   index = foe.index(True)
                   card = inactive[targetPool][index]
+                  print("before condition")
                   if condition(card):
                     if card.ready:
                       selected.append((selectedSurf, card.rect))
@@ -1731,6 +1739,7 @@ class Board():
                 if True in friend and (not retVal or retVal[0][0] == "fr"):
                   index = friend.index(True)
                   card = active[targetPool][index]
+                  print("before condition")
                   if condition(card):
                     if card.ready:
                       selected.append((selectedSurf, card.rect))
@@ -1747,6 +1756,7 @@ class Board():
                 if True in foe and (not retVal or retVal[0][0] == "fo"):
                   index = foe.index(True)
                   card = inactive[targetPool][index]
+                  print("before condition")
                   if condition(card):
                     if card.ready:
                       selected.append((selectedSurf, card.rect))
@@ -1764,6 +1774,7 @@ class Board():
                 if True in foe:
                   index = foe.index(True)
                   card = inactive[targetPool][index]
+                  print("before condition")
                   if condition(card):
                     if card.ready:
                       selected.append((selectedSurf, card.rect))
@@ -1783,6 +1794,7 @@ class Board():
                 if True in friend:
                   index = friend.index(True)
                   card = active[targetPool][index]
+                  print("before condition")
                   if condition(card):
                     if card.ready:
                       selected.append((selectedSurf, card.rect))
@@ -1801,6 +1813,7 @@ class Board():
               if True in hand:
                 index = hand.index(True)
                 card = self.activePlayer.hand[index]
+                print("before condition")
                 if condition(card):
                   selected.append((selectedSurf, card.rect))
                   toAdd = ("fo", index)
@@ -1815,6 +1828,7 @@ class Board():
               if True in hand:
                 index = hand.index(True)
                 card = self.activePlayer.hand[index]
+                print("before condition")
                 if condition(card):
                   selected.append((selectedSurf, card.rect))
                   toAdd = ("fr", index)

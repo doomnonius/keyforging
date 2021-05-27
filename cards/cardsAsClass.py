@@ -273,7 +273,10 @@ class Card(pygame.sprite.Sprite):
             other.elusive = False
         else:
             print("Damage is dealt as normal to defender.")
-            other.damageCalc(game, self.power + self.extraPow)
+            damage = self.power + self.extraPow
+            if self.title == "valdr" and other.isFlank():
+                damage += 2
+            other.damageCalc(game, damage)
         self.ready = False
         print("After fight effects would go here, if attacker survives.")
         if self.updateHealth():
@@ -302,22 +305,23 @@ class Card(pygame.sprite.Sprite):
             if index == 0 and len(active) == 1:
                 return []
             elif index == 0:
-                return [1]
+                return [active[1]]
             elif index == len(active) - 1:
-                return [index - 1]
+                return [active[index - 1]]
             else:
-                return [index - 1, index + 1]
+                return [active[index - 1], active[index + 1]]
         elif self in inactive:
             index = inactive.index(self)
             if index == 0 and len(inactive) == 1:
                 return []
             elif index == 0:
-                return [1]
+                return [inactive[1]]
             elif index == len(inactive) - 1:
-                return [index - 1]
+                return [inactive[index - 1]]
             else:
-                return [index - 1, index + 1]
-        else: print("This unit is not on the board, so it has no neighbors.")
+                return [inactive[index - 1], inactive[index + 1]]
+        else: 
+            pyautogui.alert("This unit is not on the board, so it has no neighbors.")
 
     def isFlank(self):
         if len(self.neighbors) < 2:
