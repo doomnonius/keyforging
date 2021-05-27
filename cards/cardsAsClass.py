@@ -18,11 +18,12 @@ class Card(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         # screen = pygame.display.get_surface()
         self.deck = deckName
-        self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("’", "").replace('"', "").replace(",", "").replace("!", "")
+        self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("’", "").replace('“', "").replace(",", "").replace("!", "").replace("”", "").replace("-", "_")
         self.width = width
         self.height = height
         self.damage = 0
-        self.power = int(cardInfo['power'])
+        self.base_power = int(cardInfo['power'])
+        self.power = self.base_power
         self.extraPow = 0
         self.base_armor = int(cardInfo['armor'])
         self.armor = self.base_armor
@@ -41,6 +42,7 @@ class Card(pygame.sprite.Sprite):
         self.number = cardInfo['card_number']
         self.exp = cardInfo["expansion"]
         self.maverick = cardInfo['is_maverick']
+        self.revealed = False
         self.load_image()
         # conditionals to add?
         # status effects
@@ -69,14 +71,8 @@ class Card(pygame.sprite.Sprite):
             self.upgrade = []
             if self.title == "Giant Sloth":
                 self.usable = False
-            if "enters play ready" in self.text:
-                self.ready = True
-            else:
-                self.ready = False
-            if "enters play stunned" in self.text:
-                self.stun = True
-            else:
-                self.stun = False
+            self.ready = False
+            self.stun = False
             self.captured = 0
             # check for skirmish in self.text
             if "Skirmish" in self.text:
@@ -280,7 +276,7 @@ class Card(pygame.sprite.Sprite):
         if self.updateHealth():
             game.pendingReloc.append(game.activePlayer.board["Creature"].pop(game.activePlayer.board["Creature"].index(self)))
         else:
-            self.fight(game, self)
+            self.fight(game, self, other)
             print("I know it isn't self.fight that's failing.")
         if other.updateHealth():
             game.pendingReloc.append(game.inactivePlayer.board["Creature"].pop(game.inactivePlayer.board["Creature"].index(other)))
@@ -361,6 +357,8 @@ class Card(pygame.sprite.Sprite):
         fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', self.title + '.png')
         try:
             image = pygame.image.load(fullname)
+        except FileNotFoundError:
+            print(fullname)
         except pygame.error as message:
             fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', 'mighty_javelin.png')
             image = pygame.image.load(fullname)

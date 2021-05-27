@@ -64,6 +64,7 @@ class Deck:
                 self.hand.append(self.deck.pop())
             else:
                 self.shuffleDiscard()
+        self.hand.sort(key = lambda x: x.house, reverse=True)
         self.deck.sort(key = lambda x: x.house, reverse=True) # why was this even here? testing
     
     def shuffleDiscard(self):
@@ -77,25 +78,10 @@ class Deck:
             self.discard = []
         random.shuffle(self.deck)
 
-    def printShort(self, listt, booly = True):
-        """ Prints names and houses of cards in specified list (hand, discard, purge, etc.).
+    def gainAmber(self, count, game):
+        """ This function will handle the possiblity of ether spider.
         """
-        for x in range (0, len(listt)):
-            print(str(x) + ": " + listt[x].title + " (" + listt[x].house + ")")
-        if booly:
-            full = input("Enter a number to see full details for that card, or press enter to continue: ")
-        else:
-            full = ''
-        while full != '':
-            try:
-                print(repr(listt[int(full)]))
-                print(str(listt[int(full)]))
-            except:
-                print("Error: input was not a number.")
-            if booly:
-                full = input("Enter a number to see full details for that card, or press enter to continue: ")
-            else:
-                full = ''
+        self.amber += count
 
     def __iadd__(self, num):
         """ Draws num cards.
@@ -126,7 +112,7 @@ def sortName(val):
 def convertToHtml(string):
     """Converts a string to html to be used in a search.
     """
-    if string == '':
+    if string == '' or string == None:
         return ''
     elif string[0] in 'abcdefghijklmnopqrstuvwxyz."-':
         return string[0] + convertToHtml(string[1:])
@@ -147,9 +133,9 @@ def importDeck():
     newUrl = url1 + convertToHtml(deckname.lower())
     page = requests.get(newUrl).json()
     # print(newUrl)
-    with open('decks/newdeck.json', 'w') as f:
+    with open('decks/newdeck.json', 'w', encoding='utf-8') as f:
         json.dump(page, f, ensure_ascii=False)
-    with open('decks/newdeck.json') as f:
+    with open('decks/newdeck.json', encoding='utf-8') as f:
         data = json.load(f)
         if data['data'] == []:
             pyautogui.alert("That input returned no results.")
@@ -160,7 +146,7 @@ def importDeck():
         if deckExp != 341:
             pyautogui.alert("This version of the game can only handle CotA decks.")
             return
-        with open('decks/deckList.json', 'r') as dList:
+        with open('decks/deckList.json', 'r', encoding='utf-8') as dList:
             allDecks = json.load(dList)
             for deck in allDecks:
                 if deck['name'] == deckName:
@@ -182,7 +168,7 @@ def importDeck():
         addDeck['name'] = deckName
         addDeck['deck'] = newDeck
         # Do something to append this data to a json file - the attempt at a solution below is not working
-    with open('decks/deckList.json', 'w') as f:
+    with open('decks/deckList.json', 'w', encoding='utf-8') as f:
         new = allDecks + [addDeck]
         # print(new[0]['name']) # test line
         new.sort(key=lambda x: x["name"])

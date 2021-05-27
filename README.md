@@ -1,13 +1,10 @@
 <h1>This is a very complicated project</h1>
 
 <h2>This project will attempt to create a graphical version of keyforge. If things go real well, I may attempt online play and a simple ai, but I've got a lot of work ahead of me.<h2>
-<h3>BUGS:<h3>
+<h3>Planned features / Current Goals:<h3>
 <ul>
  <li>https://www.pygame.org/docs/genindex.html</li>
- <li>https://www.pygame.org/docs/tut/ChimpLineByLine.html</li>
- <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
- <li>If a card is tapped, it's untapped rect should be outside the board, and vice versa - this could be put in game.switch()</li>
- <li>I want the algo for drawing creatures, artifacts, to put them in the middle of their area.</li>
+ <li><s>Interacting with the state dictionaries.</s> - in progress</li>
  <li>Code not yet implemented to only display valid options for items, instead of all. - in progress</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed. - in progress</li>
@@ -18,49 +15,33 @@
  <li>Enable dragging and dropping cards.</li>
  <li>Upgrades don't work. (Or things in later sets that give other cards abilities).</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, house symbols, etc.</li>
- <li><b>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</b></li>
  <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor. Operate banner of battle similarly.</li>
  <li>Is captured amber returned, while amber on artifacts lost?</li>
  <li>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work.</li>
  <li>game.pending() needs updates</li>
  <li>Change color of End Turn button when no more available actions.</li>
- <li>Artifact of active house thinks it can't be used.</li>
- <li>Hover on left card in opp hand shows left card in your hand instead.</li>
  <li>Picking decks within game window - will be another while loop</li>
  <li>Choosing what flank a creature goes on - will be another while loop</li>
+ <li>Verify game integrity at ends of turns.</li>
+ <li>Incorporate a condition into chooseCards</li>
  <li></li>
  <li></li>
  <li></li>
- <li>Things that could target themselves won't be drawn in yet during the targeting phase. Might be fixed.</li>
  <li></li>
  <li></li>
- <li></li>
- <li><s>Key locations not scaled to size of display.</s></li>
+ <li><s>I want the algo for drawing creatures, artifacts, to put them in the middle of their area. For now I'm not going to do this for hands.</s> - That was easier than I thought it was going to be.</li>
+ <li><s>If a card is tapped, it's untapped rect should be outside the board, and vice versa - this could be put in game.switch()</s> - actually put it in draw</li>
  <li><s>game.chooseCards: (1) can infinite loop if the list they try to target is empty (2) can't handle choosing from different lists at the same time (3) should highlight chosen cards</s></li>
- <li><s>Interacting with the state dictionaries.</s> - in progress</li>
- <li></li>
- <li></li>
+ <li><s>Key locations not scaled to size of display.</s></li>
  <li><s>Should be able to cancel out of the chooseCards menu (this could also allow for selecting less than the full number of targets)</s></li>
  <li><s>Mulligan phase - should be able to hover cards while choosing whether to keep.</s></li>
  <li><s>Something I don't quite understand in line 1322 of game.py about things with play effects</s> - changed implementation, still refactoring but should be much better.</li>
  <li><s>Code not yet implemented to differentiate action from artifact v action from creature.</s> - pretty sure this is fixed, but also not sure what I meant</li>
  <li><s>Check status of fighters after fight.</s> Actually problem here was checking the attacker twice, instead of checking attacker and defender. So if attacker survived, so did defender.</li>
- <li><s>Says who is going first twice</s></li>
- <li><s>Hitboxes for tapped cards should exist.<s></li>
  <li><s>Losing Amber from playing Truebaru</s></li>
  <li><s>The '#other play effects' section of checkPlayStates should be incorporated in checks made when a card ETBs.</s></li>
  <li><s>Lifeward preventing playing creatures</s></li>
  <li><s>Aember imp preventing playing more than two cards.</s></li>
- <li><s>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</s></li>
- <li><s>Fix things going beyond bound of screen.</s></li>
- <li><s>Cards aren't tapped when exhausted.</s></li>
- <li><s>Don't make the extra space for tapping in the hand, only the board.</s></li>
- <li><s>Amber doesn't update properly.</s></li>
- <li><s>Discard card always says cards aren't in active house.</s></li>
-</ul>
-
-<h3>Current Goals:</h3>
-<ul>
  <li><s>Be able to import and save decks</s> - <b>Done</b></li>
  <li><s>Create initial game setup:</s></li>
  <li><s>Choosing which decks to play</s> - <b>Done</b></li>
@@ -81,12 +62,12 @@
       </li>
       <li><s>Ready Cards</s> - <b>Done</b></li>
       <li><s>Draw Cards</s> - <b>Done</b></li>
+      <li>EOT effects, and declare "Check!"</li>
    </ol>
  </li>
  <li>Build a state dict that only has the relevant information</li>
  <li>Logger wil be in main, and imported into everything else and called there.</li>
- <li>Sort hand by house</li>
- <li>Update Decks option from startup() so that people can examine what is in a deck</li>
+ <li><s>Sort hand by house</s></li>
  <li>Write all the functions for all the cards, which will include a whole lot of states, so I'm also going to want to figure out a way for a game that is called to only pay attention to the relevant states.</li>
  <li><s>Rewrite the base code to reflect the implementation of the cards (ie in responses())</s></li>
  <li><s>update the play card function to tell the player how much amber they got for playing the card.</s></li>
@@ -94,11 +75,24 @@
  <li>need to implement hazardous and assault in fights</li>
  <li>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</li>
  <li>figure out where destroyed abilities get called from <b>Answer: from pending, if destroyed = True</b></li>
- <li>write one-offs for Krump and creatures of his ilk</li>
+ <li>write after fights for Krump and creatures of his ilk - this means after fight will need to fed three variables</li>
  <li>the pending function will need to call card.dest, and definitely will need to call card.leaves</li>
  <li>when do I check for taunt?</li>
- <li>implement a "Check for x key!" step</li>
  <li>implement the rule of six</li>
+ <li><s>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</s></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+</ul>
+
+<h2>Testing: </h2>
+<ol>
+<li><b>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</b></li>
+<li>Things that could target themselves won't be drawn in yet during the targeting phase. Might be fixed.</li>
+<li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
+<li>Can cheat out extra fighting with stunned things, shouldn't be able to.</li>
+<li></li>
 </ul>
 
 <h2>Bugs: </h2>
@@ -107,17 +101,36 @@
 <li>if Sneklifter steals an artifact and it doesn't belong to one of the active player's houses, it gets changed to house Shadows. This is good. The bug is that if the artifact leaves play it doesn't get changed back.</li>
 <li>If scout gives a minion skirmish for a turn, it keeps skirmish until death. Might be fixed.</li>
 <li>Nocturnal Manuevers didn't work.</li>
+<li>Artifact of active house thinks it can't be used. - b/c actions aren't set up yet</li>
+<li>add things that enter ready and/or stunned to the play list.</li>
+<li>Keys don't flip</li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li><s>Bug: Hover on left card in opp hand shows left card in your hand instead.</s></li><li><s>Fix things going beyond bound of screen.</s></li>
+<li><s>Cards aren't tapped when exhausted.</s></li>
+<li><s>Don't make the extra space for tapping in the hand, only the board.</s></li>
+<li><s>Amber doesn't update properly.</s></li>
+<li><s>Discard card always says cards aren't in active house.</s></li>
+<li><s>Says who is going first twice</s></li>
+<li><s>Hitboxes for tapped cards should exist.<s></li>
 </ol>
 
 <h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>
 <ul>
-  <li>44: Rock-Hurling Giant - not sure I implemented this well</li>
+  <li>44: Rock-Hurling Giant</li>
   <li>261: The Vaultkeeper</li>
   <li>295: The Sting</li>
   <li>298: Carlo Phantom</li>
-  <li>354: Giant Sloth - needs to be finished in card reset</li>
+  <li>354: Giant Sloth</li>
   <li>366: Teliga</li>
-  <li>367: Hunting Witch
+  <li>367: Hunting Witch</li>
 </ul>
 
 <h3>Randoms (one-offs that will get their own special checks):</h3>

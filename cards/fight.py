@@ -1,7 +1,7 @@
 import pyautogui
 
-def basicFight(game, card):
-  """This checks for things that create before fight effects, if there are any.
+def basicFight(game, card, attacked):
+  """This checks for things that create before fight effects, if there are any. Like, for example, if something attacks Krump or similar and dies.
   """
   if card.temp_skirmish:
     card.temp_skirmish = False
@@ -13,11 +13,11 @@ def basicFight(game, card):
 
 def basicBeforeFight(game, card):
   """ This checks for things that create before fight effects, like take hostages
-      It will be called by all before fight effects, or 
+      It will be called by all before fight effects, or by cards that have no before fight effects.
   """
   print("Start of basic before fight.")
   if "warsong" in game.activePlayer.states:
-    game.activePlayer.amber += game.activePlayer.states["warsong"]
+    game.activePlayer.amber.gainAmber(game.activePlayer.states["warsong"], game)
   print("After warsong.")
   if "take_hostages" in game.activePlayer.states:
     card.capture(game, game.activePlayer.states["take_hostages"])

@@ -13,6 +13,7 @@ def basicDest(game, card):
     """ Called for when a card is destroyed.
     """
     # loot the bodies
+    # return captured amber if a creature, don't if an artifact
 
 #############
 ## Brobnar ##
