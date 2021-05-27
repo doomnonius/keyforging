@@ -59,6 +59,13 @@ def passFunc(game, card):
       if card.updateHealth():
         game.pendingReloc.append(active["Creature"].pop(active["Creature"].index(card)))
     game.pending()
+    if card.type == "Mars":
+      if "blypyp" in activeS and activeS["blypyp"] and card.house == "Mars":
+        card.ready = True
+        pyautogui.alert(card.title + " enters play ready!")
+        activeS["blypyp"] = 0
+      if card.title in ["chuff_ape", "yxilx_dominator", "zorg"]:
+        card.stun = True
   if card.type == "Artifact" and "carlo_phantom" in [x.title for x in active["Creature"]]:
     stealAmber(game.activePlayer, game.inactivePlayer, sum(x.title == "carlo_phantom" for x in active["Creature"]))
     pyautogui.alert("'Carlo Phantom' stole 1 amber for you. You now have " + str(game.activePlayer.amber) + " amber.")
@@ -69,10 +76,6 @@ def passFunc(game, card):
     card.ready = True
     pyautogui.alert(card.title + " enters play ready!")
     activeS["soft_landing"] = 0
-  if "blypyp" in activeS and activeS["blypyp"] and card.type == "Creature" and card.house == "Mars":
-    card.ready = True
-    pyautogui.alert(card.title + " enters play ready!")
-    activeS["blypyp"] = 0
 
 
 ###########
