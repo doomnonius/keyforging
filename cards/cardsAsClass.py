@@ -23,27 +23,33 @@ class Card(pygame.sprite.Sprite):
         self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("’", "").replace('“', "").replace(",", "").replace("!", "").replace("”", "").replace("-", "_")
         self.width = width
         self.height = height
+        self.reset()
+        
+
+    def reset(self):
+        """ Resets a card after it leaves the board.
+        """
         self.damage = 0
-        self.base_power = int(cardInfo['power'])
+        self.base_power = int(self.cardInfo['power'])
         self.power = self.base_power
         self.extraPow = 0
-        self.base_armor = int(cardInfo['armor'])
+        self.base_armor = int(self.cardInfo['armor'])
         self.armor = self.base_armor
         self.extraArm = 0
-        self.id = cardInfo['id']
-        self.house = cardInfo["house"]
-        self.type = cardInfo["card_type"]
-        self.text = cardInfo["card_text"]
-        if cardInfo['traits'] != None:
-            self.traits = cardInfo['traits']
+        self.id = self.cardInfo['id']
+        self.house = self.cardInfo["house"]
+        self.type = self.cardInfo["card_type"]
+        self.text = self.cardInfo["card_text"]
+        if self.cardInfo['traits'] != None:
+            self.traits = self.cardInfo['traits']
         else:
             self.traits = ''
-        self.amber = cardInfo['amber']
-        self.rarity = cardInfo["rarity"]
-        self.flavor = cardInfo["flavor_text"]
-        self.number = cardInfo['card_number']
-        self.exp = cardInfo["expansion"]
-        self.maverick = cardInfo['is_maverick']
+        self.amber = self.cardInfo['amber']
+        self.rarity = self.cardInfo["rarity"]
+        self.flavor = self.cardInfo["flavor_text"]
+        self.number = self.cardInfo['card_number']
+        self.exp = self.cardInfo["expansion"]
+        self.maverick = self.cardInfo['is_maverick']
         self.revealed = False
         self.load_image()
         # conditionals to add?
@@ -272,10 +278,13 @@ class Card(pygame.sprite.Sprite):
             print("The defender has elusive, so no damage is dealt to the defender.")
             other.elusive = False
         else:
-            print("Damage is dealt as normal to defender.")
             damage = self.power + self.extraPow
-            if self.title == "valdr" and other.isFlank():
-                damage += 2
+            print(f"{damage} damage is dealt as normal to defender.")
+            try:
+                if self.title == "valdr" and other.isFlank(game):
+                    damage += 2
+            except Exception as e:
+                print(e)
             other.damageCalc(game, damage)
         self.ready = False
         print("After fight effects would go here, if attacker survives.")
@@ -323,14 +332,11 @@ class Card(pygame.sprite.Sprite):
         else: 
             pyautogui.alert("This unit is not on the board, so it has no neighbors.")
 
-    def isFlank(self):
-        if len(self.neighbors) < 2:
+    def isFlank(self, game):
+        if len(self.neighbors(game)) < 2:
             return True
         return False
 
-    def reset(self):
-        """ Resets a card after it leaves the board.
-        """
 
     def update(self):
         """ Doesn't do anything yet, but this is for the sprite if I use those

@@ -642,14 +642,18 @@ class Board():
         self.discardedThisTurn = []
         self.usedLastTurn = self.usedThisTurn.copy()
         self.usedThisTurn = []
+        print(f"States: {self.resetStates}")
+        print(f"Next states: {self.resetStatesNext}")
         if self.resetStates:
           for key in self.resetStates:
             if key[0] == "a":
               self.activePlayer.states[key[1]] = 0
             if key[0] == "i":
               self.inactivePlayer.states[key[1]] = 0
-          self.resetStates = self.resetStatesNext.copy()
+        self.resetStates = self.resetStatesNext.copy()
         self.resetStatesNext = []
+        print(f"States: {self.resetStates}")
+        print(f"Next states: {self.resetStatesNext}")
         self.switch()
         self.turnNum += 1
         self.turnStage = 0
@@ -1140,13 +1144,13 @@ class Board():
           # choice = makeChoice("Choose which card to add to your opponent's discard first: ", pendingI)
           choice = 0
           if not destroyed:
-            self.inactivePlayer.hand.append(pendingI.pop(choice))
+            self.inactivePlayer.discard.append(pendingI.pop(choice))
           else:
             self.inactivePlayer.discard.append(pendingI.pop(choice))
         # this is for the edge case of discarding cards from your opponents archive - if you have cards in your opponent's archive, they don't get discarded but added to your hand
         choice = 0
         if not destroyed:
-          self.inactivePlayer.hand.append(pendingI.pop(choice))
+          self.inactivePlayer.discard.append(pendingI.pop(choice))
         else:
           self.inactivePlayer.discard.append(pendingI.pop(choice))
     if destination == "hand":
@@ -1618,7 +1622,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
                 if True in foe:
@@ -1632,7 +1636,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
               elif canHit == "either": # this means I can select multiples, but only all from same side
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
@@ -1647,7 +1651,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
                 if True in foe and (not retVal or retVal[0][0] == "fo"):
@@ -1661,7 +1665,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
               elif canHit == "enemy": # this means I can only target unfriendlies
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
@@ -1676,7 +1680,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
               elif canHit == "friend": # this means I can only target friendlies
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
@@ -1691,7 +1695,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
                   ##### end section that needs updating
             else: # Creature or Artifact
@@ -1713,7 +1717,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
                 if True in foe:
@@ -1730,7 +1734,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
               elif canHit == "either": # this means I can select multiples, but only all from same side
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
@@ -1750,7 +1754,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
                 if True in foe and (not retVal or retVal[0][0] == "fo"):
@@ -1767,7 +1771,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
               elif canHit == "enemy": # this means I can only target unfriendlies
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
@@ -1785,7 +1789,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
               elif canHit == "friend": # this means I can only target friendlies
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
@@ -1805,7 +1809,7 @@ class Board():
                       retVal.append(toAdd)
                     print(retVal)
                   else:
-                    pyautogui.alert("This target does not meet the conditions.")
+                    pyautogui.alert(con_message)
                     break
           else:
             if canHit == "enemy":
@@ -1821,7 +1825,7 @@ class Board():
                     retVal.append(toAdd)
                   print(retVal)
                 else:
-                  pyautogui.alert("This target does not meet the conditions.")
+                  pyautogui.alert(con_message)
                   break
             else:
               hand = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.hand]
@@ -1836,7 +1840,7 @@ class Board():
                     retVal.append(toAdd)
                   print(retVal)
                 else:
-                  pyautogui.alert("This target does not meet the conditions.")
+                  pyautogui.alert(con_message)
                   break
       if not full or (full and len(retVal) == count):
         confirmBack.fill(COLORS["LIGHT_GREEN"])

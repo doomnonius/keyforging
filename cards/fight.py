@@ -17,7 +17,7 @@ def basicBeforeFight(game, card):
   """
   print("Start of basic before fight.")
   if "warsong" in game.activePlayer.states:
-    game.activePlayer.amber.gainAmber(game.activePlayer.states["warsong"], game)
+    game.activePlayer.gainAmber(game.activePlayer.states["warsong"], game)
   print("After warsong.")
   if "take_hostages" in game.activePlayer.states:
     card.capture(game, game.activePlayer.states["take_hostages"])

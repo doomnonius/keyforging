@@ -16,12 +16,12 @@
  <li>Upgrades don't work. (Or things in later sets that give other cards abilities).</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, house symbols, etc.</li>
  <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor. Operate banner of battle similarly.</li>
- <li>Is captured amber returned, while amber on artifacts lost?</li>
+ <li>Is captured amber returned, while amber on artifacts lost? - this will be in game.pending</li>
  <li>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work.</li>
  <li>game.pending() needs updates</li>
  <li>Change color of End Turn button when no more available actions.</li>
  <li>Picking decks within game window - will be another while loop</li>
- <li>Choosing what flank a creature goes on - will be another while loop</li>
+ <li>Choosing what flank a creature goes on - will be another while loop (I used chooseHouse as a temporary solution)</li>
  <li>Verify game integrity at ends of turns.</li>
  <li>Incorporate a condition into chooseCards</li>
  <li>Add archive to the board, viewable.</li>
@@ -81,7 +81,7 @@
  <li>implement the rule of six</li>
  <li><s>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</s></li>
  <li>I need a destroy function for handling ward and invulnerable.</li>
- <li></li>
+ <li>Reset cards back to default state after leaving the board (the function needs to written in cardsAsClass, and then called in game.pending)</li>
  <li></li>
  <li></li>
 </ul>
@@ -89,10 +89,8 @@
 <h2>Testing: </h2>
 <ol>
 <li><b>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</b></li>
-<li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
-<li>Can cheat out extra fighting with stunned things, shouldn't be able to.</li>
-<li></li>
-</ul>
+<li>Can use wild wormhole to cheat out a card with ember imp in play?</li>
+</ol>
 
 <h2>Bugs: </h2>
 <ol>
@@ -112,6 +110,8 @@
 <li></li>
 <li></li>
 <li></li>
+<li><s>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</s></li>
+<li><s>Can cheat out extra fighting with stunned things, shouldn't be able to.</s></li>
 <li><s>Things that could target themselves won't be drawn in yet during the targeting phase. Might be fixed.</s></li>
 <li><s>Bug: Hover on left card in opp hand shows left card in your hand instead.</s></li><li><s>Fix things going beyond bound of screen.</s></li>
 <li><s>Cards aren't tapped when exhausted.</s></li>
