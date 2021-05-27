@@ -1,5 +1,6 @@
 import os
 from typing import List
+import pyautogui
 
 import pygame, logging
 import cards.destroyed as dest
@@ -243,7 +244,7 @@ class Card(pygame.sprite.Sprite):
         """ Calculates damage, considering armor only.
         """
         if "shield_of_justice" in game.activePlayer.states and game.activePlayer.states["shield_of_justice"] and self in game.activePlayer.board["Creature"]:
-            print("No damage is dealt because of Shield of Justice.")
+            pyautogui.alert(f"No damage is dealt to {self.title} because of Shield of Justice.")
             return
         if num >= self.armor:
             self.damage += (num - self.armor)

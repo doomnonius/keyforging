@@ -48,10 +48,24 @@ class Deck:
                 s += '.\n'
         return s
 
-    def drawEOT(self):
+    def drawEOT(self, game):
         """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have.
         """
         draw = self.handSize
+        # howling pit
+        activeA = [x.title for x in game.activePlayer.board["Artifact"]]
+        inactiveA = [x.title for x in game.inactivePlayer.board["Artifact"]]
+        activeC = [x.title for x in game.activePlayer.board["Creature"]]
+        inactiveC = [x.title for x in game.inactivePlayer.board["Creature"]]
+        if "howling_pit" in activeA + inactiveA:
+            draw += sum("howling_pit" == x for x in activeA + inactiveA)
+        # mother
+        if "mother" in activeC:
+            draw += sum("mother" == x for x in activeC)
+        # succubus
+        if "succubus" in inactiveC:
+            draw -= sum("succubus" == x for x in inactiveC)
+        # etc.
         if self.chains > 0:
             reduced = self.chains // 6
             if self.chains % 6 != 0:
@@ -91,7 +105,7 @@ class Deck:
                 self.shuffleDiscard()
             self.hand.append(self.deck.pop())
             num -= 1
-        self.hand.sort(key=lambda x: x.house)
+        self.hand.sort(key = lambda x: x.house)
         return self
 
 url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=1&links=cards&search="

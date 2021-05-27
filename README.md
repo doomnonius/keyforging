@@ -24,8 +24,8 @@
  <li>Choosing what flank a creature goes on - will be another while loop</li>
  <li>Verify game integrity at ends of turns.</li>
  <li>Incorporate a condition into chooseCards</li>
- <li></li>
- <li></li>
+ <li>Add archive to the board, viewable.</li>
+ <li>Make purge list viewable.</li>
  <li></li>
  <li></li>
  <li></li>
@@ -89,7 +89,6 @@
 <h2>Testing: </h2>
 <ol>
 <li><b>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</b></li>
-<li>Things that could target themselves won't be drawn in yet during the targeting phase. Might be fixed.</li>
 <li>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</li>
 <li>Can cheat out extra fighting with stunned things, shouldn't be able to.</li>
 <li></li>
@@ -113,6 +112,7 @@
 <li></li>
 <li></li>
 <li></li>
+<li><s>Things that could target themselves won't be drawn in yet during the targeting phase. Might be fixed.</s></li>
 <li><s>Bug: Hover on left card in opp hand shows left card in your hand instead.</s></li><li><s>Fix things going beyond bound of screen.</s></li>
 <li><s>Cards aren't tapped when exhausted.</s></li>
 <li><s>Don't make the extra space for tapping in the hand, only the board.</s></li>

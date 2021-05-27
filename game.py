@@ -53,6 +53,8 @@ class Board():
     self.response = []
     self.pendingReloc = []
     self.extraDraws = []
+    self.resetStates = []
+    self.resetStatesNext = []
     self.drawFriendDiscard = False
     self.closeFriendDiscard = None
     self.drawEnemyDiscard = False
@@ -488,6 +490,7 @@ class Board():
               # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
               self.inactivePlayer.gainAmber(self.activePlayer.amber, self)
               self.activePlayer.amber = 0
+              self.inactivePlayer.states["interdimensional_graft"] = 0
               pyautogui.alert(f"They now have {self.inactivePlayer.amber} amber.")
             if "bilgum_avalanche" in [x.title for x in self.activePlayer.board["Creature"]]:
               # deal two damage to each enemy creature. I don't remember how I set this up to work
@@ -636,12 +639,11 @@ class Board():
       ######################
 
       elif self.turnStage == 5: # end of turn draw and end of turn effects
-        self.activePlayer.drawEOT()
+        self.activePlayer.drawEOT(self)
         
         self.checkEOTStates()
 
         # switch players
-        self.switch()
         for creature in self.activePlayer.board["Creature"]:
           creature.eot(self, creature)
         for creature in self.inactivePlayer.board["Creature"]:
@@ -660,6 +662,15 @@ class Board():
         self.discardedThisTurn = []
         self.usedLastTurn = self.usedThisTurn.copy()
         self.usedThisTurn = []
+        if self.resetStates:
+          for key in self.resetStates:
+            if key[0] == "a":
+              self.activePlayer.states[key[1]] = 0
+            if key[0] == "i":
+              self.inactivePlayer.states[key[1]] = 0
+          self.resetStates = self.resetStatesNext.copy()
+        self.resetStatesNext = []
+        self.switch()
         self.turnNum += 1
         self.turnStage = 0
       
@@ -1210,14 +1221,20 @@ class Board():
       pyautogui.alert("Pending did not properly empty the list.")
 
 
-  def playCard(self, chosen:int = 50, cheat: bool  = False):
+  def playCard(self, chosen: int, cheat: str = "Hand"):
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
     print(f"numPlays: {len(self.playedThisTurn)}")
     if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
       pyautogui.alert("You cannot play another card this turn. But how'd you get here?")
       return
-    card = self.activePlayer.hand[chosen]
+    if cheat == "Deck":
+      source = self.activePlayer.deck
+    elif cheat == "Discard":
+      source = self.activePlayer.discard
+    else:
+      source = self.activePlayer.hand
+    card = source[chosen]
     if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
       if card.type == "Action":
         if "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
@@ -1237,24 +1254,24 @@ class Board():
         if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
           pyautogui.alert("You can't play creatures because of 'Lifeward'")
           return
-    if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0):
+    if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0) and not cheat:
       self.activePlayer.states["phase_shift"] -= 1 # reset to false
       # Increases amber, adds the card to the action section of the board, then calls the card's play function
       # cardOptions() makes sure that you can't try to play a card you're not allowed to play
     flank = "Right"
     if card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
-      pyautogui.alert(f"{self.activePlayer.hand[chosen].title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
+      pyautogui.alert(f"{source[chosen].title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
     if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
-      flank = pyautogui.confirm("Choose left or right flank:", buttons=["Left", 'Right'])
+      flank = self.chooseHouse("custom", ("Choose which flank to play this creature on:", ["Left", "Right"]))[0]
     # left flank
     if card.type != "Upgrade" and flank == "Left":
-      self.activePlayer.board[card.type].insert(0, self.activePlayer.hand.pop(chosen))
+      self.activePlayer.board[card.type].insert(0, source.pop(chosen))
       print(f"numPlays: {len(self.playedThisTurn)}") # test line
     # default case: right flank
     elif card.type != "Upgrade":
       print(card.type)
-      self.activePlayer.board[card.type].append(self.activePlayer.hand.pop(chosen))
+      self.activePlayer.board[card.type].append(source.pop(chosen))
       print(f"numPlays: {len(self.playedThisTurn)}") # test line
     else:
       if len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
@@ -1272,9 +1289,13 @@ class Board():
     self.draw()
     pygame.display.update()
     card.play(self, card)
+    print(f"numPlays: {len(self.playedThisTurn)}")
     # if the card is an action, now add it to the discard pile
     if card.type == "Action":
-      self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
+      if card.title == "library_access":
+        self.activePlayer.purged.append(self.activePlayer.board["Action"].pop())
+      else:
+        self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
 
   def playUpgrade(self, card: card.Card):
     """ Plays an upgrade on a creature.
@@ -1367,8 +1388,8 @@ class Board():
       self.extraDraws = []
 
   
-  def chooseHouse(self, varAsStr: str) -> List[str]:
-    """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak. Num is used for cards that allow extra houses to fight or be used.
+  def chooseHouse(self, varAsStr: str, custom: Tuple[str, List[str]] = ()) -> List[str]:
+    """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak.
     """
     if varAsStr == "activeHouse":
       message = "Choose your house for this turn:"
@@ -1377,6 +1398,11 @@ class Board():
         houses = self.inactivePlayer.states["control_the_weak"]
       else:
         houses = [self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]]
+      if "pitlord" in [x.title for x in self.activePlayer.board["Creature"]]:
+        if "control_the_weak" in self.inactivePlayer.states and self.inactivePlayer.states["control_the_weak"] and "Dis" not in houses: # other things can affect this too though...
+          houses.append("Dis")
+        else:
+          houses = ["Dis"]
       if "restringuntus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
         house = self.inactivePlayer.states["restringuntus"] # won't be more than one
         if house in houses:
@@ -1392,9 +1418,9 @@ class Board():
     elif varAsStr == "other":
       message = "Choose any house:"
       houses = ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]
-    elif varAsStr == "guardian":
-      message = "How much damage would you like to heal?"
-      houses = ["  0  ", "  1  ", "  2  "]
+    elif varAsStr == "custom":
+      message = custom[0]
+      houses = custom[1]
     houses_rects = []
     # message
     messageSurf = self.BASICFONT.render(message, 1, COLORS["WHITE"])

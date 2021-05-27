@@ -1,5 +1,4 @@
 from os import path
-from game import Board
 import random
 import pyautogui, pygame
 from functools import reduce
@@ -280,8 +279,9 @@ def loot_the_bodies (game, card):
   """ Loot the Bodies: For the remainder of the turn, gain 1 amber each time an enemy creature is destroyed.
   """
   passFunc(game, card)
-  game.activePlayer.states["loot_the_bodies"] += 1
-  # skipping the rest for now, until event emitters or etc are figured out
+  game.activePlayer.states[card.title] += 1
+  game.resetStates.append(("a", card.title))
+  # the rest will be in basicDest
 
 def take_that_smartypants (game, card):
   """Take that, Smartypants: Steal 2 amber if your opponent has 3 or more Logos cards in play.
@@ -427,7 +427,8 @@ def warsong (game, card):
   """Warsong: For the remainder of the turn, gain 1 amber each time a friendly creature fights.
   """
   passFunc(game, card)
-  game.activePlayer.states["warsong"] += 1
+  game.activePlayer.states[card.title] += 1
+  game.resetStates.append(("a", card.title))
 
 def banner_of_battle (game, card):
   """ Banner of Battle: Each friendly creature gets +1 power.
@@ -534,7 +535,7 @@ def smaaash (game, card):
     pyautogui.alert("No valid targets.")
     return
 
-  choice = game.chooseCards("Creature", "Stun a friendly creature:")[0]
+  choice = game.chooseCards("Creature", "Stun a creature:")[0]
 
   if choice[0] == "fr":
     activeBoard[choice[1]].stun = True
@@ -621,7 +622,8 @@ def control_the_weak (game, card):
   """ Control the Weak: Choose a house on opp's id card, they must choose that house on next turn.
   """
   passFunc(game, card)
-  game.activePlayer.states["control_the_weak"] = game.chooseHouse("control")
+  game.activePlayer.states[card.title] = game.chooseHouse("control")
+  game.resetStatesNext.append(("i", card.title))
 
 def creeping_oblivion (game, card):
   """ Creeping Oblivion: purge up to 2 cards from a discard pile.
@@ -982,6 +984,10 @@ def three_fates (game, card):
         break
   game.pending()
 
+#############
+# Creatures #
+#############
+
 def charette (game, card):
   """ Charette: Capture 3 amber.
   """
@@ -1008,63 +1014,59 @@ def guardian_demon (game, card):
     return
   choice = game.chooseCards("Creature", "Choose a creature:")[0]
   if choice[0] == "fr":
-    if active[choice[1]].damage > 0:
-      heal = game.chooseHouse("guardian")[0]
+    card1 = active[choice[1]]
+    if card1.damage > 0:
+      heal = int(game.chooseHouse("custom", ("How much damage would you like to heal?", ["  0  ", "  1  ", "  2  "]))[0])
     else:
       pyautogui.alert("There was no damage on this creature, so no damage will be dealt.")
       return
   else:
-    if inactive[choice[1]].damage > 0:
+    card1 = inactive[choice[1]]
+    if card1.damage > 0:
       heal = game.chooseHouse("guardian")[0]
     else:
       pyautogui.alert("There was no damage on this creature, so no damage will be dealt.")
       return
   if heal:
-    
-  if side == 0: # friendly
-    if 0 < active[choice].damage < heal: # aka heal == 2
-      print(active[choice].title + " only has 1 damage, so you only heal one damage.")
-      heal = 1
-      active[choice].damage -= heal
-    elif active[choice].damage >= heal: # aka heal == 2
-      print(active[choice].title + " now has only " + str(active[choice].damage - heal) + " damage.\n")
-      active[choice].damage -= heal
-  if side == 1: #enemy
-    if 0 < inactive[choice].damage < heal: # aka heal == 2
-      print(inactive[choice].title + " only has 1 damage, so you only heal 1 damage.")
-      heal = 1
-      inactive[choice].damage -= heal
-    elif inactive[choice].damage >= heal: # aka heal == 2
-      print(inactive[choice].title + " now has only " + str(inactive[choice].damage - heal) + " damage.\n")
-      inactive[choice].damage -= heal
-  print("Now, choose which creature to transfer the damage to: ")
-  choice, side = chooseSide(game)
-  if side == 0: # friendly
-    active[choice].damageCalc(game, heal)
-    if active[choice].updateHealth():
-      pendingDisc.append(active.pop(choice))
-    game.pending(pendingDisc)
-  if side == 1: #enemy
-    inactive[choice].damageCalc(game, heal)
-    if inactive[choice].updateHealth():
-      pendingDisc.append(inactive.pop(choice))
-    game.pending(pendingDisc)
+    while True:
+      choice = game.chooseCards("Creature", "Choose a creature:")[0]
+      if choice[0] == "fr":
+        card2 = active[choice[1]]
+        if card2 != card1:
+          card2.damageCalc(game, heal)
+          if card2.updateHealth():
+            pendingDisc.append(active.pop(choice[1]))
+          break
+        else:
+          pyautogui.alert("You can't damage the creature you healed. Choose a different target.")
+          continue
+      else:
+        card2 = inactive[choice[1]]
+        if card2 != card1:
+          card2.damageCalc(game, heal)
+          if card2.updateHealth():
+            pendingDisc.append(inactive.pop(choice[1]))
+          break
+        else:
+          pyautogui.alert("You can't damage the creature you healed. Choose a different target.")
+          continue
+    game.pending()
 
-def key094(game, card):
+def restringuntus (game, card):
   """ Restringuntus: Choose a house. Your opponent cannot choose that house as their active house until Restringuntus leaves play.
   """
   passFunc(game, card)
   # no deck has more than one copy of this card
-  game.chooseHouse(card.title)
+  game.chooseHouse("other")
 
-def key096(game, card):
+def shooler (game, card):
   """ Shooler: if your opponent has 4 or more amber, steal 1.
   """
   passFunc(game, card)
   if game.inactivePlayer.amber >= 4:
     stealAmber(game.activePlayer, game.inactivePlayer, 1)
   
-def key101(game, card):
+def the_terror (game, card):
   """ The Terror: If your opponent has no amber, gain 2.
   """
   passFunc(game, card)
@@ -1087,45 +1089,39 @@ def truebaru (game, card):
 # Actions #
 ###########
 
-def key107(game, card):
-  """ Bouncing Deathquark: Destroy and enemy creature and a friendly creature. Repeat effect as many times as you want, as long as you can repeat entire effect.
+def bouncing_deathquark (game, card):
+  """ Bouncing Deathquark: Destroy an enemy creature and a friendly creature. Repeat effect as many times as you want, as long as you can repeat entire effect.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  pendingDiscard = []
-  print(game)
-  choice = makeChoice("Choose an enemy creature to destroy: ", inactive)
-  pendingDiscard.append(inactive.pop(choice))
-  if len(active) > 1:
-    choice2 = makeChoice("Choose a friendly creature to destroy: ", active)
-  elif len(active) == 1:
-    choice2 = 0
-  else:
-    print("You have no creatures. The card's effect ends.")
-    return
-  pendingDiscard.append(active.pop(choice2))
-  game.pending(pendingDiscard)
-  while len(active) > 0 and len(inactive) > 0:
-    print(game)
-    choice = makeChoice("Choose an enemy creature to destroy: ")
-    choice2 = makeChoice("Choose a friendly creature to destroy: ")
-    pendingDiscard.append(inactive.pop(choice))
-    pendingDiscard.append(active.pop(choice))
-    game.pending(pendingDiscard)
-  if len(active) == 0:
-    print("You have no more creatures, so the effect cannot be repeated.")
-    return
-  print("Your opponent has no more creatures, so the effect cannot be repeated.")
+  pendingDiscard = game.pendingReloc
+  while active and inactive:
+    while True:
+      choices = game.chooseCards("Creature", "Choose an enemy creature to destroy and a friendly creature to destroy, or choose no creatures to stop:", count = 2, full = False)
+      if len(choices) == 0:
+        return
+      if len(choices) == 1 or choices[0][0] == choices[1][0]:
+        pyautogui.alert("You need to choose one enemy and one friendly creature. Try again.")
+        continue
+      else:
+        for choice in choices:
+          if choice[0] == "fr":
+            pendingDiscard.append(active.pop(choice[1]))
+          else:
+            pendingDiscard.append(inactive.pop(choice[1]))
+        break
+    game.pending()
 
-def key108(game, card):
+def dimension_door (game, card):
   """ Dimension Door: For the remainder of the turn, any amber you would gain from reaping is stolen from your opponent instead.
   """
   passFunc(game, card)
   # just set a state, effect doesn't stack from multiple copies
-  game.activePlayer.states["Reap"].update({card.title:True})
+  game.activePlayer.states[card.title] += 1
+  game.resetStates.append("a", card.title)
 
-def key109(game, card):
+def effervescent_principle (game, card):
   """ Effervescent Principle: Each player loses half their amber (rounding down the loss). Gain one chain.
   """
   passFunc(game, card)
@@ -1134,25 +1130,26 @@ def key109(game, card):
   if game.inactivePlayer.amber % 2 == 0:
     game.inactivePlayer.gainAmber(1, game)
   if game.activePlayer.amber > 0:
-    game.activePlayer.amber /= 2
-    print("After losing half your amber, you now have " + str(game.activePlayer.amber) + " amber.")
+    game.activePlayer.amber //= 2
+    pyautogui.alert("After losing half your amber, you now have " + str(game.activePlayer.amber) + " amber.")
   else:
-    print("You still have no amber.")
+    pyautogui.alert("You still have no amber.")
   if game.inactivePlayer.amber > 0:
-    game.inactivePlayer.amber /= 2
-    print("After losing half their amber, your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+    game.inactivePlayer.amber //= 2
+    pyautogui.alert("After losing half their amber, your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
   else:
-    print("Your opponent still has no amber.")
+    pyautogui.alert("Your opponent still has no amber.")
   game.activePlayer.chains += 1
 
-def key110(game, card):
+def foggify (game, card):
   """ Foggify: your opponent cannot use creatures to fight on their next turn.
   """
   passFunc(game, card)
   # states should always be in deck that they affect
-  game.inactivePlayer.states["Fight"].update({card.title:True})
+  game.activePlayer.states[card.title] += 1
+  game.resetStatesNext.append(("i", card.title))
 
-def key111(game, card):
+def help_from_future_self (game, card):
   """ Help from Future Self: Search your deck and discard pile for a Timetraveller, reveal it, and put it into your hand. Shuffle your discard pile into your deck.
   """
   passFunc(game, card)
@@ -1162,7 +1159,7 @@ def key111(game, card):
     # look at first item in deck
     x = 0
     while x < len(L):
-      if L[x].title == "Timetraveller":
+      if L[x].title == "timetraveller":
         hand.append(L.pop(x))
         return True
       else:
@@ -1170,237 +1167,251 @@ def key111(game, card):
     return False
   
   if not search(game.activePlayer.hand, game.activePlayer.deck):
-    search(game.activePlayer.hand, game.activePlayer.discard)
+    if not search(game.activePlayer.hand, game.activePlayer.discard):
+      pyautogui.alert("No 'Timetraveller' found.")
   game.activePlayer.shuffleDiscard()
 
-def key112(game, card):
+def interdimensional_graft (game, card):
   """ Interdimensional Graft: If an opponent forges a key on their next turn, they must give you their remaining amber.
   """
   passFunc(game, card)
   # update state
-  game.inactivePlayer.states["Forge"].update({card.title:True})
+  game.activePlayer.states[card.title] += 1
+  game.resetStatesNext.append(("i", card.title))
 
-def key113(game, card):
+def knowledge_is_power (game, card):
   """ Knowledge is Power: Choose one: Archive a card, or, for each archived card you have, gain 1 amber.
   """
   passFunc(game, card)
   # b/c this is only choose card in whole set, will give card text
-  while True:
-    choice = input(card.text + "\n[A]rchive/[G]ain\n>>>").title()
-    if len(game.activePlayer.hand) == 0 and choice[0] == "A":
-      print("You have no cards in hand to archive.")
-      choice = input("Would you like to gain amber instead [Y/n]? ").title()
-      if choice[0] == "Y":
-        choice = "G"
-      else:
-        return
-    if "A" in choice[0]:
-      archive = makeChoice("Choose a card from hand to archive: ", game.activePlayer.hand)
+  choice = game.chooseHouse("custom", ("Archive a card, or gain 1 amber for each card in your archives?", ["Archive", "Gain amber"]))[0]
+  if choice == "Archive":
+    if len(game.activePlayer.hand) > 0:
+      archive = game.chooseCards("Hand", "Choose a card to archive:")[0][1]
       game.activePlayer.archive.append(game.activePlayer.hand.pop(archive))
-      print("Card archived! Type 'Archive' to view your archive.")
-      return
-    elif "G" in choice[0]:
-      print("You gain " + str(len(game.activePlayer.archive)) + " amber.")
-      game.activePlayer.gainAmber(len(game.activePlayer.archive), game)
-      return
+    else:
+      pyautogui.alert("Your hand is empty, so you can't archive a card.")
+  else:
+    game.activePlayer.gainAmber(len(game.activePlayer.archive), game)
 
-def key114(game, card):
+
+def labwork (game, card):
   """ Labwork: Archive a card.
   """
   passFunc(game, card)
-  archive = makeChoice("Choose a card from hand to archive: ", game.activePlayer.hand)
-  game.activePlayer.archive.append(game.activePlayer.hand.pop(archive))
-  print(archive[-1].title + " archived! Type 'Archive' to view your archive.")
+  if game.activePlayer.hand:
+    archive = game.chooseCards("Hand", "Choose a card from your hand to archive:")[0][1]
+    game.activePlayer.archive.append(game.activePlayer.hand.pop(archive))
 
-def key115(game, card):
+def library_access (game, card):
   """ Library Access: Purge this card. For the remainder of the turn, each time you play another card, draw a card.
   """
   passFunc(game, card)
-  print(card.title + " is played, then immediately purged.")
-  game.activePlayer.purge.append(game.activePlayer.board["Action"].pop()) # b/c library access will usually be only card, and if it isn't will definitely be last card
-  game.activePlayer.states["Play"].update({card.title:True})
+  # purging is handled in the playCard function, my old solution would have led to popping from an empty list
+  game.activePlayer.states[card.title] += 1
 
-def key116(game, card):
+def neuro_syphon (game, card):
   """ Neuro Syphon: If your opponent has more amber than you, steal 1 amber and draw a card.
   """
   passFunc(game, card)
   if game.inactivePlayer.amber > game.activePlayer.amber:
-    print("Your opponent has more amber than you, so the effect triggers.")
     stealAmber(game.activePlayer, game.inactivePlayer, 1)
-    print("You now have " + str(game.activePlayer.amber) + " amber.")
+    pyautogui.alert("Your opponent has more amber than you, so the effect triggers. You now have " + str(game.activePlayer.amber) + " amber. Drawing a card.")
     game.activePlayer += 1
-    print("Drawing a card.")
     return
-  print("You have at least as much amber as your opponent. Nothing happens.")
+  pyautogui.alert("You have at least as much amber as your opponent. Nothing happens.")
     
-def key117(game, card):
+def phase_shift (game, card):
   """ Phase Shift: You may play one non-Logos card this turn.
   """
   passFunc(game, card)
   # this is a tough one. effect can stack, so we'll use a list
-  game.activePlayer.states["Play"].update({card.title:[True]})
+  game.activePlayer.states[card.title] += 1
+  game.resetStates.append("a", card.title)
 
-def key118(game, card):
+def positron_bolt (game, card):
   """ Positron Bolt: Deal 3 damage to a flank creature. Deal 2 damage to its neighbor. Deal 1 damage to the second creature's other neighbor.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  pendingDisc = [] # fine b/c only one side
-
+  pending = game.pendingReloc # fine b/c only one side
   
-  side = chooseSide(game, choices = False) # only sides w/ at least one creature can be returned from this function
-  while True:
-    choice = input("Choose [L]eft flank or [R]ight flank: ")
-    if choice[0] == "L":
-      choice = 0
-      break
-    elif choice[0] == "R":
-      choice = 1
-      break
-  
-  if side == 0: # friendly
-    if choice != 0: choice = len(active) - 1
-    active[choice].damageCalc(game, 3)
-    if choice == 0:
-      try: 
-        active[choice + 1].damageCalc(game, 2)
-        try: active[choice + 2].damageCalc(game, 1)
-        except: print("No second neighbor.")
-      except: print("No neighbor.")
-      [pendingDisc.append(active.pop(x)) for x in [choice + 2, choice + 1, choice] if active[x].updateHealth()]
-    else:
-      try: 
-        active[choice - 1].damageCalc(game, 2)
-        try: active[choice - 2].damageCalc(game, 1)
-        except: print("No second neighbor.")
-      except: print("No neighbor.")
-      [pendingDisc.append(active.pop(x)) for x in [choice, choice - 1, choice - 2] if active[x].updateHealth()]
-    game.pending(pendingDisc)
+  if not active and not inactive:
+    pyautogui.alert("No valid targets. The cards is still played.")
     return
-  if choice != 0: choice = len(inactive) - 1
-  inactive[choice].damageCalc(game, 3)
-  if choice == 0:
-    try:
-      inactive[choice + 1].damageCalc(game, 2)
-      try: inactive[choice + 2].damageCalc(game, 1)
-      except: print("No second neighbor.")
-    except: print("No neighbor.")
-    [pendingDisc.append(inactive.pop(x)) for x in [choice + 2, choice + 1, choice] if inactive[x].updateHealth()]
-  else:
-    try:
-      inactive[choice - 1].damageCalc(game, 2)
-      try: inactive[choice - 2].damageCalc(game, 1)
-      except: print("No second neighbor.")
-    except: print("No neighbor.")
-    [pendingDisc.append(inactive.pop(x)) for x in [choice, choice - 1, choice - 2] if inactive[x].updateHealth()]
-  game.pending(pendingDisc)
+  
+  choice = game.chooseCards("Creature", "Choose a flank creature to deal three damage to:")[0]
+  
+  while True:
+    if choice[0] == "fr":
+      if active[choice[1]].isFlank():
+        if choice[1] == 0:
+          i = 0
+          active[i].damageCalc(game, 3)
+          if active[i].updateHealth():
+            pending.append(active.pop(0))
+            i -= 1
+          if len(active) > 1:
+            active[i + 1].damageCalc(game, 2)
+            if active[i + 1].updateHealth():
+              pending.append(active.pop(i + 1))
+              i -= 1
+          if len(active) > 2:
+            active[2].damageCalc(game, 1)
+            if active[2].updateHealth():
+              pending.append(active.pop(i + 2))
+        else:
+          i = choice[1]
+          active[i].damageCalc(game, 3)
+          if active[i].updateHealth():
+            pending.append(active.pop(i))
+          active[i - 1].damageCalc(game, 2)
+          if active[i - 1].updateHealth():
+            pending.append(active.pop(i - 1))
+          if len(active) > 2:
+            active[i - 2].damageCalc(game, 1)
+            if active[i - 2].updateHealth():
+              pending.append(active.pop(i - 2))
+        break
+      else:
+        pyautogui.alert("You didn't choose a flank creature. Please try again.")
+        continue
+    else:
+      if inactive[choice[1]].isFlank():
+        if choice[1] == 0:
+          i = 0
+          inactive[i].damageCalc(game, 3)
+          if inactive[i].updateHealth():
+            pending.append(inactive.pop(0))
+            i -= 1
+          if len(inactive) > 1:
+            inactive[i + 1].damageCalc(game, 2)
+            if inactive[i + 1].updateHealth():
+              pending.append(inactive.pop(i + 1))
+              i -= 1
+          if len(inactive) > 2:
+            inactive[2].damageCalc(game, 1)
+            if inactive[2].updateHealth():
+              pending.append(inactive.pop(i + 2))
+        else:
+          i = choice[1]
+          inactive[i].damageCalc(game, 3)
+          if inactive[i].updateHealth():
+            pending.append(inactive.pop(i))
+          inactive[i - 1].damageCalc(game, 2)
+          if inactive[i - 1].updateHealth():
+            pending.append(inactive.pop(i - 1))
+          if len(inactive) > 2:
+            inactive[i - 2].damageCalc(game, 1)
+            if inactive[i - 2].updateHealth():
+              pending.append(inactive.pop(i - 2))
+        break
+      else:
+        pyautogui.alert("You didn't choose a flank creature. Please try again.")
+        continue
+  game.pending()
 
-def key119(game, card):
+def random_access_archives (game, card):
   """ Random Access Archives: Archive the top card of your deck.
   """
   passFunc(game, card)
   # if deck is empty, don't shuffle
   if len(game.activePlayer.deck) > 0:
     game.activePlayer.archive.append(game.activePlayer.deck.pop())
-    print("The top card or your deck has been archived.")
+    pyautogui.alert("The top card or your deck has been archived.")
     return
-  print("Your deck is empty. Nothing happenss.")
+  pyautogui.alert("Your deck is empty. Nothing happens.")
 
-def key120(game, card):
+def remote_access(game, card):
   """ Remote Access: use an opponent's artifact as if it were yours.
   """
   passFunc(game, card)
-  if len(game.inactivePlayer.board["Artifact"]) > 1:
-    game.activePlayer.printShort(game.inactivePlayer.board["Artifact"])
-    choice = makeChoice("Choose one of your opponent's artifacts to use: ", game.inactivePlayer.board["Artifact"])
-    # game.inactivePlayer.board["Artifact"][choice].action(game, card) # waiting on implementation
-  elif len(game.inactivePlayer.board["Artifact"]) == 1:
-    pass
-    # game.inactivePlayer.board["Artifact"][0].action(game, card) # waiting on implementation
+  if len(game.inactivePlayer.board["Artifact"]) > 0:
+    choice = game.chooseCards("Artifact", "Choose an opponent's artifact to use:", "enemy")[0][1]
+    game.inactivePlayer.board["Artifact"][choice].action(game, game.inactivePlayer.board["Artifact"][choice])
+    game.inactivePlayer.board["Artifact"][choice].ready = False
   else:
-    print("Your opponent has no artifacts. The card is stil played.")
+    pyautogui.alert("Your opponent has no artifacts. The card is stil played.")
 
-def key121(game, card):
+def reverse_time (game, card):
   """ Reverse Time: Swap your deck and your discard pile. Then, shuffle your deck.
   """
   passFunc(game, card)
   game.activePlayer.deck, game.activePlayer.discard = game.activePlayer.discard, game.activePlayer.deck
   random.shuffle(game.activePlayer.deck)
 
-def key122(game, card):
+def scrambler_storm (game, card):
   """ Scrambler Storm: Your opponent cannot play action cards on their next turn.
   """
   passFunc(game, card)
-  game.inactivePlayer.states["Play"].update({card.title:True})
+  game.activePlayer.states[card.title] += 1
+  game.resetStatesNext.append(("i", card.title))
 
-def key123(game, card):
+def sloppy_labwork (game, card):
   """ Sloppy Labwork: Archive a card. Discard a card.
   """
   passFunc(game, card)
   hand = game.activePlayer.hand
   archive = game.activePlayer.archive
   if len(hand) > 0:
-    game.activePlayer.printShort(hand)
-    choice = makeChoice("Choose a card to archive: ", hand)
+    choice = game.chooseCards("Hand", "Choose a card to archive:")[0][1]
     archive.append(hand.pop(choice))
-    print("Card archived! Type 'Archive' to see your archived cards.")
+    pyautogui.alert("Card archived!")
   if len(hand) > 0:
-    game.activePlayer.printShort(hand)
-    choice = makeChoice("Choose a card to discard: ", hand)
+    choice = game.chooseCards("Hand", "Choose a card to discard:")[0][1]
     game.activePlayer.discard.append(hand.pop(choice))
-    print("Card discarded!")
+    pyautogui.alert("Card discarded!")
 
-def key124(game, card):
+def twin_bolt_emission (game, card):
   """ Twin Bolt Emission: Deal 2 damage to a creature and deal 2 damage to a different creature.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  pendingDisc = []
-  left = 2
-  while left > 0 and len(active) + len(inactive) > 0:
-    print("Choose a target to deal 2 damage to:")
-    choice, side = chooseSide(game)
-    if side == 0: # friendly
-      active[choice].damageCalc(game, 2)
-      if active[choice].update:
-        pendingDisc.append(active.pop(choice))
-      left -= 1
-    elif side == 1: #enemy
-      inactive[choice].damageCalc(game, 2)
-      if active[choice].update:
-        pendingDisc.append(active.pop(choice))
-      left -= 1
-    else:
-      return
-  game.pending(pendingDisc)
+  pendingDisc = game.pendingReloc
+  if active or inactive:
+    choices = game.chooseCards("Creature", f"Choose {min(2, len(active) + len(inactive))} creature(s) to deal two damage to:", min(2, len(active) + len(inactive)))
+    for choice in choices:
+      if choice[0] == "fr":
+        active[choice[1]].damageCalc(game, 2)
+        if active[choice[1]].update:
+          pendingDisc.append(active.pop(choice))
+      else:
+        inactive[choice[1]].damageCalc(game, 2)
+        if inactive[choice[1]].update:
+          pendingDisc.append(active.pop(choice))
+  game.pending()
 
-def key125(game, card):
+def wild_wormhole (game, card):
   """ Wild Wormhole: Play the top card of your deck.
   """
   passFunc(game, card)
-  game.playCard(100, False)
+  game.playCard(len(game.activePlayer.deck) - 1, "Deck")
 
-def key138(game, card):
-  """ Dextre: Capture 1 amber.
+#############
+# Creatures #
+#############
+
+def dextre(game, card):
+  """ Dextre: Capture 1 amber. Destroyed: Put Dextre on top of your deck.
   """
   passFunc(game, card)
   card.capture(game, 1)
-  print("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+  pyautogui.alert("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
 
-def key140(game, card):
+def dr_escotera(game, card):
   """ Dr. Escotera: Gain 1 amber for each key your opponent has.
   """
   passFunc(game, card)
   game.activePlayer.gainAmber(game.inactivePlayer.keys, game)
-  print("You now have " + str(game.activePlayer.amber) + " amber")
+  pyautogui.alert("You now have " + str(game.activePlayer.amber) + " amber")
 
-def key141(game, card):
+def dysania (game, card):
   """ Dysania: Your opponent discards each of their archived cards. You gain 1 amber for each card discarded this way.
   """
   passFunc(game, card)
-  # edge case: if your opponent has your cards in their archive, they don't get discarded, but sent to your hand
+  # edge case: if your opponent has your cards in their archive, they don't get discarded, but sent to your hand, so you don't gain amber for them
   if len(game.inactivePlayer.archive) > 0:
     count = 0
     for x in game.inactivePlayer.archive:
@@ -1408,124 +1419,82 @@ def key141(game, card):
         count += 1
     game.activePlayer.gainAmber(count, game)
     print("You gained " + str(count) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
-    pendingDisc = game.inactivePlayer.archive
-    game.pending(pendingDisc, destroyed = False)
+    game.pendingReloc = game.inactivePlayer.archive.copy()
+    game.inactivePlayer.archive = []
+    game.pending(destroyed = False)
 
-def key143(game, card):
+def harland_mindlock (game, card):
   """ Harland Mindlock: Take control of an enemy flank creature until Harland Mindlock leaves play.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
-  
-  while True:
-    choice = input("Choose [L]eft flank or [R]ight flank enemy creature to target: ")
-    if choice[0] == "L":
-      choice = 0
-      break
-    elif choice[0] == "R":
-      choice = len(inactive) - 1
-      break
+  if not inactive:
+    pyautogui.alert("No enemy creatures to steal!")
+    return
 
   while True:
-    flank = input("Choose [L]eft flank or [R]ight flank to put stolen creature: ")
-    if choice[0] == "L":
-      flank = 0
+    choice = game.chooseCards("Creature", "Choose an enemy flank creature to steal:", "enemy")[0][1]
+    if inactive[choice].isFlank():
+      flank = game.chooseHouse("custom", ("Put the minion on the left flank or the right flank?", ["Left", "Right"]))
+      if flank == "Left":
+        flank = 0
+      else:
+        flank = len(active)
       break
-    elif choice[0] == "R":
-      flank = len(active)
-      break
+    else:
+      pyautogui.alert("You can only steal a flank creature! Try again.")
 
   active.insert(flank, inactive.pop(choice))
 
-def key146(game, card):
+
+def neutron_shark (game, card):
   """ Neutron Shark: Destroy an enemy creature or artifact and a friendly creature or artifact. Discard the top card of your deck. If that card is not a Logos card, trigger this effect again.
   """
   passFunc(game, card)
   active = game.activePlayer.board
   inactive = game.inactivePlayer.board
-  pendingDiscard = []
+  pendingDiscard = game.pendingReloc
 
-  print(game)
-  logos = True
-  while logos:
-    while True:
-      if len(inactive["Creature"]) + len(inactive["Artifact"]) == 0:
-        print("Your opponent has nothing for you to target. The effect still continues.")
-        choice = "extra"
-      elif len(inactive["Creature"]) == 0:
-        print("Your opponent has no creatures to destroy, so you must target an artifact.")
-        choice = "Artifact"
-      elif len(inactive["Artifact"]) == 0:
-        print("Your opponent has no artifacts to destroy, so you must target a creature.")
-        choice = "Creature"
-      else:
-        choice = input("Target enemy [C]reature or enemy [A]rtifact?\n>>>")
-        if choice[0] == "C":
-          choice = "Creature"
-          break
-        elif choice[0] == "A":
-          choice = "Artifact"
-          break
-    if choice != "extra":
-      game.activePlayer.printShort(inactive[choice])
-      choice2 = makeChoice("Choose a target: ", inactive[choice])
-      pendingDiscard.append(inactive[choice].pop(choice2))
-    while True:
-      if len(active["Creature"]) + len(active["Artifact"]) == 0:
-        print("You have nothing to target. The effect still continues.")
-        choice = "extra"
-      elif len(active["Creature"]) == 0:
-        print("You have no creatures to destroy, so you must target an artifact.")
-        choice = "Artifact"
-      elif len(active["Artifact"]) == 0:
-        print("You have no artifacts to destroy, so you must target a creature.")
-        choice = "Creature"
-      else:
-        choice = input("Target friendly [C]reature or friendly [A]rtifact?\n>>>")
-        if choice[0] == "C":
-          choice = "Creature"
-          break
-        elif choice[0] == "A":
-          choice = "Artifact"
-          break
-    if choice != "extra":
-      game.activePlayer.printShort(active[choice])
-      choice2 = makeChoice("Choose a target: ", active[choice])
-      pendingDiscard.append(active[choice].pop(choice2))
-    game.pending(pendingDiscard)
-
-    game.activePlayer.discard.append(game.activePlayer.deck.pop())
-    if game.activePlayer.discard[-1].house == "Logos":
-      logos = False
+  while card in active:
+    if inactive:
+      targetType = game.chooseHouse("custom", ("Would you like to target an enemy artifact or an enemy creature?", ["Artifact", "Creature"]))[0]
+      choice1 = game.chooseCards(targetType, f"Choose an enemy {targetType.lower()} to destroy:", "enemy")[0][1]
+      pendingDiscard.append(game.inactivePlayer.board[targetType].pop(choice1))
+    if active:
+      targetType2 = game.chooseHouse("custom", ("Would you like to target a friendly artifact or a friendly creature?", ["Artifact", "Creature"]))[0]
+      choice2 = game.chooseCards(targetType2, f"Choose a friendly {targetType2.lower()} to destroy:", "friend")[0][1]
+      pendingDiscard.append(game.activePlayer.board[targetType2].pop(choice2))
+    game.pending()
+    if game.activePlayer.deck:
+      game.activePlayer.discard.append(game.activePlayer.deck.pop())
+      if game.activePlayer.discard[-1].house == "Logos":
+        break
+    else:
+      break
     
-def key149(game, card):
+def psychic_bug (game, card):
   """ Psychic Bug: Look at your opponent's hand.
   """
   passFunc(game, card)
-  
-  inhand = game.inactivePlayer.hand
+  for card in game.inactivePlayer.hand:
+    card.revealed = True
 
-  game.activePlayer.printShort(inhand)
-
-def key152(game, card):
+def skippy_timehog (game, card):
   """ Skippy Timehog: Your opponent canot use any cards next turn.
   """
   passFunc(game, card)
-  
-  game.inactivePlayer.states["Reap"].update({card.title:True})
-  game.inactivePlayer.states["Fight"].update({card.title:True})
-  game.inactivePlayer.states["Action"].update({card.title:True})
+  game.inactivePlayer.states[card.title] += 1
+  game.resetStatesNext.append(("i", card.title))
 
-def key153(game, card):
+def timetraveller (game, card):
   """ Timetraveller: Draw two cards.
   """
   passFunc(game, card)
-  
   game.activePlayer += 2
 
-def key157(game, card):
+def experimental_therapy (game, card):
   """ Experimental Therapy: Stun and exhaust this creature.
   """
   passFunc(game, card)
@@ -1542,25 +1511,27 @@ def key157(game, card):
 # Actions #
 ###########
 
-def reveal(game, L):
-  """ A function to handle the Mars card revealing feature. Returns a list of revealed cards.
-  """
-  hand = [x for x in L if x.house == "Mars"]
-  if len(hand) > 0:
-    original = len(hand)
-  else:
-    print("You have no Mars cards in your hand.")
-    return
-  reveal = []
-  print("The Mars cards in your hand are: ")
-  game.activePlayer.printShort(hand)
-  while len(reveal) < original:
-    choice = makeChoice("Choose a card to reveal: ", hand)
-    reveal.append(hand.pop(choice))
-    again = input("Would you like to reveal another card [Y/n]?").title()
-    if again[0] == "N":
-      break
-  return reveal
+# def reveal(game, L):
+#   """ A function to handle the Mars card revealing feature. Returns a list of revealed cards.
+#   """
+#   hand = [x for x in L if x.house == "Mars"]
+#   if len(hand) > 0:
+#     original = len(hand)
+#   else:
+#     print("You have no Mars cards in your hand.")
+#     return
+#   reveal = []
+#   print("The Mars cards in your hand are: ")
+#   game.activePlayer.printShort(hand)
+#   while len(reveal) < original:
+#     choice = makeChoice("Choose a card to reveal: ", hand)
+#     reveal.append(hand.pop(choice))
+#     again = input("Would you like to reveal another card [Y/n]?").title()
+#     if again[0] == "N":
+#       break
+#   return reveal
+
+# I should be able to use chooseCards instead of reveal here.
 
 def key160(game, card):
   """ Ammonia Clouds: Deal 3 damage to each creature.
