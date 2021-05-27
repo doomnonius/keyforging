@@ -267,7 +267,7 @@ def lava_ball (game, card):
   if choice[0] == "fr":
     card = activeBoard[choice[1]]
     card.damageCalc(game, 4)
-    for neigh in card.neighbors():
+    for neigh in card.neighbors(game):
       neigh.damageCalc(game, 2)
       if neigh.updateHealth():
         pendingDiscard.append(activeBoard.pop(activeBoard.index(neigh)))
@@ -276,7 +276,7 @@ def lava_ball (game, card):
   else:
     card = inactiveBoard[choice[1]]
     card.damageCalc(game, 4)
-    for neigh in card.neighbors():
+    for neigh in card.neighbors(game):
       neigh.damageCalc(game, 2)
       if neigh.updateHealth():
         pendingDiscard.append(inactiveBoard.pop(inactiveBoard.index(neigh)))

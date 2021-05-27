@@ -1080,7 +1080,7 @@ class Board():
       self.usedThisTurn.append(card)
       return
     if card.title != "niffle_ape":
-      defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors()]), con_message = "This minion is protected by taunt.")[0][1]
+      defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors(self)]), con_message = "This minion is protected by taunt.")[0][1]
     else:
       defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0][1]
     defenderCard = self.inactivePlayer.board["Creature"][defender]
