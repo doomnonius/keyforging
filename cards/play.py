@@ -13,9 +13,10 @@ def passFunc(game, card):
   """
   active = game.activePlayer.board
   inactive = game.inactivePlayer.board
+  activeS = game.inactivePlayer.states
   if card.type == "Creature":
-    if "full_moon" in game.activePlayer.states and game.activePlayer.states["full_moon"]:
-      game.activePlayer.gainAmber(game.activePlayer.states["full_moon"], game)
+    if "full_moon" in activeS and activeS["full_moon"]:
+      game.activePlayer.gainAmber(activeS["full_moon"], game)
     if "teliga" in [x.title for x in inactive["Creature"]]:
       count = 0
       for x in inactive["Creature"]:
@@ -31,7 +32,7 @@ def passFunc(game, card):
       location = [active["Creature"].index(x) for x in active["Creature"] if x.title == "tunk"]
       for x in location:
         active["Creature"][x].damage = 0
-    if "charge" in game.activePlayer.states and game.activePlayer.states["charge!"] and inactive["Creature"]:
+    if "charge" in activeS and activeS["charge!"] and inactive["Creature"]:
       # above line makes sure there will be at least one potential target
       choice = game.chooseCards("Creature", "Choose an enemy minion to deal 2 damage to:", "enemy")[0][1]
       inactive["Creature"][choice].damageCalc(game, 2)
@@ -45,7 +46,7 @@ def passFunc(game, card):
       card.extraArm += extra
     if "banner_of_battle" in [x.title for x in active["Creature"]]:
       extra = sum(x.title == "banner_of_battle" for x in active["Creature"])
-      card.extraPow += extra
+      card.power += extra
     # this is deliberately after gray_monk
     if "autocannon" in inactive["Artifact"] + active["Artifact"]:
       count = sum(x.title == "autocannon" for x in inactive["Artifact"] + active["Artifact"])
@@ -61,13 +62,18 @@ def passFunc(game, card):
   if card.type == "Artifact" and "carlo_phantom" in [x.title for x in active["Creature"]]:
     stealAmber(game.activePlayer, game.inactivePlayer, sum(x.title == "carlo_phantom" for x in active["Creature"]))
     pyautogui.alert("'Carlo Phantom' stole 1 amber for you. You now have " + str(game.activePlayer.amber) + " amber.")
-  if "library_access" in game.activePlayer.states and game.activePlayer.states["library_access"]:
-    game.activePlayer += game.activePlayer.states["library_access"]
+  if "library_access" in activeS and activeS["library_access"]:
+    game.activePlayer += activeS["library_access"]
     pyautogui.alert("You draw a card because you played 'Library Access' earlier this turn.")
-  if "soft_landing" in game.activePlayer.states and game.activePlayer.states["soft_landing"]:
+  if "soft_landing" in activeS and activeS["soft_landing"] and (card.type == "Creature" or card.type == "Artifact"):
     card.ready = True
     pyautogui.alert(card.title + " enters play ready!")
-    game.activePlayer.states["soft_landing"] = 0
+    activeS["soft_landing"] = 0
+  if "blypyp" in activeS and activeS["blypyp"] and card.type == "Creature" and card.house == "Mars":
+    card.ready = True
+    pyautogui.alert(card.title + " enters play ready!")
+    activeS["blypyp"] = 0
+
 
 ###########
 # Brobnar #
@@ -259,20 +265,20 @@ def lava_ball (game, card):
     card = activeBoard[choice[1]]
     card.damageCalc(game, 4)
     for neigh in card.neighbors():
-      activeBoard[neigh].damageCalc(game, 2)
-      if activeBoard[neigh].updateHealth():
-        pendingDiscard.append(activeBoard.pop(neigh))
+      neigh.damageCalc(game, 2)
+      if neigh.updateHealth():
+        pendingDiscard.append(activeBoard.pop(activeBoard.index(neigh)))
     if card.updateHealth():
-      pendingDiscard.append(activeBoard.pop(choice))
+      pendingDiscard.append(activeBoard.pop(choice[1]))
   else:
     card = inactiveBoard[choice[1]]
     card.damageCalc(game, 4)
     for neigh in card.neighbors():
-      inactiveBoard[neigh].damageCalc(game, 2)
-      if inactiveBoard[neigh].updateHealth():
-        pendingDiscard.append(inactiveBoard.pop(choice - 1))
+      neigh.damageCalc(game, 2)
+      if neigh.updateHealth():
+        pendingDiscard.append(inactiveBoard.pop(inactiveBoard.index(neigh)))
     if card.updateHealth():
-      pendingDiscard.append(inactiveBoard.pop(choice))
+      pendingDiscard.append(inactiveBoard.pop(choice[1]))
   game.pending()
 
 def loot_the_bodies (game, card):
@@ -393,12 +399,12 @@ def tremor (game, card):
     card = activeBoard[choice[1]]
     card.stun = True
     for neigh in card.neighbors(game):
-      activeBoard[neigh].stun = True
+      neigh.stun = True
   else:
     card = inactiveBoard[choice[1]]
     card.stun = True
     for neigh in card.neighbors(game):
-      inactiveBoard[neigh].stun = True
+      neigh.stun = True
 
 def unguarded_camp (game, card):
   """Unguarded Camp: For each creature you have in excess of your opponent, a friendly creature captures 1 amber. Each creature cannot capture more than 1 amber this way.
@@ -435,8 +441,7 @@ def banner_of_battle (game, card):
   """
   passFunc(game, card)
   for card in game.activePlayer.board["Creature"]:
-    card.extraPow += 1
-    card.power = card.base_power + card.extraPow
+    card.power += 1
 
 #####################
 # Brobnar Creatures #
@@ -631,7 +636,6 @@ def creeping_oblivion (game, card):
   passFunc(game, card)
   activeDisc = game.activePlayer.discard
   inactiveDisc = game.inactivePlayer.discard
-  # chooseSide only works for things that target minions
   game.drawFriendDiscard = True
   game.drawEnemyDiscard = True
   toPurge = game.chooseCards("Discard", "Choose up to two cards to purge:", "either", 2, False)
@@ -701,7 +705,7 @@ def gongoozle (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only ever one side
-  choice = game.chooseCards("Creature", "Deal 3 damage to a creature:", "both")[0]
+  choice = game.chooseCards("Creature", "Deal 3 damage to a creature:")[0]
   if choice[0] == "fr": # friendly side
     active[choice[1]].damageCalc(game, 3)
     if active[choice[1]].updateHealth():
@@ -751,7 +755,7 @@ def hand_of_dis (game, card):
     return
   
   while True:
-    choice = game.chooseCards("Creature", "Choose a non-flank creature to destroy:", "both")[0]
+    choice = game.chooseCards("Creature", "Choose a non-flank creature to destroy:")[0]
     if choice[0] == "fr":
       if active[choice[1]].isFlank():
         pyautogui.alert("That was not a valid choice. Choose a non-flank creature.")
@@ -860,29 +864,28 @@ def pandemonium (game, card):
   if len(undamaged) <= game.inactivePlayer.amber:
     [x.capture(game, 1) for x in active if x.damage == 0]
   else:
-    while True:
-      choices = game.chooseCards("Creature", "Choose which friendly undamaged creatures will capture an amber:", "friend", game.inactivePlayer.amber)
-      for choice in choices:
-        if active[choice[1]].damage > 0:
-          pyautogui.alert("You chose a damaged creature, please select again.")
-          continue
-      for choice in choices:
-        active[choice[1]].capture(game, 1)
-      break
+    choices = game.chooseCards("Creature", "Choose which friendly undamaged creatures will capture an amber:", "friend", game.inactivePlayer.amber, condition = lambda x: x.damage == 0, con_message = "That creature is not damaged. Choose a different one")
+    # for choice in choices:
+    #   if active[choice[1]].damage > 0:
+    #     pyautogui.alert("You chose a damaged creature, please select again.")
+    #     continue
+    for choice in choices:
+      active[choice[1]].capture(game, 1)
+    # break
   #inactive
   undamaged = [x for x in inactive if x.damage == 0]
   if len(undamaged) <= game.activePlayer.amber:
     [x.capture(game, 1) for x in inactive if x.damage == 0]
   else:
-     while True:
-      choices = game.chooseCards("Creature", "Choose which enemy undamaged creatures will capture an amber:", "enemy", game.inactivePlayer.amber)
-      for choice in choices:
-        if inactive[choice[1]].damage > 0:
-          pyautogui.alert("You chose a damaged creature, please select again.")
-          continue
-      for choice in choices:
-        inactive[choice[1]].capture(game, 1)
-      break
+    #  while True:
+    choices = game.chooseCards("Creature", "Choose which enemy undamaged creatures will capture an amber:", "enemy", game.inactivePlayer.amber, condition = lambda x: x.damage == 0, con_message = "That creature is not damaged. Choose a different one")
+      # for choice in choices:
+      #   if inactive[choice[1]].damage > 0:
+      #     pyautogui.alert("You chose a damaged creature, please select again.")
+      #     continue
+    for choice in choices:
+      inactive[choice[1]].capture(game, 1)
+      # break
 
 def poltergeist (game, card):
   """ Poltergeist: Use an artifact controlled by any player as if it were yours. Destroy that artifact.
@@ -965,23 +968,23 @@ def three_fates (game, card):
       game.draw()
       pygame.display.flip()
     else: #if count > left, choose which card to discard
-      while True:
-        choices = game.chooseCards("Creature", "Choose which creature(s) with the highest power to destroy:", left)
-        for choice in choices:
-          if choice[0] == "fr":
-            if active[choice[1]].power != high:
-              pyautogui.alert("You chose a minion that didn't have the highest power. Please select again.")
-              continue
-          else:
-            if inactive[choice[1]].power != high:
-              pyautogui.alert("You chose a minion that didn't have the highest power. Please select again.")
-              continue
-        for choice in choices:
-          if choice[0] == "fr":
-            pendingDiscard.append(active.pop(choice[1]))
-          else:
-            pendingDiscard.append(inactive.pop(choice[1]))
-        break
+      # while True:
+      choices = game.chooseCards("Creature", f"Choose which {left} creature(s) with the highest power to destroy:", left, condition = lambda x: x.power == high, con_message = "You chose a minion that didn't have the highest power. Please select again.")
+        # for choice in choices:
+        #   if choice[0] == "fr":
+        #     if active[choice[1]].power != high:
+        #       pyautogui.alert("You chose a minion that didn't have the highest power. Please select again.")
+        #       continue
+        #   else:
+        #     if inactive[choice[1]].power != high:
+        #       pyautogui.alert("You chose a minion that didn't have the highest power. Please select again.")
+        #       continue
+      for choice in choices:
+        if choice[0] == "fr":
+          pendingDiscard.append(active.pop(choice[1]))
+        else:
+          pendingDiscard.append(inactive.pop(choice[1]))
+        # break
   game.pending()
 
 #############
@@ -1028,28 +1031,28 @@ def guardian_demon (game, card):
       pyautogui.alert("There was no damage on this creature, so no damage will be dealt.")
       return
   if heal:
-    while True:
-      choice = game.chooseCards("Creature", "Choose a creature:")[0]
-      if choice[0] == "fr":
-        card2 = active[choice[1]]
-        if card2 != card1:
-          card2.damageCalc(game, heal)
-          if card2.updateHealth():
-            pendingDisc.append(active.pop(choice[1]))
-          break
-        else:
-          pyautogui.alert("You can't damage the creature you healed. Choose a different target.")
-          continue
-      else:
-        card2 = inactive[choice[1]]
-        if card2 != card1:
-          card2.damageCalc(game, heal)
-          if card2.updateHealth():
-            pendingDisc.append(inactive.pop(choice[1]))
-          break
-        else:
-          pyautogui.alert("You can't damage the creature you healed. Choose a different target.")
-          continue
+    # while True:
+    choice = game.chooseCards("Creature", f"Choose a creature to deal {heal} damage to:", condition = lambda x: x != card1, con_message = "You can't damage the creature you healed. Choose a different target.")[0]
+    if choice[0] == "fr":
+      card2 = active[choice[1]]
+        # if card2 != card1:
+      card2.damageCalc(game, heal)
+      if card2.updateHealth():
+        pendingDisc.append(active.pop(choice[1]))
+        # break
+        # else:
+        #   pyautogui.alert("You can't damage the creature you healed. Choose a different target.")
+        #   continue
+    else:
+      card2 = inactive[choice[1]]
+      # if card2 != card1:
+      card2.damageCalc(game, heal)
+      if card2.updateHealth():
+        pendingDisc.append(inactive.pop(choice[1]))
+          # break
+        # else:
+        #   pyautogui.alert("You can't damage the creature you healed. Choose a different target.")
+        #   continue
     game.pending()
 
 def restringuntus (game, card):
@@ -1098,7 +1101,7 @@ def bouncing_deathquark (game, card):
   pendingDiscard = game.pendingReloc
   while active and inactive:
     while True:
-      choices = game.chooseCards("Creature", "Choose an enemy creature to destroy and a friendly creature to destroy, or choose no creatures to stop:", count = 2, full = False)
+      choices = game.chooseCards("Creature", "Choose an enemy creature to destroy and a friendly creature to destroy, or choose no creatures to stop:", count = 2, full = False) # this condition is more complicated, can't integrate it
       if len(choices) == 0:
         return
       if len(choices) == 1 or choices[0][0] == choices[1][0]:
@@ -1241,75 +1244,75 @@ def positron_bolt (game, card):
     pyautogui.alert("No valid targets. The cards is still played.")
     return
   
-  choice = game.chooseCards("Creature", "Choose a flank creature to deal three damage to:")[0]
+  choice = game.chooseCards("Creature", "Choose a flank creature to deal three damage to:", condition = lambda x: x.isFlank(), con_message = "You didn't choose a flank creature. Please try again.")[0]
   
-  while True:
-    if choice[0] == "fr":
-      if active[choice[1]].isFlank():
-        if choice[1] == 0:
-          i = 0
-          active[i].damageCalc(game, 3)
-          if active[i].updateHealth():
-            pending.append(active.pop(0))
-            i -= 1
-          if len(active) > 1:
-            active[i + 1].damageCalc(game, 2)
-            if active[i + 1].updateHealth():
-              pending.append(active.pop(i + 1))
-              i -= 1
-          if len(active) > 2:
-            active[2].damageCalc(game, 1)
-            if active[2].updateHealth():
-              pending.append(active.pop(i + 2))
-        else:
-          i = choice[1]
-          active[i].damageCalc(game, 3)
-          if active[i].updateHealth():
-            pending.append(active.pop(i))
-          active[i - 1].damageCalc(game, 2)
-          if active[i - 1].updateHealth():
-            pending.append(active.pop(i - 1))
-          if len(active) > 2:
-            active[i - 2].damageCalc(game, 1)
-            if active[i - 2].updateHealth():
-              pending.append(active.pop(i - 2))
-        break
-      else:
-        pyautogui.alert("You didn't choose a flank creature. Please try again.")
-        continue
+  # while True:
+  if choice[0] == "fr":
+    # if active[choice[1]].isFlank():
+    if choice[1] == 0:
+      i = 0
+      active[i].damageCalc(game, 3)
+      if active[i].updateHealth():
+        pending.append(active.pop(0))
+        i -= 1
+      if len(active) > 1:
+        active[i + 1].damageCalc(game, 2)
+        if active[i + 1].updateHealth():
+          pending.append(active.pop(i + 1))
+          i -= 1
+      if len(active) > 2:
+        active[2].damageCalc(game, 1)
+        if active[2].updateHealth():
+          pending.append(active.pop(i + 2))
     else:
-      if inactive[choice[1]].isFlank():
-        if choice[1] == 0:
-          i = 0
-          inactive[i].damageCalc(game, 3)
-          if inactive[i].updateHealth():
-            pending.append(inactive.pop(0))
-            i -= 1
-          if len(inactive) > 1:
-            inactive[i + 1].damageCalc(game, 2)
-            if inactive[i + 1].updateHealth():
-              pending.append(inactive.pop(i + 1))
-              i -= 1
-          if len(inactive) > 2:
-            inactive[2].damageCalc(game, 1)
-            if inactive[2].updateHealth():
-              pending.append(inactive.pop(i + 2))
-        else:
-          i = choice[1]
-          inactive[i].damageCalc(game, 3)
-          if inactive[i].updateHealth():
-            pending.append(inactive.pop(i))
-          inactive[i - 1].damageCalc(game, 2)
-          if inactive[i - 1].updateHealth():
-            pending.append(inactive.pop(i - 1))
-          if len(inactive) > 2:
-            inactive[i - 2].damageCalc(game, 1)
-            if inactive[i - 2].updateHealth():
-              pending.append(inactive.pop(i - 2))
-        break
-      else:
-        pyautogui.alert("You didn't choose a flank creature. Please try again.")
-        continue
+      i = choice[1]
+      active[i].damageCalc(game, 3)
+      if active[i].updateHealth():
+        pending.append(active.pop(i))
+      active[i - 1].damageCalc(game, 2)
+      if active[i - 1].updateHealth():
+        pending.append(active.pop(i - 1))
+      if len(active) > 2:
+        active[i - 2].damageCalc(game, 1)
+        if active[i - 2].updateHealth():
+          pending.append(active.pop(i - 2))
+        # break
+      # else:
+      #   pyautogui.alert("You didn't choose a flank creature. Please try again.")
+      #   continue
+  else:
+    # if inactive[choice[1]].isFlank():
+    if choice[1] == 0:
+      i = 0
+      inactive[i].damageCalc(game, 3)
+      if inactive[i].updateHealth():
+        pending.append(inactive.pop(0))
+        i -= 1
+      if len(inactive) > 1:
+        inactive[i + 1].damageCalc(game, 2)
+        if inactive[i + 1].updateHealth():
+          pending.append(inactive.pop(i + 1))
+          i -= 1
+      if len(inactive) > 2:
+        inactive[2].damageCalc(game, 1)
+        if inactive[2].updateHealth():
+          pending.append(inactive.pop(i + 2))
+    else:
+      i = choice[1]
+      inactive[i].damageCalc(game, 3)
+      if inactive[i].updateHealth():
+        pending.append(inactive.pop(i))
+      inactive[i - 1].damageCalc(game, 2)
+      if inactive[i - 1].updateHealth():
+        pending.append(inactive.pop(i - 1))
+      if len(inactive) > 2:
+        inactive[i - 2].damageCalc(game, 1)
+        if inactive[i - 2].updateHealth():
+          pending.append(inactive.pop(i - 2))
+      #   break
+      # else:
+      #   pyautogui.alert("You didn't choose a flank creature. Please try again.")
+      #   continue
   game.pending()
 
 def random_access_archives (game, card):
@@ -1434,17 +1437,17 @@ def harland_mindlock (game, card):
     pyautogui.alert("No enemy creatures to steal!")
     return
 
-  while True:
-    choice = game.chooseCards("Creature", "Choose an enemy flank creature to steal:", "enemy")[0][1]
-    if inactive[choice].isFlank():
-      flank = game.chooseHouse("custom", ("Put the minion on the left flank or the right flank?", ["Left", "Right"]))
-      if flank == "Left":
-        flank = 0
-      else:
-        flank = len(active)
-      break
-    else:
-      pyautogui.alert("You can only steal a flank creature! Try again.")
+  # while True:
+  choice = game.chooseCards("Creature", "Choose an enemy flank creature to steal:", "enemy", condition = lambda x: x.isFlank(), con_message = "You didn't choose a flank creature. Please try again.")[0][1]
+  # if inactive[choice].isFlank():
+  flank = game.chooseHouse("custom", ("Put the minion on your left flank or your right flank?", ["Left", "Right"]))
+  if flank == "Left":
+    flank = 0
+  else:
+    flank = len(active)
+  # break
+    # else:
+    #   pyautogui.alert("You can only steal a flank creature! Try again.")
 
   active.insert(flank, inactive.pop(choice))
 
@@ -1511,36 +1514,16 @@ def experimental_therapy (game, card):
 # Actions #
 ###########
 
-# def reveal(game, L):
-#   """ A function to handle the Mars card revealing feature. Returns a list of revealed cards.
-#   """
-#   hand = [x for x in L if x.house == "Mars"]
-#   if len(hand) > 0:
-#     original = len(hand)
-#   else:
-#     print("You have no Mars cards in your hand.")
-#     return
-#   reveal = []
-#   print("The Mars cards in your hand are: ")
-#   game.activePlayer.printShort(hand)
-#   while len(reveal) < original:
-#     choice = makeChoice("Choose a card to reveal: ", hand)
-#     reveal.append(hand.pop(choice))
-#     again = input("Would you like to reveal another card [Y/n]?").title()
-#     if again[0] == "N":
-#       break
-#   return reveal
-
 # I should be able to use chooseCards instead of reveal here.
 
-def key160(game, card):
+def ammonia_clouds (game, card):
   """ Ammonia Clouds: Deal 3 damage to each creature.
   """
   passFunc(game, card)
   
   active = game.activePlayer.board["Creature"]
   inactive = game.activePlayer.board["Creature"]
-  pendingDisc = []
+  pendingDisc = game.pendingReloc
   
   [x.damageCalc(game, 3) for x in active]
   [x.damageCalc(game, 3) for x in inactive]
@@ -1548,34 +1531,28 @@ def key160(game, card):
   [pendingDisc.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].updateHealth()]
   length = len(inactive)
   [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].updateHealth()]
-  game.pending(pendingDisc)
+  game.pending()
 
-def key161(game, card):
+def battle_fleet (game, card):
   """ Battle Fleet: Reveal any number of Mars cards from your hand. For each card revealed this way, draw 1 card.
   """
   passFunc(game, card)
-  revealed = reveal(game, game.activePlayer.hand)
-  game.activePlayer.printShort(revealed)
+  revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
+  for card in revealed:
+    game.activePlayer.hand[card].revealed = True
   game.activePlayer += len(revealed)
-  print("You drew " + str(len(revealed)) + " cards.")
 
-def key162(game, card):
+def deep_probe (game, card):
   """ Deep Probe: Choose a house: Reveal your opponent's hand. Discard each creature of that house revealed this way.
   """
   passFunc(game, card)
-  
-  discard = []
-  house = ''
-  while house == '':
-    house = input("Choose a house: ").title()
-    if house in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]: break
-    else: house = ''
+
+  discard = game.pendingReloc
+  house = game.chooseHouse("other")[0]
   length = len(game.inactivePlayer.hand)
   [discard.append(game.inactivePlayer.hand.pop(abs(x - length + 1))) for x in len(game.inactivePlayer.hand) if game.inactivePlayer.hand[abs(x - length + 1)].house == house and game.inactivePlayer.hand[abs(x - length + 1)].type == "Creature"]
-  print("Your opponent discarded:")
-  game.activePlayer.printShort(discard)
 
-def key163(game, card):
+def emp_blast (game, card):
   """ EMP Blast: Each Mars creature and each Robot creature is stunned. Each artifact is destroyed.
   """
   passFunc(game, card)
@@ -1587,230 +1564,195 @@ def key163(game, card):
   
   for x in [x for x in (activeC + inactiveC) if x.house == "Mars" or "Robot" in x.traitList]:
     x.stun = True
-  pendingDiscard = activeA # fine because Artifacts don't have destroyed effects
-  pendingDiscard.extend(inactiveA)
-  inactiveA = []
-  game.pending(pendingDiscard)
-  print(game)
+  for _ in range(len(activeA)):
+    game.pendingReloc.append(activeA.pop())
+  for _ in range(len(inactiveA)):
+    game.pendingReloc.append(inactiveA.pop())
+  game.pending()
 
-def key164(game, card):
-  """ Hypnotic Command: For each friendly Mars creature, choose an enemy creature to capture one from their own side.
+def hypnotic_command (game, card):
+  """ Hypnotic Command: For each friendly Mars creature, choose an enemy creature to capture one amber from their own side.
   """
   passFunc(game, card)
   
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
-  count = 0
-  for x in active:
-    if x.house == "Mars" and x.type == "Creature": # second part of if is for redundancy
-      count += 1
-  print("You have " + str(count) + " Mars creatures.")
+  count = sum(x.house == "Mars" for x in active)
   while count > 0:
-    choice = makeChoice("Choose an enemy creature to capture one amber from their own side: ", inactive)
-    # looks like they can choose the same minion each time
+    choice = game.chooseCards("Creature", "Choose an enemy creature to capture one amber from their own side: ", "enemy")[0][1]
+    # looks like they can choose the same minion each time, which is why the loop
     inactive[choice].capture(game, 1, True)
     count -= 1
-  print("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+  pyautogui.alert("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
   
-def key165(game, card):
+def irradiated_amber (game, card):
   """ Irradiated Amber: If your opponent has 6 or more amber, deal 3 damage to each enemy creature.
   """
   passFunc(game, card)
   
   inactive = game.inactivePlayer.board["Creature"]
-  pendingDisc = [] # fine because only one side
+  pendingDisc = game.pendingReloc
 
   if game.inactivePlayer.amber >= 6:
     length = len(inactive)
     [x.damageCalc(game, 3) for x in inactive]
     [pendingDisc.append(inactive.pop(abs(x - length + 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].updateHealth()]
+  game.pending()
 
-def key166(game, card):
+def key_abduction (game, card):
   """ Key Abduction: Return each Mars creature to its owner's hand. Then you may forge a key at +9 current cost, reduced by 1 for each card in your hand.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
+  pending = game.pendingReloc
   length = len(active)
-  pending = []
   [pending.append(active.pop(abs(x - length + 1))) for x in range(len(active)) if active[abs(x - length + 1)].house == "Mars" and active[abs(x - length + 1)].type == "Creature"]
   length = len(inactive)
   [pending.append(inactive.pop(abs(x - length+ 1))) for x in range(len(inactive)) if inactive[abs(x - length + 1)].house == "Mars" and inactive[abs(x - length + 1)].type == "Creature"]
-  game.pending(pending, 'hand')
+  game.pending('hand')
   game.activePlayer.keyCost = game.calculateCost()
-  if game.activePlayer.amber >= (game.activePlayer.keyCost + 9 - len(game.activePlayer.hand)):
-    print("You may now forge a key for " + str(game.activePlayer.keyCost + 9 - len(game.activePlayer.hand)) + " amber.")
-    forge = input("Would you like so to do [Y/n]? ").title()
-    if forge[0] == "N":
-      print("You have chosen not to forge a key.")
+  temp_cost = game.activePlayer.keyCost + 9 - len(game.activePlayer.hand)
+  if game.activePlayer.amber >= temp_cost:
+    forge = game.chooseHouse("custom", (f"You may now forge a key for {temp_cost} amber. Would you like to do so?", ["Yes", "No"]))[0]
+    if forge == "No":
+      pyautogui.alert("You have chosen not to forge a key.")
       return
-    print("Forging key!")
-    game.activePlayer.amber -= (game.activePlayer.keyCost + 9 - len(game.activePlayer.hand))
-    game.activePlayer.keys += 1
-    if game.activePlayer.keys == 3:
-      game.endBool = False # This will make the game end.
-      return
-    print("You now have " + str(game.activePlayer.keys) + " keys and " + str(game.activePlayer.amber) + " amber.")
+    game.forgeKey("active", temp_cost)
+    if game.activePlayer.keys >= 3:
+      pyautogui.alert(f"{game.activePlayer.name} wins!")
+      pygame.quit()
 
-def key167(game, card):
+def martian_hounds (game, card):
   """ Martian Hounds: Choose a creature. For each damaged creature, give the chosen creature two +1 power counters.
   """
   passFunc(game, card)
   
-  count = 0
-  for x in (game.activePlayer.board["Creature"] + game.activePlayer.board["Creature"]):
-    if x.damage > 0:
-      count += 1
-  choice, side = chooseSide(game)
+  count = sum(x.damage > 0 for x in game.activePlayer.board["Creature"] + game.inactivePlayer.board["Creature"])
   if count == 0:
-    print("There are no damaged creatures, so no power will be gained. The card is still played.")
+    pyautogui.alert("There are no damaged creatures, so no power will be gained. The card is still played.")
     return
-  if side == 0: # friendly
+  side, choice = game.chooseCards("Creature", f"Choose a creature to give {count * 2} power counters to:")[0]
+  if side == "fr": # friendly
     choice = game.activePlayer.board["Creature"][choice]
-    choice.extraPow += (2 * count)
-    print(choice.title + " now has " + str(choice.power + choice.extraPow) + " power.")
+    choice.power += (2 * count)
+    pyautogui.alert(f"{choice.title} now has {choice.power + choice.extraPow} power.")
     return
   choice = game.inactivePlayer.board["Creature"][choice]
-  choice.extraPow += (2 * count)
+  choice.power += (2 * count)
   print(choice.title + " now has " + str(choice.power + choice.extraPow) + " power.")
 
-def key168(game, card):
+def martians_make_bad_allies (game, card):
   """ Martians Make Bad Allies: Reveal your hand. Purge each revealed non-Mars creature and gain 1 amber for each card purged this way.
   """
   passFunc(game, card)
-  
   active = game.activePlayer.hand
-  game.activePlayer.printShort(active)
   length = len(active)
   count = 0 
   for x in range(len(active)):
-    if active[abs(x - length + 1)].house != "Mars" and active[abs(x - length + 1)].type == "Creature":
+    if active[abs(x - length + 1)].type == "Creature" and active[abs(x - length + 1)].house != "Mars":
       count += 1
-      print("Purging " + active[abs(x - length + 1)].title + ".")
       game.activePlayer.purge.append(active.pop(abs(x - length + 1)))
   if count > 0:
     game.activePlayer.gainAmber(count, game)
-    print("You gained " + str(count) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
+    pyautogui.alert("You gained " + str(count) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
     return
-  print("You had no creatures in hand. You gain no amber. The card is still played.")
+  pyautogui.alert("You had no non-Mars creatures in hand. You gain no amber. The card is still played.")
 
-def key169(game, card):
+def mass_abduction (game, card):
   """ Mass Abduction: Put up to 3 damaged enemy creatures into your archives. If any of these creatures leave your archives, they are put into their owner's hand instead.
   """
   passFunc(game, card)
   
   inactive = game.inactivePlayer.board["Creature"]
   count = len([x for x in inactive if x.damage > 0])
+  
   if count == 0:
-    print("There are no damaged enemy creatures. The card is still played.")
-  else:
-    again = input("Would you like to archive any enemy creatures [Y/n]?\n>>>").title()
-    if again[0] == "N":
-      return
-    while count > 0:
-      [print(x + ": " + str(x)) for x in range(len(inactive))]
-      choice = makeChoice("Choose a damaged enemy creature to target: ")
-      if inactive[choice].damage > 0:
-        game.activePlayer.archive.append(inactive.pop(choice))
-        count -= 1
-      else:
-        print("You can only target damaged creatures.")
-      if count > 0:
-        again = input("Would you like to archive another enemy creature [Y/n]?\n>>>").title()
-        if again[0] == "N":
-          return
+    pyautogui.alert("There are no damaged enemy creatures. The card is still played.")
+    return
 
-def key170(game, card):
+  choices = [x[1] for x in game.chooseCards("Creature", "Choose up to 3 damaged enemy creatures to put into your archives:", "enemy", 3, False, lambda x: x.damage > 0)].sort(reverse=True)
+
+  if choices:
+    for choice in choices:
+      game.activePlayer.archive.append(inactive.pop(choice))
+
+def mating_season (game, card):
   """ Mating Season: Shuffle each Mars creature into its owner's deck. Each player gains 1 amber for each creature shuffled into their deck this way.
   """
   passFunc(game, card)
-  actDeck = game.activePlayer.deck
-  inactDeck = game.inactivePlayer.deck
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
+  activeD = game.activePlayer.deck
+  inactiveD = game.inactivePlayer.deck
+  activeC = game.activePlayer.board["Creature"]
+  inactiveC = game.inactivePlayer.board["Creature"]
   
-  if "Mars" in [x.house for x in active]:
-    length = len(active)
-    [actDeck.append(active.pop(absa(x, length))) for x in range(len(active)) if active[absa(x, length)].house == "Mars"]
-    random.shuffle(actDeck)
-    game.activePlayer.gainAmber((length - len(active)), game)
-    return
-  print("You have no Mars creatures, so you gain no amber.")
-  if "Mars" in [x.house for x in inactive]:
-    length = len(inactive)
-    [inactDeck.append(inactive.pop(absa(x, length))) for x in range(len(inactive)) if inactive[absa(x, length)].house == "Mars"]
-    random.shuffle(inactDeck)
-    game.inactivePlayer.gainAmber((length - len(inactive)), game)
-    return
-  print("Your opponent has no Mars creatures, so they gain no amber.")
+  if "Mars" in [x.house for x in activeC]:
+    length = len(activeC)
+    [activeD.append(activeC.pop(absa(x, length))) for x in range(len(activeC)) if activeC[absa(x, length)].house == "Mars"]
+    random.shuffle(activeD)
+    game.activePlayer.gainAmber((length - len(activeC)), game)
+  else:
+    pyautogui.alert("You have no Mars creatures, so you gain no amber.")
+  if "Mars" in [x.house for x in inactiveC]:
+    length = len(inactiveC)
+    [inactiveD.append(inactiveC.pop(absa(x, length))) for x in range(len(inactiveC)) if inactiveC[absa(x, length)].house == "Mars"]
+    random.shuffle(inactiveD)
+    game.inactivePlayer.gainAmber((length - len(inactiveC)), game)
+  else:
+    pyautogui.alert("Your opponent has no Mars creatures, so they gain no amber.")
 
-def key171(game, card):
+def mothership_support (game, card):
   """ Mothership Support: For each friendly ready Mars creature, deal 2 damage to a creature. (You may choose a different creature each time.)
   """
   passFunc(game, card)
   
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  pendingDisc = [] # fine because one target at a time
-  count = 0
-  for x in range(len(active)):
-    if x.house == "Mars" and x.ready == True:
-      count += 1
+  pendingDisc = game.pendingReloc # fine because one target at a time
+  count = sum(x.ready and x.house == "Mars" for x in active)
   if count == 0:
-    print("You have no Mars creatures, so no damage is dealt. The card is still played.")
+    pyautogui.alert("You have no Mars creatures, so no damage is dealt. The card is still played.")
     return
-  while count > 0:
-    choice, side = chooseSide(game)
-    if side == 0: # friendly
+  hits = 1
+  while hits <= count:
+    side, choice = game.chooseCards("Creature", f"Deal 2 damage to a creature ({hits} of {count}):")[0]
+    if side == "fr":
       active[choice].damageCalc(game, 2)
       if active[choice].updateHealth():
         pendingDisc.append(active.pop(choice))
-        game.pending(pendingDisc)
-        count -= 1
-        continue
-    if side == 1: # enemy
+    else:
       inactive[choice].damageCalc(game, 2)
-      if active[choice].updateHealth():
-        pendingDisc.append(active.pop(choice))
-        game.pending(pendingDisc)
-        count -= 1
-        continue
-    if side == '':
-      break # side will tell them that they are no more targets
+      if inactive[choice].updateHealth():
+        pendingDisc.append(inactive.pop(choice))
+  game.pending()
 
-def key172(game, card):
+def orbital_bombardment (game, card):
   """ Orbital Bombardment: Reveal any number of Mars cards from your hand. For each card revealed this way, deal 2 damage to a creature. (you may choose a different creature each time.)
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  pendingDisc = [] # fine because only one side
-  revealed = reveal(game, game.activePlayer.hand)
+  pendingDisc = game.pendingReloc
+  revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
   count = len(revealed)
   if count == 0:
-    print("You have no Mars creatures, so no damage is dealt. The card is still played.")
+    pyautogui.alert("You revealed no Mars cards, so no damage is dealt. The card is still played.")
     return
-  while count > 0:
-    choice, side = chooseSide(game)
-    if side == 0: # friendly
+  hits = 1
+  while hits <= count:
+    side, choice = game.chooseCards("Creature", f"Deal 2 damage to a creature ({hits} of {count}):")[0]
+    if side == "fr":
       active[choice].damageCalc(game, 2)
       if active[choice].updateHealth():
         pendingDisc.append(active.pop(choice))
-        game.pending(pendingDisc)
-        count -= 1
-        continue
-    if side == 1: # enemy
+    else:
       inactive[choice].damageCalc(game, 2)
-      if active[choice].updateHealth():
-        pendingDisc.append(active.pop(choice))
-        game.pending(pendingDisc)
-        count -= 1
-        continue
-    if side == '':
-      break # side will tell them that they are no more targets
+      if inactive[choice].updateHealth():
+        pendingDisc.append(inactive.pop(choice))
+  game.pending()
   
-def key173(game, card):
+def phosphorous_stars (game, card):
   """ Phosphorous Stars: Stun each non-Mars creature. Gain 2 chains.
   """
   passFunc(game, card)
@@ -1823,21 +1765,18 @@ def key173(game, card):
 
   game.activePlayer.chains += 2
 
-def key174(game, card):
+def psychic_network (game, card):
   """ Psychic Network: Steal 1 amber for each friendly ready Mars creature.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
-  count = 0
-  for x in active:
-    if x.house == "Mars" and x.ready == True:
-      count += 1
+  count = sum(x.ready and x.house == "Mars" for x in active)
   if count == 0:
-    print("You have no friendly ready Mars creatures, so you don't steal any amber. The card is still played.")
+    pyautogui.alert("You have no friendly ready Mars creatures, so you don't steal any amber. The card is still played.")
     return
   stealAmber(game.activePlayer, game.inactivePlayer, count)
 
-def key175(game, card):
+def sample_collection (game, card):
   """ Sample Collection: Put an enemy creature into your archives for each key your opponent has forged. If any of these creatures leave your archives, they are put into their owner's hand instead.
   """
   passFunc(game, card)
@@ -1845,93 +1784,93 @@ def key175(game, card):
   inactive = game.inactivePlayer.board["Creature"]
   archive = game.activePlayer.archive
   if count == 0:
-    print("Your opponent has forged no keys, so you archive no enemy creatures. The card is still played.")
+    pyautogui.alert("Your opponent has forged no keys, so you archive no enemy creatures. The card is still played.")
     return
-  while count > 0 and len(inactive) > 0:
-    [print(str(x) + ": " + str(inactive[x])) for x in range(len(inactive))]
-    choice = makeChoice("Choose an enemy creature to archive: ", inactive)
+  
+  if not inactive:
+    pyautogui.alert("Your opponent has no creatures to target.")
+  
+  targets = min(len(inactive), count)
+  choices = [x[1] for x in game.chooseCards("Creature", f"Choose {targets} creature(s) to put into your archives:", "enemy")]
+  for choice in choices:
     archive.append(inactive.pop(choice))
 
-def key176(game, card):
+def shatter_storm (game, card):
   """ Shatter Storm: Lose all your amber. Then, your opponent loses triple the amount of amber you lost this way.
   """
   passFunc(game, card)
   count = game.activePlayer.amber
   if count == 0:
-    print("You have no amber to lose, so your opponent loses no amber. The card is still played.")
+    pyautogui.alert("You have no amber to lose, so your opponent loses no amber. The card is still played.")
     return
   game.activePlayer.amber -= count
   game.inactivePlayer.amber -= (count * 3)
   if game.inactivePlayer.amber < 0:
     game.inactivePlayer.amber = 0
 
-def key177(game, card):
+def soft_landing (game, card):
   """ Soft Landing: The next creature or artifact you play this turn enters play ready.
   """
   passFunc(game, card)
-  game.activePlayer.states["Play"].update({"Soft Landing":True})
+  game.activePlayer.states[card.title] = 1
+  # this one doesn't go in reset states, is controlled by basicPlay
 
-def key178(game, card):
+def squawker (game, card):
   """ Squawker: Ready a Mars creature or stun a non-Mars creature.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  choice, side = chooseSide(game)
-  if side == 0: # friendly
-    if active[choice].house == "Mars":
-      active[choice].ready = True
-      print(active[choice].title + " is now ready!")
+  
+  if active or inactive:
+    side, choice = game.chooseCards("Creature", "Ready a Mars creature or stun a non-Mars creature:")[0]
+    if side == "fr":
+      card = active[choice]
+      if card.house == "Mars":
+        card.ready = True
+      else:
+        card.stun = True
     else:
-      active[choice].stun = True
-      print(active[choice].title + " is now stunned!")
-    return
-  if side == 1: # friendly
-    if inactive[choice].house == "Mars":
-      inactive[choice].ready = True
-      print(active[choice].title + " is now ready!")
-    else:
-      inactive[choice].stun = True
-      print(inactive[choice].title + " is now stunned!")
-    return
-  return # because chooseSide will tell them about the empty board
+      card = inactive[choice]
+      if card.house == "Mars":
+        card.ready = True
+      else:
+        card.stun = True
 
-def key179(game, card):
+def total_recall (game, card):
   """ Total Recall: For each friendly ready creature, gain 1 amber. Return each friendly creature to your hand.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
-  pendingHand = []
-  count = 0
+  pendingHand = game.pendingReloc
+  count = sum(x.ready for x in active)
   if len(active) == 0:
-    print("You have no friendly creatures, so nothing happens. The card is still played.")
+    pyautogui.alert("You have no friendly creatures, so nothing happens. The card is still played.")
     return
-  for x in active:
-    if x.ready == True:
-      count += 1
   if count == 0:
     print("You have no ready creatures, so you gain no amber.")
-  pendingHand.extend(active)
-  active = []
-  game.pending(pendingHand, 'hand')
+  for _ in active:
+    pendingHand.append(active.pop())
+  game.pending('hand')
 
-def key203(game, card):
+#############
+# Creatures #
+#############
+
+def yxili_marauder (game, card):
   """ Yxili Marauder: Capture 1 amber for each friendly ready Mars creature.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
-  count = 0
-  for x in active:
-    if x.ready == True and x.house == "Mars":
-      count += 1
+  count = sum(x.ready and x.house == "Mars" for x in active)
+
   if count == 0:
-    print("You have no friendly ready Mars creatures. " + card.title + " captures no amber.")
+    pyautogui.alert("You have no friendly ready Mars creatures. " + card.title + " captures no amber.")
     return
   while count > 0 and game.inactivePlayer.amber > 0:
-    card.capture(1)
+    card.capture(game, 1)
     count -= 1
-  print("Yxili Marauder captured " + str(card.captured) + " amber.")
-  card.extraPow = card.captured
+  pyautogui.alert("Yxili Marauder captured " + str(card.captured) + " amber.")
 
 ## End house Mars
 

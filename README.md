@@ -26,7 +26,7 @@
  <li>Incorporate a condition into chooseCards</li>
  <li>Add archive to the board, viewable.</li>
  <li>Make purge list viewable.</li>
- <li></li>
+ <li>game.pending should be able to handle things going into archives</li>
  <li></li>
  <li></li>
  <li><s>I want the algo for drawing creatures, artifacts, to put them in the middle of their area. For now I'm not going to do this for hands.</s> - That was easier than I thought it was going to be.</li>

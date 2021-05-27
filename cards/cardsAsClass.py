@@ -18,6 +18,7 @@ class Card(pygame.sprite.Sprite):
         # These are all the things that are not in the dict data but that I need to keep track of
         pygame.sprite.Sprite.__init__(self)
         # screen = pygame.display.get_surface()
+        self.cardInfo = cardInfo
         self.deck = deckName
         self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("’", "").replace('“', "").replace(",", "").replace("!", "").replace("”", "").replace("-", "_")
         self.width = width
@@ -212,33 +213,34 @@ class Card(pygame.sprite.Sprite):
         """
         active = game.activePlayer.amber
         inactive = game.inactivePlayer.amber
+        initial = self.captured
         if not own:
             if self in game.activePlayer.board["Creature"]:
                 if inactive > num:
                     self.captured += num
                     game.inactivePlayer.amber -=  num
-                    return
-                self.captured += inactive
-                game.inactivePlayer.amber = 0
-                return
+                else:
+                    self.captured += inactive
+                    game.inactivePlayer.amber = 0
             elif self in game.inactivePlayer.board["Creature"]:
                 if active > num:
                     self.captured += num
                     game.activePlayer.amber -= num
-                    return
-                self.captured += active
-                game.activePlayer.amber = 0
-                return
+                else:
+                    self.captured += active
+                    game.activePlayer.amber = 0
             else:
-                print("This card wasn't in either board.")
-                return
+                pyautogui.alert("This card wasn't in either board.")
         # else, aka if own == True: (but not needed b/c of earlier return statements)
-        if inactive > num:
-            self.captured += num
-            game.inactivePlayer.amber -= num
-            return
-        self.captured += inactive
-        game.inactivePlayer.amber = 0
+        else:
+            if inactive > num:
+                self.captured += num
+                game.inactivePlayer.amber -= num
+                return
+            self.captured += inactive
+            game.inactivePlayer.amber = 0
+        if self.title == "yxili_marauder":
+            self.power += self.captured - initial
 
     def damageCalc(self, game, num):
         """ Calculates damage, considering armor only.

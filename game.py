@@ -21,7 +21,7 @@ class Board():
     with open('decks/deckList.json', encoding='utf-8') as f:
       data = json.load(f)
       for x in range(0, len(data)):
-        show += f"{x}: {data[x]['name']}\n"
+        show += f"{x}: {data[x]['name']} {data[x]['houses']}\n"
         b.append(str(x))
     self.first = int(pyautogui.confirm(show, buttons=b)) # None
     show = "Player 2, choose a deck number:\n"
@@ -30,7 +30,7 @@ class Board():
       data = json.load(f)
       for x in range(0, len(data)):
         if x != self.first:
-          show += f"{x}: {data[x]['name']}\n"
+          show += f"{x}: {data[x]['name']} {data[x]['houses']}\n"
           b.append(str(x))
     self.second = int(pyautogui.confirm(show, buttons=b))
     self.top = 0
@@ -38,7 +38,6 @@ class Board():
     self.mousex = 0
     self.mousey = 0
     self.activeHouse = []
-    self.endBool = True
     self.turnNum = 0
     self.playedThisTurn = []
     self.discardedThisTurn = []
@@ -471,7 +470,8 @@ class Board():
       # Step 0: "Start of turn" effects #
       ###################################
 
-      elif self.turnStage == 0: # start of turn effects
+      elif self.turnStage == 0:
+        # start of turn effects will go here
         self.turnStage += 1
       
       ###################################################
@@ -480,29 +480,9 @@ class Board():
 
       elif self.turnStage == 1: # forge a key
         if self.checkForgeStates(): # returns True if you can forge, false if you can't (and why you can't), which in CotA is basically only Miasma
-          self.activePlayer.keyCost = self.calculateCost()
-          if self.activePlayer.amber >= self.activePlayer.keyCost:
-            self.activePlayer.amber -= self.activePlayer.keyCost
-            self.activePlayer.keys += 1
-            pyautogui.alert(f"You forged a key for {self.activePlayer.keyCost} amber. You now have {self.activePlayer.keys} key(s) and {self.activePlayer.amber} amber.\n")
-            if "interdimensional_graft" in self.inactivePlayer.states and self.inactivePlayer.states["interdimensional_graft"] and self.activePlayer.amber > 0:
-              pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {self.activePlayer.amber} leftover amber.")
-              # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
-              self.inactivePlayer.gainAmber(self.activePlayer.amber, self)
-              self.activePlayer.amber = 0
-              self.inactivePlayer.states["interdimensional_graft"] = 0
-              pyautogui.alert(f"They now have {self.inactivePlayer.amber} amber.")
-            if "bilgum_avalanche" in [x.title for x in self.activePlayer.board["Creature"]]:
-              # deal two damage to each enemy creature. I don't remember how I set this up to work
-              for x in range(len(self.inactivePlayer.board["Creature"])):
-                card = self.inactivePlayer.board["Creature"][x]
-                card.damageCalc(self, 2)
-                if card.updateHealth():
-                  self.pendingReloc.append(self.inactivePlayer.board["Creature"].pop(x))
-              self.pending()
-            self.forgedThisTurn = True
-          else:
-            pyautogui.alert("No key forged this turn, not enough amber.")
+          self.forgeKey("active", self.calculateCost())
+          # else:
+          #   pyautogui.alert("No key forged this turn, not enough amber.")
         else:
           pyautogui.alert("Forging skipped this turn but I'm not going to tell you why!")
         if self.activePlayer.keys >= 3:
@@ -1029,26 +1009,6 @@ class Board():
       pyautogui.alert("You skip your forge a key step this turn because you have 'The Sting' in play.")
       return False
     return True
-
-  def checkTaunt(self, defender, attacker):
-    """ Checks to make sure taunt rules are obeyed.
-    """
-    inactive = self.activePlayer.board["Creature"]
-    neigh = defender.neighbor(self)
-    if len(neigh) == 2:
-      if not defender.taunt and attacker.title != "niffle_ape" and (inactive[neigh[1]].taunt or inactive[neigh[0]].taunt): # so if the thing attacked doesn't have taunt, if the attacker isn't niffle ape, and at least one neighbor has taunt
-        pyautogui.alert("One of " + defender.title + "'s neighbors has taunt. Choose a different target.")
-        return False
-      else:
-        return True # either defender has taunt, attacker is niffle ape, or neither neighbor has taunt
-    if len(neigh) == 1:
-      if not defender.taunt and attacker.title != "niffle_ape" and inactive[neigh[0]].taunt:
-        pyautogui.alert(defender.title + "'s neighbor has taunt. Choose a different target.")
-        return False
-      else:
-        return True
-    else: return True
-
     
 
 ##################
@@ -1083,7 +1043,7 @@ class Board():
     active = self.activePlayer.board["Creature"]
     inactive = self.inactivePlayer.board["Creature"]
     card = self.activePlayer.hand[cardNum]
-    if card.house == "Brobnar":
+    if card.house in self.activeHouse:
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       if "rock_hurling_giant" in [x.title for x in active] and self.activePlayer.discard[-1].house == "Brobnar":
         targeting = self.chooseCards("Creature", "Deal 4 damage to:")[0]
@@ -1119,10 +1079,11 @@ class Board():
       card.ready = False
       self.usedThisTurn.append(card)
       return
-    defender = []
-    while defender == []:
-      defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0]
-    defenderCard = self.inactivePlayer.board["Creature"][defender[1]]
+    if attacker.title != "niffle_ape":
+      defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors()]), con_message = "This minion is protected by taunt.")[0][1]
+    else:
+      defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0][1]
+    defenderCard = self.inactivePlayer.board["Creature"][defender]
     try:
       print("Trying to fight.")
       card.fightCard(defenderCard, self)
@@ -1141,7 +1102,7 @@ class Board():
     if destination not in ['purge', 'discard', 'hand', 'deck']:
       pyautogui.alert("Pending was given an invalid destination.")
       return
-    if "Annihilation Ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Creature"]]) and destroyed:
+    if "annihilation_ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Artifact"]]) and destroyed:
       destination = "annihilate"
     if destination == "purge":
       length = len(L)
@@ -1322,7 +1283,36 @@ class Board():
     # reaper.ready = False # commented out for testing
     return
 
-  
+  def forgeKey(self, player: str, cost: int):
+    if "active":
+      forger = self.activePlayer
+      other = self.inactivePlayer
+    else:
+      forger = self.inactivePlayer
+      other = self.activePlayer
+    if forger.amber >= cost:
+      forger.amber -= cost
+      forger.keys += 1
+      pyautogui.alert(f"You forged a key for {cost} amber. You now have {forger.keys} key(s) and {forger.amber} amber.\n")
+      if player == "active" and "interdimensional_graft" in other.states and other.states["interdimensional_graft"] and forger.amber > 0:
+        pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber.")
+        # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
+        other.gainAmber(forger.amber, self)
+        forger.amber = 0
+        pyautogui.alert(f"They now have {other.amber} amber.")
+      if "bilgum_avalanche" in [x.title for x in forger.board["Creature"]]:
+        # deal two damage to each enemy creature. I don't remember how I set this up to work
+        length = len(other.board["Creature"])
+        for x in range(1, length+1):
+          card = other.board["Creature"][length-x]
+          card.damageCalc(self, 2)
+          if card.updateHealth():
+            self.pendingReloc.append(other.board["Creature"].pop(length-x))
+        self.pending()
+      pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
+      if player == "active":
+        self.forgedThisTurn = True
+
   def chooseSide(self):
     side = None
     if not self.activePlayer.board["Creature"]:
@@ -1510,13 +1500,15 @@ class Board():
       self.extraDraws = []
 
 
-  def chooseCards(self, targetPool: str, message: str = "Choose a target:", canHit: str = "both", count: int = 1, full: bool = True) -> List[int]:
+  def chooseCards(self, targetPool: str, message: str = "Choose a target:", canHit: str = "both", count: int = 1, full: bool = True, condition = lambda x: x == x, con_message: str = "This target does not meet the conditions.") -> List[int]:
     """ This can't deal with something that could target artifacts and creatures simultaneously. Also, the onus is on the caller to handle the results as creatures or artifacts or hand or discard, as appropriate.\n
         Valid targetPool options: Creature, Artifact, Hand, Discard\n
         Valid message: any string
         Valid canHit: either, both, enemy, friend\n
-        Count is max number of choices
-        If full is True, you can only submit when your target list length is equal to count
+        Count is max number of choices\n
+        If full is True, you can only submit when your target list length is equal to count\n
+        If a condition is set, only cards that match the condition can be picked\n
+        If condition isn't met, the con_message is displayed
     """
     active = self.activePlayer.board
     inactive = self.inactivePlayer.board
@@ -1618,59 +1610,83 @@ class Board():
                 if True in friend:
                   index = friend.index(True)
                   card = self.activePlayer.discard[index]
-                  selected.append((selectedSurf, card.rect))
-                  toAdd = ("fr", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                  if condition(card):
+                    selected.append((selectedSurf, card.rect))
+                    toAdd = ("fr", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
+                  else:
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
                 if True in foe:
                   index = foe.index(True)
                   card = self.inactivePlayer.discard[index]
-                  selected.append((selectedSurf, card.rect))
-                  toAdd = ("fo", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                  if condition(card):
+                    selected.append((selectedSurf, card.rect))
+                    toAdd = ("fo", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
+                  else:
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
               elif canHit == "either": # this means I can select multiples, but only all from same side
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
                 if True in friend and (not retVal or retVal[0][0] == "fr"):
                   index = friend.index(True)
                   card = self.activePlayer.discard[index]
-                  selected.append((selectedSurf, card.rect))
-                  toAdd = ("fr", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                  if condition(card):
+                    selected.append((selectedSurf, card.rect))
+                    toAdd = ("fr", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
+                  else:
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
                 if True in foe and (not retVal or retVal[0][0] == "fo"):
                   index = foe.index(True)
                   card = self.inactivePlayer.discard[index]
-                  selected.append((selectedSurf, card.rect))
-                  toAdd = ("fo", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                  if condition(card):
+                    selected.append((selectedSurf, card.rect))
+                    toAdd = ("fo", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
+                  else:
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
               elif canHit == "enemy": # this means I can only target unfriendlies
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
                 if True in foe:
                   index = foe.index(True)
                   card = self.inactivePlayer.discard[index]
-                  selected.append((selectedSurf, card.rect))
-                  toAdd = ("fo", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                  if condition(card):
+                    selected.append((selectedSurf, card.rect))
+                    toAdd = ("fo", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
+                  else:
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
               elif canHit == "friend": # this means I can only target friendlies
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
                 if True in friend:
                   index = friend.index(True)
                   card = self.activePlayer.discard[index]
-                  selected.append((selectedSurf, card.rect))
-                  toAdd = ("fr", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                  if condition(card):
+                    selected.append((selectedSurf, card.rect))
+                    toAdd = ("fr", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
+                  else:
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
                   ##### end section that needs updating
             else: # Creature or Artifact
               if canHit == "both": # this means I can select from both boards at the same time, eg natures call
@@ -1680,26 +1696,34 @@ class Board():
                 if True in friend:
                   index = friend.index(True)
                   card = active[targetPool][index]
-                  if card.ready:
-                    selected.append((selectedSurf, card.rect))
+                  if condition(card):
+                    if card.ready:
+                      selected.append((selectedSurf, card.rect))
+                    else:
+                      selected.append((selectedSurfTapped, card.tapped_rect))
+                    toAdd = ("fr", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
                   else:
-                    selected.append((selectedSurfTapped, card.tapped_rect))
-                  toAdd = ("fr", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
                 if True in foe:
                   index = foe.index(True)
                   card = inactive[targetPool][index]
-                  if card.ready:
-                    selected.append((selectedSurf, card.rect))
+                  if condition(card):
+                    if card.ready:
+                      selected.append((selectedSurf, card.rect))
+                    else:
+                      selected.append((selectedSurfTapped, card.tapped_rect))
+                    toAdd = ("fo", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
                   else:
-                    selected.append((selectedSurfTapped, card.tapped_rect))
-                  toAdd = ("fo", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
               elif canHit == "either": # this means I can select multiples, but only all from same side
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
                 if True not in friend:
@@ -1707,39 +1731,51 @@ class Board():
                 if True in friend and (not retVal or retVal[0][0] == "fr"):
                   index = friend.index(True)
                   card = active[targetPool][index]
-                  if card.ready:
-                    selected.append((selectedSurf, card.rect))
+                  if condition(card):
+                    if card.ready:
+                      selected.append((selectedSurf, card.rect))
+                    else:
+                      selected.append((selectedSurfTapped, card.tapped_rect))
+                    toAdd = ("fr", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
                   else:
-                    selected.append((selectedSurfTapped, card.tapped_rect))
-                  toAdd = ("fr", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
                 if True in foe and (not retVal or retVal[0][0] == "fo"):
                   index = foe.index(True)
                   card = inactive[targetPool][index]
-                  if card.ready:
-                    selected.append((selectedSurf, card.rect))
+                  if condition(card):
+                    if card.ready:
+                      selected.append((selectedSurf, card.rect))
+                    else:
+                      selected.append((selectedSurfTapped, card.tapped_rect))
+                    toAdd = ("fo", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
                   else:
-                    selected.append((selectedSurfTapped, card.tapped_rect))
-                  toAdd = ("fo", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
               elif canHit == "enemy": # this means I can only target unfriendlies
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
                 if True in foe:
                   index = foe.index(True)
                   card = inactive[targetPool][index]
-                  if card.ready:
-                    selected.append((selectedSurf, card.rect))
+                  if condition(card):
+                    if card.ready:
+                      selected.append((selectedSurf, card.rect))
+                    else:
+                      selected.append((selectedSurfTapped, card.tapped_rect))
+                    toAdd = ("fo", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
                   else:
-                    selected.append((selectedSurfTapped, card.tapped_rect))
-                  toAdd = ("fo", index)
-                  if toAdd not in retVal:
-                    retVal.append(toAdd)
-                  print(retVal)
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
               elif canHit == "friend": # this means I can only target friendlies
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
                 if True not in friend:
@@ -1747,24 +1783,47 @@ class Board():
                 if True in friend:
                   index = friend.index(True)
                   card = active[targetPool][index]
-                  if card.ready:
-                    selected.append((selectedSurf, card.rect))
+                  if condition(card):
+                    if card.ready:
+                      selected.append((selectedSurf, card.rect))
+                    else:
+                      selected.append((selectedSurfTapped, card.tapped_rect))
+                    toAdd = ("fr", index)
+                    if toAdd not in retVal:
+                      retVal.append(toAdd)
+                    print(retVal)
                   else:
-                    selected.append((selectedSurfTapped, card.tapped_rect))
+                    pyautogui.alert("This target does not meet the conditions.")
+                    break
+          else:
+            if canHit == "enemy":
+              hand = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.hand]
+              if True in hand:
+                index = hand.index(True)
+                card = self.activePlayer.hand[index]
+                if condition(card):
+                  selected.append((selectedSurf, card.rect))
+                  toAdd = ("fo", index)
+                  if toAdd not in retVal:
+                    retVal.append(toAdd)
+                  print(retVal)
+                else:
+                  pyautogui.alert("This target does not meet the conditions.")
+                  break
+            else:
+              hand = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.hand]
+              if True in hand:
+                index = hand.index(True)
+                card = self.activePlayer.hand[index]
+                if condition(card):
+                  selected.append((selectedSurf, card.rect))
                   toAdd = ("fr", index)
                   if toAdd not in retVal:
                     retVal.append(toAdd)
                   print(retVal)
-          else:
-            hand = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.hand]
-            if True in hand:
-              index = hand.index(True)
-              card = self.activePlayer.hand[index]
-              selected.append((selectedSurf, card.rect))
-              toAdd = ("fr", index)
-              if toAdd not in retVal:
-                retVal.append(toAdd)
-              print(retVal)
+                else:
+                  pyautogui.alert("This target does not meet the conditions.")
+                  break
       if not full or (full and len(retVal) == count):
         confirmBack.fill(COLORS["LIGHT_GREEN"])
       self.CLOCK.tick(self.FPS)
