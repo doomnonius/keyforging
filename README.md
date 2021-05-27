@@ -80,7 +80,7 @@
  <li>when do I check for taunt?</li>
  <li>implement the rule of six</li>
  <li><s>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</s></li>
- <li></li>
+ <li>I need a destroy function for handling ward and invulnerable.</li>
  <li></li>
  <li></li>
  <li></li>
