@@ -1359,7 +1359,7 @@ def twin_bolt_emission (game, card):
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc
   if active or inactive:
-    choices = game.chooseCards("Creature", f"Choose {min(2, len(active) + len(inactive))} creature(s) to deal two damage to:", min(2, len(active) + len(inactive)))
+    choices = game.chooseCards("Creature", f"Choose {min(2, len(active) + len(inactive))} creature(s) to deal two damage to:", count = min(2, len(active) + len(inactive)))
     for choice in choices:
       if choice[0] == "fr":
         active[choice[1]].damageCalc(game, 2)

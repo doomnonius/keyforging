@@ -27,7 +27,7 @@
  <li>Add archive to the board, viewable.</li>
  <li>Make purge list viewable.</li>
  <li>game.pending should be able to handle things going into archives</li>
- <li></li>
+ <li>Put a red layer over items that aren't allowed to be selected.</li>
  <li></li>
  <li><s>I want the algo for drawing creatures, artifacts, to put them in the middle of their area. For now I'm not going to do this for hands.</s> - That was easier than I thought it was going to be.</li>
  <li><s>If a card is tapped, it's untapped rect should be outside the board, and vice versa - this could be put in game.switch()</s> - actually put it in draw</li>

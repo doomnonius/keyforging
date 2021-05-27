@@ -23,8 +23,6 @@ def startup(choice = ''): #Called at startup
   logging.info("Game started with parameter: {}".format(choice))
   logging.info("Game is starting up!")
   choice = pyautogui.confirm("What would you like to do?", buttons=["New Game", "Import", "Decks", "Load", "Quit"])
-  # if choice != "Newgame" and choice != "Import" and choice != "Decks" and choice != "Load":
-  #   choice = input("What would you like to do: [Import] a new deck, start a [NewGame], list imported [Decks], or [Load] a game? \n>>> ")
   if choice == "Import":
     deck.importDeck()
     another = pyautogui.confirm("Would you like to import another deck?", buttons=["Yes", "No"]) # input("Would you like to import another deck (Y/n)? ")
