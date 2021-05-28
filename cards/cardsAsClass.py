@@ -279,15 +279,14 @@ class Card(pygame.sprite.Sprite):
             other.elusive = False
         else:
             damage = self.power + self.extraPow
+            if self.title == "valdr" and other.isFlank(game):
+                damage += 2
             print(f"{damage} damage is dealt as normal to defender.")
-            try:
-                if self.title == "valdr" and other.isFlank(game):
-                    damage += 2
-            except Exception as e:
-                print(e)
             other.damageCalc(game, damage)
         self.ready = False
         print("After fight effects would go here, if attacker survives.")
+        print(f"Damage on attacker: {self.damage}")
+        print(f"Damage on defender: {other.damage}")
         if self.updateHealth():
             game.pendingReloc.append(game.activePlayer.board["Creature"].pop(game.activePlayer.board["Creature"].index(self)))
         else:
@@ -296,9 +295,7 @@ class Card(pygame.sprite.Sprite):
         if other.updateHealth():
             game.pendingReloc.append(game.inactivePlayer.board["Creature"].pop(game.inactivePlayer.board["Creature"].index(other)))
         game.pending()
-        print("The problem is in pending, but weirdly pending was failing even with an empty list which it really shouldn't?")
-        print(self.damage)
-        print(other.damage)
+        print("Another comment after pending has completed.")
 
     def health(self) -> int:
         return (self.power + self.extraPow) - self.damage

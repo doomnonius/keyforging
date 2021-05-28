@@ -19,16 +19,18 @@
  <li>Is captured amber returned, while amber on artifacts lost? - this will be in game.pending</li>
  <li>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work.</li>
  <li>game.pending() needs updates</li>
- <li>Change color of End Turn button when no more available actions.</li>
+ <li>Change color of End Turn button when no more available actions. - save until done with all activatable things</li>
  <li>Picking decks within game window - will be another while loop</li>
- <li>Choosing what flank a creature goes on - will be another while loop (I used chooseHouse as a temporary solution)</li>
+ <li>Choosing what flank a creature goes on - use a bool like for drawing discards (I used chooseHouse as a temporary solution)</li>
  <li>Verify game integrity at ends of turns.</li>
- <li>Incorporate a condition into chooseCards</li>
  <li>Add archive to the board, viewable.</li>
  <li>Make purge list viewable.</li>
  <li>game.pending should be able to handle things going into archives</li>
- <li>Put a red layer over items that aren't allowed to be selected.</li>
+ <li>After you preselect a house, highlight all cards on your board (and archive) of that house.</li>
  <li></li>
+ <li></li>
+ <li><s>Incorporate a condition into chooseCards</s></li>
+ <li><s>Put a red layer over items that aren't allowed to be selected.</s></li>
  <li><s>I want the algo for drawing creatures, artifacts, to put them in the middle of their area. For now I'm not going to do this for hands.</s> - That was easier than I thought it was going to be.</li>
  <li><s>If a card is tapped, it's untapped rect should be outside the board, and vice versa - this could be put in game.switch()</s> - actually put it in draw</li>
  <li><s>game.chooseCards: (1) can infinite loop if the list they try to target is empty (2) can't handle choosing from different lists at the same time (3) should highlight chosen cards</s></li>

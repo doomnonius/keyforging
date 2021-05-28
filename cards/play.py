@@ -2,7 +2,7 @@ from os import path
 import random
 import pyautogui, pygame
 from functools import reduce
-from helpers import absa, makeChoice, chooseSide, stealAmber
+from helpers import absa, makeChoice, chooseSide, stealAmber, willEnterReady
 # I think it makes more sense to add these to the cardsAsClass file, which means that the only function here is addToBoard
 
 # This is a list of functions for all the play effects on cards, including creature, upgrades, action cards
@@ -59,27 +59,18 @@ def passFunc(game, card):
       if card.updateHealth():
         game.pendingReloc.append(active["Creature"].pop(active["Creature"].index(card)))
     game.pending()
-    if card.title == "silvertooth":
-      card.ready = True
-      pyautogui.alert(card.title + " enters play ready!")
     if card.house == "Mars":
-      if "blypyp" in activeS and activeS["blypyp"] and card.house == "Mars":
-        card.ready = True
-        pyautogui.alert(card.title + " enters play ready!")
-        activeS["blypyp"] = 0
       if card.title in ["chuff_ape", "yxilx_dominator", "zorg"]:
         card.stun = True
+  if willEnterReady(game, card):
+    card.ready = True
+    pyautogui.alert(card.title + " enters play ready!")
   if card.type == "Artifact" and "carlo_phantom" in [x.title for x in active["Creature"]]:
     stealAmber(game.activePlayer, game.inactivePlayer, sum(x.title == "carlo_phantom" for x in active["Creature"]))
     pyautogui.alert("'Carlo Phantom' stole 1 amber for you. You now have " + str(game.activePlayer.amber) + " amber.")
   if "library_access" in activeS and activeS["library_access"]:
     game.activePlayer += activeS["library_access"]
     pyautogui.alert("You draw a card because you played 'Library Access' earlier this turn.")
-  if "soft_landing" in activeS and activeS["soft_landing"] and (card.type == "Creature" or card.type == "Artifact"):
-    print(f"Soft landing: {activeS['soft_landing']}")
-    card.ready = True
-    pyautogui.alert(card.title + " enters play ready!")
-    activeS["soft_landing"] = 0
 
 
 ###########
@@ -345,6 +336,9 @@ def relentless_assault (game, card):
   count = 1
   chosen = []
   while count < 4:
+    if sum(x in chosen for x in activeBoard) == len(activeBoard):
+      pyautogui.alert("No more valid friendly targets.")
+      break
     if activeBoard:
       choice = game.chooseCards("Creature", f"Choose up to three creatures, one at a time. (Choice {count} of 3):", "friend", 1, False, lambda x: x not in chosen, con_message = "You've already chosen that creature, you can't fight with it again.")
     else:
@@ -1801,7 +1795,8 @@ def soft_landing (game, card):
   """
   passFunc(game, card)
   game.activePlayer.states[card.title] = 1
-  # this one doesn't go in reset states, is controlled by basicPlay
+  # this one doesn't go in reset states, is controlled by basicPlay, but still needs to be in reset states in case that isn't triggered
+  game.resetStates.append(("a", card.title))
 
 def squawker (game, card):
   """ Squawker: Ready a Mars creature or stun a non-Mars creature.

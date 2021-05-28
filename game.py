@@ -3,7 +3,7 @@ from pygame.constants import MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION, SRCALP
 import decks.decks as deck
 import cards.cardsAsClass as card
 import json, random, logging, time, pygame, pyautogui, os
-from helpers import makeChoice, buildStateDict, absa
+from helpers import makeChoice, willEnterReady, absa
 from typing import Dict, List, Set, Tuple
 from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW
 
@@ -37,27 +37,39 @@ class Board():
     self.left = 0
     self.mousex = 0
     self.mousey = 0
-    self.activeHouse = []
+    self.response = []
     self.turnNum = 0
+    # reset each turn cycle
+    self.activeHouse = []
+    self.extraFightHouses = []
     self.playedThisTurn = []
     self.discardedThisTurn = []
     self.usedThisTurn = []
     self.playedLastTurn = []
     self.discardLastTurn = []
     self.usedLastTurn = []
-    self.extraFightHouses = []
     self.forgedThisTurn = False
     self.forgedLastTurn = False
     self.turnStage = None
-    self.response = []
     self.pendingReloc = []
     self.extraDraws = []
     self.resetStates = []
     self.resetStatesNext = []
+    # draw bools
     self.drawFriendDiscard = False
     self.closeFriendDiscard = None
     self.drawEnemyDiscard = False
     self.closeEnemyDiscard = None
+    self.drawFlanks = False
+    self.deploy = False
+    self.drawFriendPurge = False
+    self.closeFriendPurge = None
+    self.drawEnemyPurge = False
+    self.closeFriendPurge = None
+    self.drawFriendArchive = False
+    self.closeFriendArchive = None
+    self.drawEnemyArchive = False
+    self.closeEnemyArchive = None
     self.do = False
     # self.allRects = []
     self.backgroundColor = COLORS["WHITE"]
@@ -362,8 +374,7 @@ class Board():
     self.endBackRect.centerx = wid // 2
     self.endBackRect.centery = hei // 2
 
-    # log
-
+    # log and other options submenu
 
     run = True
 
@@ -787,6 +798,7 @@ class Board():
     if drawEnd:
       self.WIN.blit(self.endBack, self.endBackRect)
       self.WIN.blit(self.endText, self.endRect)
+    # draw discards
     if self.drawFriendDiscard:
       # discard back
       discardBackSurf = pygame.Surface((self.WIN.get_width(), self.WIN.get_height() * 5 // 12))
@@ -1231,6 +1243,8 @@ class Board():
     if card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
       pyautogui.alert(f"{source[chosen].title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
+    # if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
+    #   flank = self.chooseFlank(card)
     if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
       flank = self.chooseHouse("custom", ("Choose which flank to play this creature on:", ["Left", "Right"]))[0]
     # left flank
@@ -1331,6 +1345,88 @@ class Board():
       side = pyautogui.confirm("Will you target an enemy creature or a friendly creature?", buttons=["Enemy", "Friendly"])
     return side
   
+  def chooseFlank(self, card) -> str:
+    """ Lets the user choose which flank to put play their creature on.
+    """
+    # flanks
+    self.flankSurf = pygame.Surface((self.target_cardw, self.target_cardh))
+    self.flankSurf.convert_alpha()
+    self.flankSurf.set_alpha(80)
+    self.flankSurf.fill(COLORS["LIGHT_GREEN"])
+    self.flankRectLeft = self.flankSurf.get_rect()
+    self.flankRectRight = self.flankSurf.get_rect()
+    
+    self.flankSurfTapped = pygame.Surface((self.target_cardh, self.target_cardw))
+    self.flankSurfTapped.convert_alpha()
+    self.flankSurfTapped.set_alpha(80)
+    self.flankSurfTapped.fill(COLORS["LIGHT_GREEN"])
+    self.flankRectLeftTapped = self.flankSurf.get_rect()
+    self.flankRectRightTapped = self.flankSurf.get_rect()
+
+    drawMe = []
+    if card.type == "Creature" or card.type == "Artifact":
+      board = self.activePlayer.board[card.type]
+      if card.type == "Creature":
+        area = self.creatures1_rect
+      else:
+        area = self.artifacts1_rect
+      # right
+      if willEnterReady(self, card, False):
+        if board[-1].ready:
+          self.flankRectRight.topleft = (board[-1].rect.topright)
+          self.flankRectRight.right += self.margin
+        else:
+          self.flankRectRight.topleft = (board[-1].tapped_rect.topright)
+          self.flankRectRight.right += self.margin
+        self.flankRectRightTapped.topleft = (-500, -500)
+        if not card.taunt:
+          self.flankRectRight.bottom = area[1] + area[3] - self.margin
+        drawMe.append((self.flankSurf, self.flankRectRight))
+      else:
+        if board[-1].ready:
+          self.flankRectRightTapped.topleft = (board[-1].rect.topright)
+          self.flankRectRightTapped.right += self.margin
+        else:
+          self.flankRectRightTapped.topleft = (board[-1].tapped_rect.topright)
+          self.flankRectRightTapped.right += self.margin
+        self.flankRectRight.topleft = (-500, -500)
+        if not card.taunt:
+          self.flankRectRightTapped.bottom = area[1] + area[3] - self.margin
+        drawMe.append((self.flankSurfTapped, self.flankRectRightTapped))
+        
+
+    while True:
+      self.extraDraws = drawMe.copy()
+      for e in pygame.event.get():
+        if e.type == pygame.QUIT:
+          pygame.quit()
+        elif e.type == MOUSEMOTION:
+          self.mousex, self.mousey = e.pos
+        elif e.type == MOUSEBUTTONUP and e.button == 1:
+          if not self.drawFriendDiscard and pygame.Rect.collidepoint(self.flankRectLeft, (self.mousex, self.mousey)):
+            self.extraDraws = []
+            return "Left"
+          elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.flankRectRight, (self.mousex, self.mousey)):
+            self.extraDraws = []
+            return "Right"
+          elif self.drawFriendDiscard and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
+            self.drawFriendDiscard = False
+            for card in self.activePlayer.discard:
+              card.rect.topleft = (-500, -500)
+          elif self.drawEnemyDiscard and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
+            self.drawEnemyDiscard = False
+            for card in self.inactivePlayer.discard:
+              card.rect.topleft = (-500, -500)
+          elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
+            self.drawFriendDiscard = True
+          elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
+            self.drawEnemyDiscard = True
+      self.CLOCK.tick(self.FPS)
+      self.hovercard = []
+      self.check_hover()
+      self.draw(False)
+      pygame.display.flip()
+      self.extraDraws = []
 
   def chooseMulligan(self, player: str) -> bool:
     """ Lets the user choose whether or not to keep their opening hand.
@@ -1656,8 +1752,8 @@ class Board():
           elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = True
           # if the list is full, don't let more be added
-          if len(retVal) == count:
-            break
+          # if len(retVal) == count:
+          #   break
           # selection
           if targetPool != "Hand":
             if targetPool == "Discard":
@@ -1669,12 +1765,13 @@ class Board():
                   card = self.activePlayer.discard[index]
                   print("before condition")
                   if condition(card):
-                    selected.append((selectedSurf, card.rect))
                     toAdd = ("fr", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      selected.remove((selectedSurf, card.rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1685,12 +1782,13 @@ class Board():
                   card = self.inactivePlayer.discard[index]
                   print("before condition")
                   if condition(card):
-                    selected.append((selectedSurf, card.rect))
                     toAdd = ("fo", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      selected.remove((selectedSurf, card.rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1702,12 +1800,13 @@ class Board():
                   card = self.activePlayer.discard[index]
                   print("before condition")
                   if condition(card):
-                    selected.append((selectedSurf, card.rect))
                     toAdd = ("fr", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      selected.remove((selectedSurf, card.rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1718,12 +1817,13 @@ class Board():
                   card = self.inactivePlayer.discard[index]
                   print("before condition")
                   if condition(card):
-                    selected.append((selectedSurf, card.rect))
                     toAdd = ("fo", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      selected.remove((selectedSurf, card.rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1735,12 +1835,13 @@ class Board():
                   card = self.inactivePlayer.discard[index]
                   print("before condition")
                   if condition(card):
-                    selected.append((selectedSurf, card.rect))
                     toAdd = ("fo", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      selected.remove((selectedSurf, card.rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1752,17 +1853,17 @@ class Board():
                   card = self.activePlayer.discard[index]
                   print("before condition")
                   if condition(card):
-                    selected.append((selectedSurf, card.rect))
                     toAdd = ("fr", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      selected.remove((selectedSurf, card.rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
                     break
-                  ##### end section that needs updating
             else: # Creature or Artifact
               if canHit == "both": # this means I can select from both boards at the same time, eg natures call
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
@@ -1773,15 +1874,19 @@ class Board():
                   card = active[targetPool][index]
                   print("before condition")
                   if condition(card):
-                    if card.ready:
-                      selected.append((selectedSurf, card.rect))
-                    else:
-                      selected.append((selectedSurfTapped, card.tapped_rect))
                     toAdd = ("fr", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      if card.ready:
+                        selected.append((selectedSurf, card.rect))
+                      else:
+                        selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      if card.ready:
+                        selected.remove((selectedSurf, card.rect))
+                      else:
+                        selected.remove((selectedSurfTapped, card.tapped_rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1792,15 +1897,19 @@ class Board():
                   card = inactive[targetPool][index]
                   print("before condition")
                   if condition(card):
-                    if card.ready:
-                      selected.append((selectedSurf, card.rect))
-                    else:
-                      selected.append((selectedSurfTapped, card.tapped_rect))
                     toAdd = ("fo", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      if card.ready:
+                        selected.append((selectedSurf, card.rect))
+                      else:
+                        selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      if card.ready:
+                        selected.remove((selectedSurf, card.rect))
+                      else:
+                        selected.remove((selectedSurfTapped, card.tapped_rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1814,15 +1923,19 @@ class Board():
                   card = active[targetPool][index]
                   print("before condition")
                   if condition(card):
-                    if card.ready:
-                      selected.append((selectedSurf, card.rect))
-                    else:
-                      selected.append((selectedSurfTapped, card.tapped_rect))
                     toAdd = ("fr", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      if card.ready:
+                        selected.append((selectedSurf, card.rect))
+                      else:
+                        selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      if card.ready:
+                        selected.remove((selectedSurf, card.rect))
+                      else:
+                        selected.remove((selectedSurfTapped, card.tapped_rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1833,15 +1946,19 @@ class Board():
                   card = inactive[targetPool][index]
                   print("before condition")
                   if condition(card):
-                    if card.ready:
-                      selected.append((selectedSurf, card.rect))
-                    else:
-                      selected.append((selectedSurfTapped, card.tapped_rect))
                     toAdd = ("fo", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      if card.ready:
+                        selected.append((selectedSurf, card.rect))
+                      else:
+                        selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      if card.ready:
+                        selected.remove((selectedSurf, card.rect))
+                      else:
+                        selected.remove((selectedSurfTapped, card.tapped_rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1853,15 +1970,19 @@ class Board():
                   card = inactive[targetPool][index]
                   print("before condition")
                   if condition(card):
-                    if card.ready:
-                      selected.append((selectedSurf, card.rect))
-                    else:
-                      selected.append((selectedSurfTapped, card.tapped_rect))
                     toAdd = ("fo", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      if card.ready:
+                        selected.append((selectedSurf, card.rect))
+                      else:
+                        selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
                       retVal.remove(toAdd)
+                      if card.ready:
+                        selected.remove((selectedSurf, card.rect))
+                      else:
+                        selected.remove((selectedSurfTapped, card.tapped_rect))
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1870,20 +1991,27 @@ class Board():
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
                 if True not in friend:
                   friend = [pygame.Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)) for card in active[targetPool]]
+                print(f"We're in targetPool {targetPool} and canHit {canHit}.")
                 if True in friend:
                   index = friend.index(True)
                   card = active[targetPool][index]
                   print("before condition")
                   if condition(card):
-                    if card.ready:
-                      selected.append((selectedSurf, card.rect))
-                    else:
-                      selected.append((selectedSurfTapped, card.tapped_rect))
                     toAdd = ("fr", index)
-                    if toAdd not in retVal:
+                    if toAdd not in retVal and len(retVal) < count:
+                      if card.ready:
+                        selected.append((selectedSurf, card.rect))
+                      else:
+                        selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
-                    else:
+                    elif toAdd in retVal:
+                      print(f"Selected before: {selected}")
                       retVal.remove(toAdd)
+                      if card.ready:
+                        selected.remove((selectedSurf, card.rect))
+                      else:
+                        selected.remove((selectedSurfTapped, card.tapped_rect))
+                      print(f"Selected after: {selected}")
                     print(retVal)
                   else:
                     pyautogui.alert(con_message)
@@ -1896,12 +2024,13 @@ class Board():
                 card = self.activePlayer.hand[index]
                 print("before condition")
                 if condition(card):
-                  selected.append((selectedSurf, card.rect))
                   toAdd = ("fo", index)
-                  if toAdd not in retVal:
+                  if toAdd not in retVal and len(retVal) < count:
+                    selected.append((selectedSurf, card.rect))
                     retVal.append(toAdd)
-                  else:
+                  elif toAdd in retVal:
                     retVal.remove(toAdd)
+                    selected.remove((selectedSurf, card.rect))
                   print(retVal)
                 else:
                   pyautogui.alert(con_message)
@@ -1913,18 +2042,21 @@ class Board():
                 card = self.activePlayer.hand[index]
                 print("before condition")
                 if condition(card):
-                  selected.append((selectedSurf, card.rect))
                   toAdd = ("fr", index)
-                  if toAdd not in retVal:
+                  if toAdd not in retVal and len(retVal) < count:
+                    selected.append((selectedSurf, card.rect))
                     retVal.append(toAdd)
-                  else:
+                  elif toAdd in retVal:
                     retVal.remove(toAdd)
+                    selected.remove((selectedSurf, card.rect))
                   print(retVal)
                 else:
                   pyautogui.alert(con_message)
                   break
       if not full or (full and len(retVal) == count):
         confirmBack.fill(COLORS["LIGHT_GREEN"])
+      else:
+        confirmBack.fill(COLORS["GREEN"])
       self.CLOCK.tick(self.FPS)
       self.hovercard = []
       self.check_hover()

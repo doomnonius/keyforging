@@ -7,6 +7,7 @@ from typing import Dict
 # makeChoice
 # chooseSide
 # stealAmber
+# willEnterReady
 ##################
 
 def absa(num, length):
@@ -84,5 +85,23 @@ def stealAmber(thief, victim, num):
     victim.amber = 0
 
 
-def buildStateDict(deck1, deck2) -> Dict:
-  return {}
+def willEnterReady(game, card, reset: bool = True):
+  """ Returns whether or not a card will enter ready.
+  """
+  activeS = game.activePlayer.states
+
+  if card.type == "Action" or card.type == "Upgrade":
+    return False
+  
+  if card.type == "Creature":
+    if card.title == "silvertooth":
+      return True
+    if card.house == "Mars":
+      if "blypyp" in activeS and activeS["blypyp"] and card.house == "Mars":
+        if reset:
+          activeS["blypyp"] = 0
+        return True
+  if "soft_landing" in activeS and activeS["soft_landing"] and (card.type == "Creature" or card.type == "Artifact"):
+    if reset:
+      activeS["soft_landing"] = 0
+    return True
