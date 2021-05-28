@@ -2075,11 +2075,11 @@ def load_image(title, colorkey=None): # this loads keys and house symbols
   except pygame.error as message:
       logging.error(f'Cannot load image: {title}, {message}')
       raise SystemExit(message)
-  image = image.convert()
-  if colorkey is not None:
-      if colorkey == -1:
-          colorkey = image.get_at((0,0))
-      image.set_colorkey(colorkey)
+  image = image.convert_alpha()
+  # if colorkey is not None:
+  #     if colorkey == -1:
+  #         colorkey = image.get_at((0,0))
+  #     image.set_colorkey(colorkey)
   scaled = pygame.transform.scale(image, (HEIGHT // 21, HEIGHT // 21))
   return scaled, scaled.get_rect()
 
