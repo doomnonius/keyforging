@@ -22,8 +22,8 @@
  <li>Verify game integrity at ends of turns.</li>
  <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs</li>
  <li>Drag a friendly minion onto an enemy minion to fight?</li>
- <li></li>
- <li></li>
+ <li>Make a tiny purged image.</li>
+ <li>Drag to discard.</li>
  <li></li>
  <li><s>Choosing what flank a creature goes on - use a bool like for drawing discards (I used chooseHouse as a temporary solution)</s></li>
  <li><s>Add archive to the board, viewable.</s></li>
@@ -67,7 +67,7 @@
       </li>
       <li><s>Ready Cards</s> - <b>Done</b></li>
       <li><s>Draw Cards</s> - <b>Done</b></li>
-      <li>EOT effects, and declare "Check!"</li>
+      <li>EOT effects, and declare "Check!" - Also making more obvious that opponent is about to forge</li>
    </ol>
  </li>
  <li><s>Build a state dict that only has the relevant information</s></li>

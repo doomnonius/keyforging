@@ -2,6 +2,7 @@ from tkinter.constants import E
 from pygame.constants import MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION, SRCALPHA
 import decks.decks as deck
 import cards.cardsAsClass as card
+import cards.play as play
 import json, random, logging, time, pygame, pyautogui, os
 from helpers import makeChoice, willEnterReady, absa
 from typing import Dict, List, Set, Tuple
@@ -721,10 +722,10 @@ class Board():
     hoverable = []
     hoverable2 = []
     if sum(self.friendDraws) == 0:
-      hoverable += self.activePlayer.hand + self.activePlayer.board["Creature"]  + self.activePlayer.board["Artifact"]
+      hoverable += self.activePlayer.hand + self.activePlayer.board["Creature"]  + self.activePlayer.board["Artifact"] + self.activePlayer.board["Upgrade"]
       hoverable2 += [self.discard1_rect, self.deck1_rect, self.archive1_rect, self.purge1_rect]
     if sum(self.enemyDraws) == 0:
-      hoverable += self.inactivePlayer.hand + self.inactivePlayer.board["Creature"] + self.inactivePlayer.board["Artifact"]
+      hoverable += self.inactivePlayer.hand + self.inactivePlayer.board["Creature"] + self.inactivePlayer.board["Artifact"] + self.inactivePlayer.board["Upgrade"]
       hoverable2 += [self.discard2_rect, self.deck2_rect, self.archive2_rect, self.purge2_rect]
     if self.drawFriendDiscard:
       hoverable += self.activePlayer.discard
@@ -810,6 +811,14 @@ class Board():
         if card in self.inactivePlayer.board["Creature"] and card.taunt:
           card_rect.bottom = area[1] + area[3] - self.margin
         x += 1
+        if card.upgrade:
+          x = 1
+          for up in card.upgrade:
+            up_image, up_rect = up.image, up.rect
+            up.tapped_rect.topleft = (-500, -500)
+            up_rect.left = card_rect.left - (3 * self.margin)
+            up_rect.bottom = card_rect.bottom
+            self.WIN.blit(up_image, up_rect)
         self.WIN.blit(card_image, card_rect)
     # hands
     for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
@@ -1323,9 +1332,6 @@ class Board():
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
     print(f"numPlays: {len(self.playedThisTurn)}")
-    if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
-      pyautogui.alert("You cannot play another card this turn.")
-      return
     if cheat == "Deck":
       source = self.activePlayer.deck
     elif cheat == "Discard":
@@ -1333,32 +1339,11 @@ class Board():
     else:
       source = self.activePlayer.hand
     card = source[chosen]
-    if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
-      if card.type == "Action":
-        if "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
-          pyautogui.alert("'Scrambler Storm' prevents playing actions this turn, so you can't cheat this card out.")
-          return
-      elif card.type == "Creature":
-        # game.inactivePlayer.states["lifeweb"] += 1
-        if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
-          pyautogui.alert("You need 7 amber to play 'Kelifi Dragon'")
-          return
-        if card.title == "truebaru" and self.activePlayer.amber < 3:
-          pyautogui.alert("You must have 3 amber to sacrifice in order to play 'Truebaru'")
-          return
-        if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
-          pyautogui.alert("You can't play creatures with 'Grommid' in play")
-          return
-        if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
-          pyautogui.alert("You can't play creatures because of 'Lifeward'")
-          return
-    if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0) and not cheat:
-      self.activePlayer.states["phase_shift"] -= 1 # reset to false
-      # Increases amber, adds the card to the action section of the board, then calls the card's play function
-      # cardOptions() makes sure that you can't try to play a card you're not allowed to play
-    elif card.house not in self.activeHouse:
-      pyautogui.alert("Can't play cards of the active house.")
+    if not self.canPlay(card, message = True):
       return
+    # cardOptions() makes sure that you can't try to play a card you're not allowed to play
+    # canPlay() does the same for drag and drop and cheating out cards
+    # Increases amber, adds the card to the action section of the board, then calls the card's play function
     if card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
       pyautogui.alert(f"{source[chosen].title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
@@ -1375,16 +1360,14 @@ class Board():
       self.activePlayer.board[card.type].append(source.pop(chosen))
       print(f"numPlays: {len(self.playedThisTurn)}") # test line
     else:
-      if len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
-        pyautogui.alert("No valid targets for this upgrade.")
-        return self
       print("Choose a creature to play this upgrade on: ")
       targeted = self.chooseCards("Creature", "Choose a creature to attach the upgrade to:")[0]
-      if targeted[0] == "fr":
-        card = self.activePlayer.board["Creature"][targeted[1]]
-      else:
-        card = self.activePlayer.board["Creature"][targeted[1]]
-      self.playUpgrade(card)
+      # if targeted[0] == "fr":
+      #   target = self.activePlayer.board["Creature"][targeted[1]]
+      # else:
+      #   target = self.activePlayer.board["Creature"][targeted[1]]
+      self.playUpgrade(card, targeted)
+      return
     #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
     self.playedThisTurn.append(card)
     self.draw()
@@ -1398,9 +1381,177 @@ class Board():
       else:
         self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
 
-  def playUpgrade(self, card: card.Card):
+
+  def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = True):
+    if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
+      if message: pyautogui.alert("You cannot play another card this turn.")
+      return False
+    if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
+      if card.type == "Action":
+        if "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
+          if message: pyautogui.alert("'Scrambler Storm' prevents playing actions this turn, so you can't cheat this card out.")
+          return False
+      elif card.type == "Creature":
+        if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
+          if message: pyautogui.alert("You need 7 amber to play 'Kelifi Dragon'")
+          return False
+        if card.title == "truebaru" and self.activePlayer.amber < 3:
+          if message: pyautogui.alert("You must have 3 amber to sacrifice in order to play 'Truebaru'")
+          return False
+        if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
+          if message: pyautogui.alert("You can't play creatures with 'Grommid' in play")
+          return False
+        if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
+          if message: pyautogui.alert("You can't play creatures because of 'Lifeward'")
+          return False
+      if card.house not in self.activeHouse:
+        return True
+    if card.type == "Upgrade" and len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
+      if message: pyautogui.alert("No valid targets for this upgrade.")
+      return False
+    if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0) and not cheat:
+      if reset:
+        self.activePlayer.states["phase_shift"] -= 1 # reset to false
+    elif card.house not in self.activeHouse:
+      if message: pyautogui.alert("Can't play cards not from the active house.")
+      return False
+    return True
+  
+  
+  def playUpgrade(self, card, target = None):
     """ Plays an upgrade on a creature.
     """
+    print(card)
+    active = self.activePlayer.board["Creature"]
+    inactive = self.inactivePlayer.board["Creature"]
+    hand = self.activePlayer.hand
+    broken = False
+    
+    if target:
+      self.activePlayer.board["Upgrade"].append(hand.pop(card))
+      side, choice = target
+      if side == "fr":
+        active[choice].upgrade.append(card)
+      else:
+        inactive[choice].upgrade.append(card)
+      eval(f"play.{card.title}(self, card, side, choice)")
+      return
+    
+    drawMe = []
+    # surfs
+    selectedSurf = pygame.Surface((self.target_cardw, self.target_cardh))
+    selectedSurf.convert_alpha()
+    selectedSurf.set_alpha(80)
+    selectedSurf.fill(COLORS["LIGHT_GREEN"])
+
+    selectedSurfTapped = pygame.Surface((self.target_cardh, self.target_cardw))
+    selectedSurfTapped.convert_alpha()
+    selectedSurfTapped.set_alpha(80)
+    selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
+    # draw all targets
+    for temp_card in active + inactive:
+      if temp_card.ready:
+        drawMe.append((selectedSurf, card.rect))
+      else:
+        drawMe.append((selectedSurfTapped, card.tapped_rect))
+
+    
+    while True:
+      self.extraDraws = drawMe.copy()
+      
+      for e in pygame.event.get():
+        if e.type == pygame.MOUSEMOTION:
+          #update mouse position
+          self.mousex, self.mousey = e.pos
+        
+        if e.type == pygame.QUIT:
+          pygame.quit()
+
+        if e.type == MOUSEBUTTONUP and e.button == 1:
+          activeHit = [pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) for x in active]
+          activeHitTapped = [pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey)) for x in active]
+          inactiveHit = [pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) for x in inactive]
+          inactiveHitTapped = [pygame.Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey)) for x in inactive]
+          if pygame.Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
+            l = len(hand)
+            for x in range(len(hand)):
+              temp_card = hand[x]
+              if x == 0 and self.mousex < temp_card.rect.centerx:
+                hand.insert(0, self.dragging.pop())
+                return
+              elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
+                hand.insert(x + 1, self.dragging.pop())
+                return
+            hand.append(self.dragging.pop())
+            return
+          elif True in activeHit:
+            self.activePlayer.board["Upgrade"].append(self.dragging.pop())
+            side = "fr"
+            choice = activeHit.index(True)
+            active[choice].upgrade.append(card)
+            eval(f"play.{card.title}(self, card, side, choice)")
+            broken = True
+            break
+          elif True in activeHitTapped:
+            self.activePlayer.board["Upgrade"].append(self.dragging.pop())
+            side = "fr"
+            choice = activeHitTapped.index(True)
+            active[choice].upgrade.append(card)
+            eval(f"play.{card.title}(self, card, side, choice)")
+            broken = True
+            break
+          elif True in inactiveHit:
+            self.activePlayer.board["Upgrade"].append(self.dragging.pop())
+            side = "fo"
+            choice = inactiveHit.index(True)
+            inactive[choice].upgrade.append(card)
+            eval(f"play.{card.title}(self, card, side, choice)")
+            broken = True
+            break
+          elif True in inactiveHitTapped:
+            self.activePlayer.board["Upgrade"].append(self.dragging.pop())
+            side = "fo"
+            choice = inactiveHitTapped.index(True)
+            inactive[choice].upgrade.append(card)
+            eval(f"play.{card.title}(self, card, side, choice)")
+            broken = True
+            break
+          else:
+            hand.append(self.dragging.pop())
+            return
+
+        if e.type == MOUSEBUTTONDOWN and e.button == 1:
+          print("You shouldn't be able to do that here.")
+
+      if pygame.Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
+        l = len(hand)
+        for x in range(len(hand)):
+          temp_card = hand[x]
+          if x == 0 and self.mousex < temp_card.rect.centerx:
+            hand.insert(0, self.invisicard)
+            break
+          elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
+            hand.insert(x + 1, self.invisicard)
+            break
+
+      self.CLOCK.tick(self.FPS)
+      self.hovercard = []
+      self.check_hover()
+      self.draw(False)
+      try:
+        hand.remove(self.invisicard)
+      except:
+        pass
+      pygame.display.flip()
+      self.extraDraws = []
+      if broken:
+        break
+    
+    if not target and card.amber > 0:
+      self.activePlayer.gainAmber(card.amber, self)
+      pyautogui.alert(f"{card.title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
+    self.playedThisTurn.append(card)
+    return
 
   def reapCard(self, cardNum: int):
     """ Triggers a card's reap effect from within the turn.
@@ -1486,18 +1637,41 @@ class Board():
     """
     card = self.dragging[0]
     hand = self.activePlayer.hand
-    
-    while True:
-      if card.type == "Creature":
+    drawMe = []
+
+    if self.canPlay(card, reset=False):
+      ## discard stuff here
+      if card.type == "Action":
+        dropSurf = pygame.Surface((self.creatures1.get_width(), (self.mat1.get_height() // 3) * 2))
+        dropSurf.convert_alpha()
+        dropSurf.set_alpha(80)
+        dropSurf.fill(COLORS["LIGHT_GREEN"])
+        dropRect = dropSurf.get_rect()
+        dropRect.topleft = self.creatures1_rect.topleft
+        drawMe = [(dropSurf, dropRect)]
+      elif card.type == "Artifact":
+        dropSurf = pygame.Surface(self.artifacts1.get_size())
+        dropSurf.convert_alpha()
+        dropSurf.set_alpha(80)
+        dropSurf.fill(COLORS["LIGHT_GREEN"])
+        dropRect = dropSurf.get_rect()
+        dropRect.topleft = self.artifacts1_rect.topleft
+        drawMe = [(dropSurf, dropRect)]
+      elif card.type == "Upgrade":
+        self.playUpgrade(card)
+        return
+      elif card.type == "Creature":
         flank = self.chooseFlank(card)
         print(flank)
         if flank:
           self.activePlayer.hand.append(self.dragging.pop())
-          print("Here?")
           self.playCard(-1, flank=flank, ask=False)
         elif self.dragging:
           self.activePlayer.hand.append(self.dragging.pop())
         return
+
+    while True:
+      self.extraDraws = drawMe.copy()
       
       for e in pygame.event.get():
         if e.type == pygame.MOUSEMOTION:
@@ -1508,29 +1682,38 @@ class Board():
           pygame.quit()
 
         if e.type == MOUSEBUTTONUP and e.button == 1:
-          l = len(hand)
-          # try:
-          #   hand.remove(self.invisicard)
-          # except:
-          #   pass
-          for x in range(len(hand)):
-            temp_card = hand[x]
-            if temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
-              hand.insert(x + 1, self.dragging.pop())
-              return
+          if pygame.Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
+            l = len(hand)
+            for x in range(len(hand)):
+              temp_card = hand[x]
+              if x == 0 and self.mousex < temp_card.rect.centerx:
+                hand.insert(0, self.dragging.pop())
+                return
+              elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
+                hand.insert(x + 1, self.dragging.pop())
+                return
+            hand.append(self.dragging.pop())
+            return
+          elif pygame.Rect.collidepoint(dropRect, (self.mousex, self.mousey)):
+            hand.append(self.dragging.pop())
+            self.playCard(-1, ask = False)
+            self.extraDraws = []
+            return
+          else:
+            hand.append(self.dragging.pop())
+            return
 
         if e.type == MOUSEBUTTONDOWN and e.button == 1:
           print("You shouldn't be able to do that here.")
 
       if pygame.Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
         l = len(hand)
-        # try:
-        #   hand.remove(self.invisicard)
-        # except:
-        #   pass
         for x in range(len(hand)):
           temp_card = hand[x]
-          if temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
+          if x == 0 and self.mousex < temp_card.rect.centerx:
+            hand.insert(0, self.invisicard)
+            break
+          elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
             hand.insert(x + 1, self.invisicard)
             break
 
@@ -1549,6 +1732,7 @@ class Board():
   def chooseFlank(self, card) -> str:
     """ Lets the user choose which flank to put play their creature on.
     """
+    hand = self.activePlayer.hand
     # message
     messageSurf = self.BASICFONT.render("Choose which flank to play this creature on:", 1, COLORS["WHITE"])
     messageRect = messageSurf.get_rect()
@@ -1692,7 +1876,28 @@ class Board():
         elif e.type == MOUSEBUTTONUP and e.button == 1:
           self.friendDraws = [self.drawFriendDiscard, self.drawFriendArchive, self.drawFriendPurge]
           self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
-          if True not in self.friendDraws and True in [pygame.Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]:
+          if pygame.Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
+            l = len(hand)
+            for x in range(len(hand)):
+              temp_card = hand[x]
+              if x == 0 and self.mousex < temp_card.rect.centerx:
+                hand.insert(0, self.dragging.pop())
+                self.extraDraws = []
+                card.tapped.set_alpha(255)
+                card.image.set_alpha(255)
+                return
+              elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
+                hand.insert(x + 1, self.dragging.pop())
+                self.extraDraws = []
+                card.tapped.set_alpha(255)
+                card.image.set_alpha(255)
+                return
+            hand.append(self.dragging.pop())
+            self.extraDraws = []
+            card.tapped.set_alpha(255)
+            card.image.set_alpha(255)
+            return
+          elif True not in self.friendDraws and True in [pygame.Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]:
             if pygame.Rect.collidepoint(self.flankRectLeft, (self.mousex, self.mousey)):
               self.extraDraws = []
               card.tapped.set_alpha(255)
@@ -1748,10 +1953,25 @@ class Board():
             card.tapped.set_alpha(255)
             card.image.set_alpha(255)
             return None
+      if pygame.Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
+        l = len(hand)
+        for x in range(len(hand)):
+          temp_card = hand[x]
+          if x == 0 and self.mousex < temp_card.rect.centerx:
+            hand.insert(0, self.invisicard)
+            break
+          elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
+            hand.insert(x + 1, self.invisicard)
+            break
+      
       self.CLOCK.tick(self.FPS)
       self.hovercard = []
       self.check_hover()
       self.draw(False)
+      try:
+        hand.remove(self.invisicard)
+      except:
+        pass
       pygame.display.flip()
       self.extraDraws = []
 

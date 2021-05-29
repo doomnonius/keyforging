@@ -32,7 +32,7 @@ class Card(pygame.sprite.Sprite):
         self.damage = 0
         self.base_power = int(self.cardInfo['power'])
         self.power = self.base_power
-        self.extraPow = 0
+        self.extraPow = 0 # will remove this one if I can determine it's not being used
         self.base_armor = int(self.cardInfo['armor'])
         self.armor = self.base_armor
         self.extraArm = 0
@@ -52,6 +52,7 @@ class Card(pygame.sprite.Sprite):
         self.maverick = self.cardInfo['is_maverick']
         self.revealed = False
         self.taunt = False
+        self.upgrade = []
         self.load_image()
         # conditionals to add?
         # status effects
@@ -72,9 +73,10 @@ class Card(pygame.sprite.Sprite):
         else:
             self.omni = False
         if self.type == "Upgrade":
-            self.attached = None
-        else:
-            self.attached = False
+            # self.attached = None
+            self.play = play.passFunc
+        # else:
+        #     self.attached = False
         # creature only abilities
         if self.type == "Creature":
             self.upgrade = []
