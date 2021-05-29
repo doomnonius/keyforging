@@ -24,6 +24,11 @@
  <li>Drag a friendly minion onto an enemy minion to fight?</li>
  <li>Make a tiny purged image.</li>
  <li>Drag to discard.</li>
+ <li>Put upgrades into their own file so we don't have to import play into main, will have to import passFunc into upgrades though.</li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
  <li></li>
  <li><s>Choosing what flank a creature goes on - use a bool like for drawing discards (I used chooseHouse as a temporary solution)</s></li>
  <li><s>Add archive to the board, viewable.</s></li>
