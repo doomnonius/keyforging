@@ -51,6 +51,7 @@ class Card(pygame.sprite.Sprite):
         self.exp = self.cardInfo["expansion"]
         self.maverick = self.cardInfo['is_maverick']
         self.revealed = False
+        self.taunt = False
         self.load_image()
         # conditionals to add?
         # status effects
@@ -388,6 +389,17 @@ class Card(pygame.sprite.Sprite):
         self.image, self.rect = scaled, scaled.get_rect()
         return self.image, self.rect
             
+
+class Invisicard():
+    """ Used for reorganizing the hand.
+    """
+    def __init__(self, width,  height):
+        self.image = pygame.Surface((width, height))
+        self.image.convert_alpha()
+        self.image.set_alpha(0)
+        self.rect = self.image.get_rect()
+        self.tapped_rect = self.image.get_rect()
+
 
 if __name__ == '__main__':
     print ('This statement will be executed only if this script is called directly, which it really shouldn\'t be.')

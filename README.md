@@ -8,9 +8,6 @@
  <li>Code not yet implemented to only display valid options for items, instead of all. - in progress</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed. - in progress</li>
- <li>Wild wormhole doesn't work - we'll get there</li>
- <li>Hovering over deck or discard says how many cards are in it.</li>
- <li>Clicking on discard shows what cards are in it.</li>
  <li>Get rid of remaining print statements.</li>
  <li>Enable dragging and dropping cards.</li>
  <li>Upgrades don't work. (Or things in later sets that give other cards abilities).</li>
@@ -19,16 +16,22 @@
  <li>Is captured amber returned, while amber on artifacts lost? - this will be in game.pending</li>
  <li>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work.</li>
  <li>game.pending() needs updates</li>
+ <li>game.pending should be able to handle things going into archives</li>
  <li>Change color of End Turn button when no more available actions. - save until done with all activatable things</li>
  <li>Picking decks within game window - will be another while loop</li>
- <li>Choosing what flank a creature goes on - use a bool like for drawing discards (I used chooseHouse as a temporary solution)</li>
  <li>Verify game integrity at ends of turns.</li>
- <li>Add archive to the board, viewable.</li>
- <li>Make purge list viewable.</li>
- <li>game.pending should be able to handle things going into archives</li>
- <li>After you preselect a house, highlight all cards on your board (and archive) of that house.</li>
+ <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs</li>
+ <li>Drag a friendly minion onto an enemy minion to fight?</li>
  <li></li>
  <li></li>
+ <li></li>
+ <li><s>Choosing what flank a creature goes on - use a bool like for drawing discards (I used chooseHouse as a temporary solution)</s></li>
+ <li><s>Add archive to the board, viewable.</s></li>
+ <li><s>Make purge list viewable.</s></li>
+ <li><s>After you preselect a house, highlight all cards on your board (and archive) of that house.</s></li>
+ <li><s>Wild wormhole doesn't work - we'll get there</s></li>
+ <li><s>Hovering over deck or discard says how many cards are in it.</s></li>
+ <li><s>Clicking on discard shows what cards are in it.</s></li>
  <li><s>Incorporate a condition into chooseCards</s></li>
  <li><s>Put a red layer over items that aren't allowed to be selected.</s></li>
  <li><s>I want the algo for drawing creatures, artifacts, to put them in the middle of their area. For now I'm not going to do this for hands.</s> - That was easier than I thought it was going to be.</li>

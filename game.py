@@ -37,6 +37,7 @@ class Board():
     self.left = 0
     self.mousex = 0
     self.mousey = 0
+    self.dragging = []
     self.response = []
     self.turnNum = 0
     # reset each turn cycle
@@ -70,8 +71,9 @@ class Board():
     self.closeFriendArchive = None
     self.drawEnemyArchive = False
     self.closeEnemyArchive = None
+    self.friendDraws = []
+    self.enemyDraws = []
     self.do = False
-    # self.allRects = []
     self.backgroundColor = COLORS["WHITE"]
     # sprites
     self.allsprites = pygame.sprite.RenderUpdates()
@@ -98,6 +100,7 @@ class Board():
     pygame.font.init()
     self.FPS = 30
     self.WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags=pygame.SRCALPHA) #, flags = pygame.FULLSCREEN)
+    self.SMALLFONT = pygame.font.SysFont("Corbel", max(HEIGHT // 45, 14))
     self.BASICFONT = pygame.font.SysFont("Corbel", HEIGHT // 27)
     self.OTHERFONT = pygame.font.SysFont("Corbel", HEIGHT // 14)
     self.margin = HEIGHT // 108
@@ -106,6 +109,7 @@ class Board():
     self.target_cardh = HEIGHT // 7
     ratio = CARDH / self.target_cardh
     self.target_cardw = int(CARDW // ratio)
+    self.invisicard = card.Invisicard(self.target_cardw, self.target_cardh)
     first = random.choice([self.first, self.second])
     self.activePlayer = deck.Deck(deck.deckName(first), self.target_cardw, self.target_cardh)
     if first == self.first:
@@ -244,13 +248,12 @@ class Board():
     self.deck2_rect.topright = (wid, mat_third)
     self.board_blits.append((self.deck2, self.deck2_rect))
 
-    # houses corner
-    self.houses2 = pygame.Surface((self.target_cardw, mat_third // 2))
-    self.houses2.convert()
-    self.houses2.fill(COLORS["GREY"])
-    self.houses2_rect = self.houses2.get_rect()
-    self.houses2_rect.topright = (wid, mat_third * 2)
-    self.board_blits.append((self.houses2, self.houses2_rect))
+    # purged2
+    self.purge2 = pygame.Surface((self.target_cardw, mat_third // 2))
+    self.purge2.convert()
+    self.purge2_rect = self.purge2.get_rect()
+    self.purge2_rect.topright = (wid, mat_third * 2)
+    self.board_blits.append((self.purge2, self.purge2_rect))
 
     ## divider2
     self.divider2 = pygame.Surface((wid // 5, mat_third))
@@ -259,21 +262,21 @@ class Board():
     div2_w = self.divider2.get_width()
     self.divider2_rect = self.divider2.get_rect()
     self.divider2_rect.topright = (wid, int(mat_third * 2.5))
-    self.key2y, self.key2y_rect = load_image("yellow_key_back", -1)
+    self.key2y, self.key2y_rect = load_image("yellow_key_back")
     self.key2y_rect.topright = (div2_w - 2 - self.target_cardw - self.margin, 0)
-    self.key2r, self.key2r_rect = load_image("yellow_key_back", -1)
+    self.key2r, self.key2r_rect = load_image("yellow_key_back")
     self.key2r_rect.topright = (div2_w - 2 - self.target_cardw - self.margin, self.key2y.get_height() + self.margin)
-    self.key2b, self.key2b_rect = load_image("yellow_key_back", -1)
+    self.key2b, self.key2b_rect = load_image("yellow_key_back")
     self.key2b_rect.topright = (div2_w - 2 - self.target_cardw - self.margin, self.key2y.get_height() * 2 + self.margin * 2)
     self.board_blits.append((self.divider2, self.divider2_rect))
 
-    # purge2 / decklist2
-    self.purge2 = pygame.Surface((self.target_cardw + self.margin, mat_third))
-    self.purge2.convert()
-    self.purge2.fill(COLORS["RED"])
-    self.purge2_rect = self.purge2.get_rect()
-    self.purge2_rect.topright = (wid, int(mat_third * 2.5))
-    self.board_blits.append((self.purge2, self.purge2_rect))
+    # archive2
+    self.archive2 = pygame.Surface((self.target_cardw + self.margin, mat_third))
+    self.archive2.convert()
+    self.archive2.fill(COLORS["BROWN"])
+    self.archive2_rect = self.archive2.get_rect()
+    self.archive2_rect.topright = (wid, int(mat_third * 2.5))
+    self.board_blits.append((self.archive2, self.archive2_rect))
 
     ## divider1
     self.divider = pygame.Surface((wid // 5, mat_third))
@@ -290,13 +293,13 @@ class Board():
     self.key1b_rect.topleft = (2 + self.target_cardw + self.margin, self.key1y.get_height() * 2 + self.margin * 2)
     self.board_blits.append((self.divider, self.divider_rect))
 
-    # purge/decklist
-    self.purge1 = pygame.Surface((self.target_cardw + self.margin, mat_third))
-    self.purge1.convert()
-    self.purge1.fill(COLORS["RED"])
-    self.purge1_rect = self.purge1.get_rect()
-    self.purge1_rect.topleft = (0, int(mat_third * 2.5))
-    self.board_blits.append((self.purge1, self.purge1_rect))
+    # archive
+    self.archive1 = pygame.Surface((self.target_cardw + self.margin, mat_third))
+    self.archive1.convert()
+    self.archive1.fill(COLORS["BROWN"])
+    self.archive1_rect = self.archive1.get_rect()
+    self.archive1_rect.topleft = (0, int(mat_third * 2.5))
+    self.board_blits.append((self.archive1, self.archive1_rect))
 
     ## active mat
     self.mat1 = pygame.Surface((wid, hei // 2))
@@ -306,13 +309,12 @@ class Board():
     self.mat1_rect.topleft = (0, int(mat_third * 3.5))
     self.board_blits.append((self.mat1, self.mat1_rect))
 
-    # houses
-    self.houses1 = pygame.Surface((self.target_cardw, mat_third // 2))
-    self.houses1.convert()
-    self.houses1.fill(COLORS["GREEN"])
-    self.houses1_rect = self.houses1.get_rect()
-    self.houses1_rect.topleft = (0, int(mat_third * 3.5))
-    self.board_blits.append((self.houses1, self.houses1_rect))
+    # purged
+    self.purge1 = pygame.Surface((self.target_cardw, mat_third // 2))
+    self.purge1.convert()
+    self.purge1_rect = self.purge1.get_rect()
+    self.purge1_rect.topleft = (0, int(mat_third * 3.5))
+    self.board_blits.append((self.purge1, self.purge1_rect))
 
     # deck
     self.deck1 = pygame.Surface((self.target_cardw, mat_third))
@@ -335,7 +337,7 @@ class Board():
     self.discard1.convert()
     self.discard1.fill(COLORS["GREEN"])
     self.discard1_rect = self.discard1.get_rect()
-    self.discard1_rect.topleft = (0, mat_third * 5)
+    self.discard1_rect.bottomleft = (0, HEIGHT)
     self.board_blits.append((self.discard1, self.discard1_rect))
 
     # artifacts
@@ -412,25 +414,54 @@ class Board():
           self.draw() # this only works because of the update in doPopup
           self.doPopup()
           
+        if event.type == MOUSEBUTTONDOWN and event.button == 1:
+          hand = self.activePlayer.hand
+          hit = [pygame.Rect.collidepoint(x.rect, (self.mousex, self.mousey)) for x in hand]
+          if True in hit:
+            self.dragging.append(hand.pop(hit.index(True)))
+            self.dragCard()
+            print("Exiting dragCard, back into events.")
+
+        
         if event.type == MOUSEBUTTONUP and event.button == 1:
+          if self.dragging:
+            self.activePlayer.hand.append(self.dragging.pop())
+          self.friendDraws = [self.drawFriendDiscard, self.drawFriendArchive, self.drawFriendPurge]
+          self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
           if pygame.Rect.collidepoint(self.endBackRect, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = False
+            self.drawEnemyArchive = False
+            self.drawEnemyPurge = False
             self.drawFriendDiscard = False
-            for card in self.inactivePlayer.discard + self.activePlayer.discard:
+            self.drawFriendArchive = False
+            self.drawFriendPurge = False
+            for card in self.inactivePlayer.discard + self.activePlayer.discard + self.activePlayer.purged + self.inactivePlayer.purged + self.activePlayer.archive + self.inactivePlayer.archive:
               card.rect.topleft = (-500, -500)
             self.turnStage += 1
-          elif self.drawFriendDiscard and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
+          elif True in self.friendDraws and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
             self.drawFriendDiscard = False
-            for card in self.activePlayer.discard:
+            self.drawFriendArchive = False
+            self.drawFriendPurge = False
+            for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
               card.rect.topleft = (-500, -500)
-          elif self.drawEnemyDiscard and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
+          elif True in self.enemyDraws and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = False
-            for card in self.inactivePlayer.discard:
+            self.drawEnemyArchive = False
+            self.drawEnemyPurge = False
+            for card in self.inactivePlayer.discard + self.inactivePlayer.purged + self.inactivePlayer.archive:
               card.rect.topleft = (-500, -500)
           elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
             self.drawFriendDiscard = True
           elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = True
+          elif not self.drawFriendPurge and pygame.Rect.collidepoint(self.purge1_rect, (self.mousex, self.mousey)):
+            self.drawFriendPurge = True
+          elif not self.drawEnemyPurge and pygame.Rect.collidepoint(self.purge2_rect, (self.mousex, self.mousey)):
+            self.drawEnemyPurge = True
+          elif not self.drawFriendArchive and pygame.Rect.collidepoint(self.archive1_rect, (self.mousex, self.mousey)):
+            self.drawFriendArchive = True
+          elif not self.drawEnemyArchive and pygame.Rect.collidepoint(self.archive2_rect, (self.mousex, self.mousey)):
+            self.drawEnemyArchive = True
           
         if event.type == pygame.KEYDOWN:
           # print(event)
@@ -511,13 +542,14 @@ class Board():
         self.activeHouse = self.chooseHouse("activeHouse")
         if len(self.activePlayer.archive) > 0:
           # self.activePlayer.printShort(self.activePlayer.archive)
-          show = 'Would you like to pick up your archive? It contains:\n\n'
-          for card in self.activePlayer.archive:
-            show += f"{card.title} [{card.house}]\n"
-          archive = pyautogui.confirm(show, buttons=["Yes", "No"])
+          show = self.chooseHouse("custom", ("Would you like to pick up your archive?", ["Yes", "No"]))
+          # show = 'Would you like to pick up your archive? It contains:\n\n'
+          # for card in self.activePlayer.archive:
+          #   show += f"{card.title} [{card.house}]\n"
+          # archive = pyautogui.confirm(show, buttons=["Yes", "No"])
           if archive == "Yes":
             for card in archive:
-              self.pendingReloc.append(archive.pop(archive.index(card)))
+              self.pendingReloc.append(archive.pop(archive.index(card))) # this is in case you archive an enemy card - it needs to return to their hand
             self.pending('hand')
         self.turnStage += 1
 
@@ -683,11 +715,17 @@ class Board():
 
 
   def check_hover (self):
+    if self.dragging:
+      return
+
     hoverable = []
-    if not self.drawFriendDiscard:
+    hoverable2 = []
+    if sum(self.friendDraws) == 0:
       hoverable += self.activePlayer.hand + self.activePlayer.board["Creature"]  + self.activePlayer.board["Artifact"]
-    if not self.drawEnemyDiscard:
+      hoverable2 += [self.discard1_rect, self.deck1_rect, self.archive1_rect, self.purge1_rect]
+    if sum(self.enemyDraws) == 0:
       hoverable += self.inactivePlayer.hand + self.inactivePlayer.board["Creature"] + self.inactivePlayer.board["Artifact"]
+      hoverable2 += [self.discard2_rect, self.deck2_rect, self.archive2_rect, self.purge2_rect]
     if self.drawFriendDiscard:
       hoverable += self.activePlayer.discard
     if self.drawEnemyDiscard:
@@ -696,11 +734,16 @@ class Board():
     for card in hoverable:
       if pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)):
         self.hovercard = [card]
-        break
+        return
       if pygame.Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)):
         self.hovercard = [card]
-        break
-  
+        return
+
+    for loc in hoverable2:
+      if pygame.Rect.collidepoint(loc, (self.mousex, self.mousey)):
+        self.hovercard = [loc]
+        return
+
   def draw(self, drawEnd: bool = True):
     # self.allsprites.update()
     self.WIN.blits(self.board_blits)
@@ -729,6 +772,23 @@ class Board():
     self.inactive_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect)]
     self.divider.blits(self.active_info)
     self.divider2.blits(self.inactive_info)
+        
+    self.house2a, self.house2a_rect = load_image(self.inactivePlayer.houses[0].lower())
+    self.house2a_rect.topleft = self.divider2_rect.topleft
+    self.house2b, self.house2b_rect = load_image(self.inactivePlayer.houses[1].lower())
+    self.house2b_rect.midleft = self.divider2_rect.midleft
+    self.house2c, self.house2c_rect = load_image(self.inactivePlayer.houses[2].lower())
+    self.house2c_rect.bottomleft = self.divider2_rect.bottomleft
+    self.WIN.blits([(self.house2a, self.house2a_rect), (self.house2b, self.house2b_rect), (self.house2c, self.house2c_rect)])
+
+    self.house1a, self.house1a_rect = load_image(self.activePlayer.houses[0].lower())
+    self.house1a_rect.topright = self.divider_rect.topright
+    self.house1b, self.house1b_rect = load_image(self.activePlayer.houses[1].lower())
+    self.house1b_rect.midright = self.divider_rect.midright
+    self.house1c, self.house1c_rect = load_image(self.activePlayer.houses[2].lower())
+    self.house1c_rect.bottomright = self.divider_rect.bottomright
+    self.WIN.blits([(self.house1a, self.house1a_rect), (self.house1b, self.house1b_rect), (self.house1c, self.house1c_rect)])
+
     self.WIN.blit(self.amber1, self.amber1_rect)
     self.WIN.blit(self.amber2, self.amber2_rect)
     self.WIN.blit(self.chains1, self.chains1_rect)
@@ -771,16 +831,16 @@ class Board():
       card_image, card_rect = self.inactivePlayer.discard[l - 1].image, self.inactivePlayer.discard[l - 1].rect
       card_rect.topleft = (self.discard2_rect.left, self.discard2_rect.top)
       self.WIN.blit(card_image, card_rect)
-    # purged
-    l = len(self.activePlayer.purged)
+    # archive
+    l = len(self.activePlayer.archive)
     if l > 0:
-      card_image, card_rect = self.activePlayer.purged[l - 1].image, self.activePlayer.purged[l - 1].rect
-      card_rect.center = self.purge1_rect.center
+      card_image, card_rect = self.activePlayer.archive[l - 1].image, self.activePlayer.archive[l - 1].rect
+      card_rect.center = self.archive1_rect.center
       self.WIN.blit(card_image, card_rect)
-    l = len(self.inactivePlayer.purged)
+    l = len(self.inactivePlayer.archive)
     if l > 0: 
-      card_image, card_rect = self.inactivePlayer.purged[l - 1].image, self.inactivePlayer.purged[l - 1].rect
-      card_rect.center = self.purge2_rect.center
+      card_image, card_rect = self.inactivePlayer.archive[l - 1].image, self.inactivePlayer.archive[l - 1].rect
+      card_rect.center = self.archive2_rect.center
       self.WIN.blit(card_image, card_rect)
     # decks
     # going to need a card back of some sort to put here
@@ -795,11 +855,17 @@ class Board():
       card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
       self.WIN.blit(card_image, card_rect)
     # self.allsprites.draw(self.WIN)
-    if drawEnd:
+    if drawEnd and self.activeHouse:
       self.WIN.blit(self.endBack, self.endBackRect)
       self.WIN.blit(self.endText, self.endRect)
-    # draw discards
-    if self.drawFriendDiscard:
+    # draw discards/archive/purges
+    if self.drawFriendDiscard or self.drawFriendArchive or self.drawFriendPurge:
+      if self.drawFriendDiscard:
+        pool = self.activePlayer.discard
+      elif self.drawFriendArchive:
+        pool = self.activePlayer.archive
+      else:
+        pool = self.activePlayer.purged
       # discard back
       discardBackSurf = pygame.Surface((self.WIN.get_width(), self.WIN.get_height() * 5 // 12))
       discardBackSurf.convert_alpha()
@@ -823,16 +889,22 @@ class Board():
       self.WIN.blit(closeSurf, closeRect)
       # draw cards
       x = 0
-      for card in self.activePlayer.discard[0:16]:
+      for card in pool[0:16]:
         card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + self.margin)
         x += 1
         self.WIN.blit(card.image, card.rect)
       x = 0
-      for card in self.activePlayer.discard[16:]:
+      for card in pool[16:]:
         card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
         x += 1
         self.WIN.blit(card.image, card.rect)
-    if self.drawEnemyDiscard:
+    if self.drawEnemyDiscard or self.drawEnemyArchive or self.drawEnemyPurge:
+      if self.drawEnemyDiscard:
+        pool = self.inactivePlayer.discard
+      elif self.drawEnemyArchive:
+        pool = self.inactivePlayer.archive
+      else:
+        pool = self.inactivePlayer.purged
       # discard back
       discardBackSurf = pygame.Surface((self.WIN.get_width(), self.WIN.get_height() * 5 // 12))
       discardBackSurf.convert_alpha()
@@ -856,12 +928,12 @@ class Board():
       self.WIN.blit(closeSurf, closeRect)
       # draw cards
       x = 0
-      for card in self.inactivePlayer.discard[0:16]:
+      for card in pool[0:16]:
         card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + self.margin)
         x += 1
         self.WIN.blit(card.image, card.rect)
       x = 0
-      for card in self.inactivePlayer.discard[16:]:
+      for card in pool[16:]:
         card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
         x += 1
         self.WIN.blit(card.image, card.rect)
@@ -869,20 +941,63 @@ class Board():
       for pair in self.extraDraws:
         self.WIN.blit(pair[0], pair[1])
     if self.hovercard:
-      hover, hover_rect = self.hovercard[0].orig_image, self.hovercard[0].orig_rect
-      if self.mousey > HEIGHT / 2:
-        hover_rect.top = self.mousey - CARDH
-        while hover_rect.top < 0:
-          hover_rect.top += 10
+      hover = self.hovercard[0]
+      if type(hover) != pygame.Rect:
+        hover, hover_rect = hover.orig_image, hover.orig_rect
+        if self.mousey > HEIGHT / 2:
+          hover_rect.top = self.mousey - CARDH
+          while hover_rect.top < 0:
+            hover_rect.top += 10
+        else:
+          hover_rect.top = self.mousey
+          while hover_rect.bottom > HEIGHT:
+            hover_rect.bottom -= 10
+        if self.mousex > WIDTH / 2:
+          hover_rect.left = self.mousex - CARDW
+        else:
+          hover_rect.left = self.mousex
       else:
-        hover_rect.top = self.mousey
-        while hover_rect.bottom > HEIGHT:
-          hover_rect.bottom -= 10
-      if self.mousex > WIDTH / 2:
-        hover_rect.left = self.mousex - CARDW
-      else:
-        hover_rect.left = self.mousex
+        if hover == self.purge1_rect:
+          hover = self.SMALLFONT.render(f"{len(self.activePlayer.purged)} of your cards have been purged.", 1, COLORS["BLACK"])
+          hover_rect = hover.get_rect()
+          hover_rect.bottomleft = (self.mousex, self.mousey)
+        elif hover == self.purge2_rect:
+          hover = self.SMALLFONT.render(f"{len(self.inactivePlayer.purged)} of your opponent's cards have been purged.", 1, COLORS["BLACK"])
+          hover_rect = hover.get_rect()
+          hover_rect.bottomright = (self.mousex, self.mousey)
+        elif hover == self.discard1_rect:
+          hover = self.SMALLFONT.render(f"There are {len(self.activePlayer.discard)} cards in your discard.", 1, COLORS["BLACK"])
+          hover_rect = hover.get_rect()
+          hover_rect.bottomleft = (self.mousex, self.mousey)
+        elif hover == self.discard2_rect:
+          hover = self.SMALLFONT.render(f"There are {len(self.inactivePlayer.discard)} cards in your opponent's discard.", 1, COLORS["BLACK"])
+          hover_rect = hover.get_rect()
+          hover_rect.bottomright = (self.mousex, self.mousey)
+        elif hover == self.deck1_rect:
+          hover = self.SMALLFONT.render(f"There are {len(self.activePlayer.deck)} cards in your deck.", 1, COLORS["BLACK"])
+          hover_rect = hover.get_rect()
+          hover_rect.bottomleft = (self.mousex, self.mousey)
+        elif hover == self.deck2_rect:
+          hover = self.SMALLFONT.render(f"There are {len(self.inactivePlayer.deck)} cards in your opponent's deck.", 1, COLORS["BLACK"])
+          hover_rect = hover.get_rect()
+          hover_rect.bottomright = (self.mousex, self.mousey)
+        elif hover == self.archive1_rect:
+          hover = self.SMALLFONT.render(f"There are {len(self.activePlayer.archive)} cards in your archive.", 1, COLORS["BLACK"])
+          hover_rect = hover.get_rect()
+          hover_rect.bottomleft = (self.mousex, self.mousey)
+        elif hover == self.archive2_rect:
+          hover = self.SMALLFONT.render(f"There are {len(self.inactivePlayer.archive)} cards in your opponent's archive.", 1, COLORS["BLACK"])
+          hover_rect = hover.get_rect()
+          hover_rect.bottomright = (self.mousex, self.mousey)
+        hover_back = pygame.Surface(hover.get_size())
+        hover_back.fill(COLORS["WHITE"])
+        hover_back_rect = hover_back.get_rect()
+        hover_back_rect.topleft = hover_rect.topleft
+        self.WIN.blit(hover_back, hover_back_rect)
       self.WIN.blit(hover, hover_rect)
+    if self.dragging:
+      drag = self.dragging[0]
+      self.WIN.blit(drag.image, (self.mousex, self.mousey))
 
   def doPopup(self):
     pos = pygame.mouse.get_pos()
@@ -1101,6 +1216,8 @@ class Board():
       defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors(self)]), con_message = "This minion is protected by taunt.")[0][1]
     else:
       defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0][1]
+    if defender == None:
+      return
     defenderCard = self.inactivePlayer.board["Creature"][defender]
     try:
       print("Trying to fight.")
@@ -1202,12 +1319,12 @@ class Board():
       pyautogui.alert("Pending did not properly empty the list.")
 
 
-  def playCard(self, chosen: int, cheat: str = "Hand"):
+  def playCard(self, chosen: int, cheat: str = "Hand", flank = "Right", ask = True):
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
     print(f"numPlays: {len(self.playedThisTurn)}")
     if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
-      pyautogui.alert("You cannot play another card this turn. But how'd you get here?")
+      pyautogui.alert("You cannot play another card this turn.")
       return
     if cheat == "Deck":
       source = self.activePlayer.deck
@@ -1239,14 +1356,15 @@ class Board():
       self.activePlayer.states["phase_shift"] -= 1 # reset to false
       # Increases amber, adds the card to the action section of the board, then calls the card's play function
       # cardOptions() makes sure that you can't try to play a card you're not allowed to play
-    flank = "Right"
+    elif card.house not in self.activeHouse:
+      pyautogui.alert("Can't play cards of the active house.")
+      return
     if card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
       pyautogui.alert(f"{source[chosen].title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
-    # if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
-    #   flank = self.chooseFlank(card)
-    if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
-      flank = self.chooseHouse("custom", ("Choose which flank to play this creature on:", ["Left", "Right"]))[0]
+    if ask:
+      if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
+        flank = self.chooseFlank(card)
     # left flank
     if card.type != "Upgrade" and flank == "Left":
       self.activePlayer.board[card.type].insert(0, source.pop(chosen))
@@ -1335,63 +1453,232 @@ class Board():
       if player == "active":
         self.forgedThisTurn = True
 
-  def chooseSide(self):
-    side = None
-    if not self.activePlayer.board["Creature"]:
-      side = "Enemy"
-    if not self.inactivePlayer.board["Creature"]:
-      side = "Friendly"
-    while side == None:
-      side = pyautogui.confirm("Will you target an enemy creature or a friendly creature?", buttons=["Enemy", "Friendly"])
-    return side
+  def previewHouse(self, house: str) -> List[Tuple[pygame.Surface, pygame.Rect]]:
+    """ Highlights the cards in the selected house during the choose house step.
+    """
+    retVal = []
+
+    selectedSurf = pygame.Surface((self.target_cardw, self.target_cardh))
+    selectedSurf.convert_alpha()
+    selectedSurf.set_alpha(80)
+    selectedSurf.fill(COLORS["LIGHT_GREEN"])
+
+    selectedSurfTapped = pygame.Surface((self.target_cardh, self.target_cardw))
+    selectedSurfTapped.convert_alpha()
+    selectedSurfTapped.set_alpha(80)
+    selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
+
+    for card in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
+      if card.house == house:
+        if card.ready:
+          retVal.append((selectedSurf, card.rect))
+        else:
+          retVal.append((selectedSurfTapped, card.tapped_rect))
+    for card in self.activePlayer.hand:
+      if card.house == house:
+        retVal.append((selectedSurf, card.rect))
+    
+    return retVal
   
+  
+  def dragCard(self) -> None:
+    """ Enables dragging a card from your hand around the screen.
+    """
+    card = self.dragging[0]
+    hand = self.activePlayer.hand
+    
+    while True:
+      if card.type == "Creature":
+        flank = self.chooseFlank(card)
+        print(flank)
+        if flank:
+          self.activePlayer.hand.append(self.dragging.pop())
+          print("Here?")
+          self.playCard(-1, flank=flank, ask=False)
+        elif self.dragging:
+          self.activePlayer.hand.append(self.dragging.pop())
+        return
+      
+      for e in pygame.event.get():
+        if e.type == pygame.MOUSEMOTION:
+          #update mouse position
+          self.mousex, self.mousey = e.pos
+        
+        if e.type == pygame.QUIT:
+          pygame.quit()
+
+        if e.type == MOUSEBUTTONUP and e.button == 1:
+          l = len(hand)
+          # try:
+          #   hand.remove(self.invisicard)
+          # except:
+          #   pass
+          for x in range(len(hand)):
+            temp_card = hand[x]
+            if temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
+              hand.insert(x + 1, self.dragging.pop())
+              return
+
+        if e.type == MOUSEBUTTONDOWN and e.button == 1:
+          print("You shouldn't be able to do that here.")
+
+      if pygame.Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
+        l = len(hand)
+        # try:
+        #   hand.remove(self.invisicard)
+        # except:
+        #   pass
+        for x in range(len(hand)):
+          temp_card = hand[x]
+          if temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
+            hand.insert(x + 1, self.invisicard)
+            break
+
+      self.CLOCK.tick(self.FPS)
+      self.hovercard = []
+      self.draw(False)
+      try:
+        hand.remove(self.invisicard)
+      except:
+        pass
+      pygame.display.flip()
+      self.extraDraws = []
+
+
+
   def chooseFlank(self, card) -> str:
     """ Lets the user choose which flank to put play their creature on.
     """
+    # message
+    messageSurf = self.BASICFONT.render("Choose which flank to play this creature on:", 1, COLORS["WHITE"])
+    messageRect = messageSurf.get_rect()
+    messageRect.center = (WIDTH // 2, (HEIGHT // 2) - (self.target_cardh // 4))
+    # message background
+    backgroundSurf = pygame.Surface((messageSurf.get_width(), messageSurf.get_height()))
+    backgroundSurf.convert()
+    backgroundRect = backgroundSurf.get_rect()
+    backgroundRect.center = (WIDTH // 2, (HEIGHT // 2) - (self.target_cardh // 4))
+    
     # flanks
-    self.flankSurf = pygame.Surface((self.target_cardw, self.target_cardh))
-    self.flankSurf.convert_alpha()
+    self.flankSurf = card.image
     self.flankSurf.set_alpha(80)
-    self.flankSurf.fill(COLORS["LIGHT_GREEN"])
     self.flankRectLeft = self.flankSurf.get_rect()
     self.flankRectRight = self.flankSurf.get_rect()
     
-    self.flankSurfTapped = pygame.Surface((self.target_cardh, self.target_cardw))
-    self.flankSurfTapped.convert_alpha()
+    self.flankSurfTapped = card.tapped
     self.flankSurfTapped.set_alpha(80)
-    self.flankSurfTapped.fill(COLORS["LIGHT_GREEN"])
-    self.flankRectLeftTapped = self.flankSurf.get_rect()
-    self.flankRectRightTapped = self.flankSurf.get_rect()
+    self.flankRectLeftTapped = self.flankSurfTapped.get_rect()
+    self.flankRectRightTapped = self.flankSurfTapped.get_rect()
 
-    drawMe = []
-    if card.type == "Creature" or card.type == "Artifact":
+    drawMe = [(messageSurf, messageRect)]
+    if card.type == "Creature" and len(self.activePlayer.board[card.type]) > 0:
       board = self.activePlayer.board[card.type]
-      if card.type == "Creature":
-        area = self.creatures1_rect
-      else:
-        area = self.artifacts1_rect
       # right
       if willEnterReady(self, card, False):
-        if board[-1].ready:
-          self.flankRectRight.topleft = (board[-1].rect.topright)
-          self.flankRectRight.right += self.margin
-        else:
-          self.flankRectRight.topleft = (board[-1].tapped_rect.topright)
-          self.flankRectRight.right += self.margin
         self.flankRectRightTapped.topleft = (-500, -500)
-        if not card.taunt:
-          self.flankRectRight.bottom = area[1] + area[3] - self.margin
+        if board[-1].ready: # both ready
+          if board[-1].taunt and not card.taunt: # in play taunt, played not
+            self.flankRectRight.topleft = (board[-1].rect.topright)
+            self.flankRectRight.top += self.margin * 3
+          elif not board[-1].taunt and card.taunt: # played taunt, in play not
+            self.flankRectRight.topleft = (board[-1].rect.topright)
+            self.flankRectRight.top -= self.margin * 3
+          else: # both taunt or both not
+            self.flankRectRight.topleft = (board[-1].rect.topright)
+          self.flankRectRight.right += self.margin
+        else: # played ready, in play not
+          if board[-1].taunt and not card.taunt: # in play taunt, played not
+            self.flankRectRight.bottomleft = (board[-1].tapped_rect.bottomright)
+            self.flankRectRight.top += self.margin * 3
+          elif not board[-1].taunt and card.taunt: # played taunt, in play not
+            self.flankRectRight.bottomleft = (board[-1].tapped_rect.bottomright)
+            self.flankRectRight.top -= self.margin * 3
+          else: # both taunt or both not
+            self.flankRectRight.bottomleft = (board[-1].tapped_rect.bottomright)
+          self.flankRectRight.right += self.margin
         drawMe.append((self.flankSurf, self.flankRectRight))
       else:
-        if board[-1].ready:
-          self.flankRectRightTapped.topleft = (board[-1].rect.topright)
-          self.flankRectRightTapped.right += self.margin
-        else:
-          self.flankRectRightTapped.topleft = (board[-1].tapped_rect.topright)
-          self.flankRectRightTapped.right += self.margin
         self.flankRectRight.topleft = (-500, -500)
-        if not card.taunt:
-          self.flankRectRightTapped.bottom = area[1] + area[3] - self.margin
+        if board[-1].ready: # played not ready, in play ready
+          if board[-1].taunt and not card.taunt: # in play taunt, played not
+            self.flankRectRightTapped.bottomleft = (board[-1].rect.bottomright)
+            self.flankRectRightTapped.top += self.margin * 3
+          elif not board[-1].taunt and card.taunt: # played taunt, in play not
+            self.flankRectRightTapped.topleft = (board[-1].rect.topright)
+            self.flankRectRightTapped.top -= self.margin * 3
+          else: # both taunt or both not
+            self.flankRectRightTapped.bottomleft = (board[-1].rect.bottomright)
+          self.flankRectRightTapped.right += self.margin
+        else: # played not ready, in play not ready
+          if board[-1].taunt and not card.taunt: # in play taunt, played not
+            self.flankRectRightTapped.topleft = (board[-1].tapped_rect.topright)
+            self.flankRectRightTapped.top += self.margin * 3
+          elif not board[-1].taunt and card.taunt: # played taunt, in play not
+            self.flankRectRightTapped.topleft = (board[-1].tapped_rect.topright)
+            self.flankRectRightTapped.top -= self.margin * 3
+          else: # both taunt or both not
+            self.flankRectRightTapped.topleft = (board[-1].tapped_rect.topright)
+          self.flankRectRightTapped.right += self.margin
+        drawMe.append((self.flankSurfTapped, self.flankRectRightTapped))
+      # left
+      if willEnterReady(self, card, False):
+        self.flankRectLeftTapped.topright = (-500, -500)
+        if board[0].ready: # both ready
+          if board[0].taunt and not card.taunt: # in play taunt, played not
+            self.flankRectLeft.topright = (board[0].rect.topleft)
+            self.flankRectLeft.top += self.margin * 3
+          elif not board[0].taunt and card.taunt: # played taunt, in play not
+            self.flankRectLeft.topright = (board[0].rect.topleft)
+            self.flankRectLeft.top -= self.margin * 3
+          else: # both same
+            self.flankRectLeft.topright = (board[0].rect.topleft)
+          self.flankRectLeft.left -= self.margin
+        else: # played ready, in play not
+          if board[0].taunt and not card.taunt: # in play taunt, played not
+            self.flankRectLeft.bottomright = (board[0].tapped_rect.bottomleft)
+            self.flankRectLeft.top += self.margin * 3
+          elif not board[0].taunt and card.taunt: # played taunt, in play not
+            self.flankRectLeft.bottomright = (board[0].tapped_rect.bottomleft)
+            self.flankRectLeft.top -= self.margin * 3
+          else: # both same
+            self.flankRectLeft.bottomright = (board[0].tapped_rect.bottomleft)
+          self.flankRectLeft.left -= self.margin
+        drawMe.append((self.flankSurf, self.flankRectLeft))
+      else:
+        self.flankRectLeft.topright = (-500, -500)
+        if board[0].ready: # in play ready, played not
+          if board[0].taunt and not card.taunt: # in play taunt, played not
+            self.flankRectLeftTapped.bottomright = (board[0].rect.bottomleft)
+            self.flankRectLeftTapped.top += self.margin * 3
+          elif not board[0].taunt and card.taunt: # played taunt, in play not
+            self.flankRectLeftTapped.topright = (board[0].rect.topleft)
+            self.flankRectLeftTapped.top -= self.margin * 3
+          else: # both same
+            self.flankRectLeftTapped.bottomright = (board[0].rect.bottomleft)
+          self.flankRectLeftTapped.left -= self.margin
+        else: # neither ready
+          if board[0].taunt and not card.taunt: # in play taunt, played not
+            self.flankRectLeftTapped.topright = (board[0].tapped_rect.topleft)
+            self.flankRectLeftTapped.top += self.margin * 3
+          elif not board[0].taunt and card.taunt: # played taunt, in play not
+            self.flankRectLeftTapped.topright = (board[0].tapped_rect.topleft)
+            self.flankRectLeftTapped.top -= self.margin * 3
+          else: # both same
+            self.flankRectLeftTapped.topright = (board[0].tapped_rect.topleft)
+          self.flankRectLeftTapped.left -= self.margin
+        drawMe.append((self.flankSurfTapped, self.flankRectLeftTapped))
+    else: # empty board
+      if willEnterReady(self, card, False):
+        self.flankRectRight.center = self.creatures1_rect.center
+        self.flankRectLeft.topright = (-500, -500)
+        self.flankRectLeftTapped.topright = (-500, -500)
+        self.flankRectRightTapped.topright = (-500, -500)
+        drawMe.append((self.flankSurf, self.flankRectRight))
+      else:
+        self.flankRectRightTapped.center = self.creatures1_rect.center
+        self.flankRectLeftTapped.topright = (-500, -500)
+        self.flankRectLeft.topright = (-500, -500)
+        self.flankRectRight.topright = (-500, -500)
         drawMe.append((self.flankSurfTapped, self.flankRectRightTapped))
         
 
@@ -1403,24 +1690,64 @@ class Board():
         elif e.type == MOUSEMOTION:
           self.mousex, self.mousey = e.pos
         elif e.type == MOUSEBUTTONUP and e.button == 1:
-          if not self.drawFriendDiscard and pygame.Rect.collidepoint(self.flankRectLeft, (self.mousex, self.mousey)):
+          self.friendDraws = [self.drawFriendDiscard, self.drawFriendArchive, self.drawFriendPurge]
+          self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
+          if True not in self.friendDraws and True in [pygame.Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]:
+            if pygame.Rect.collidepoint(self.flankRectLeft, (self.mousex, self.mousey)):
+              self.extraDraws = []
+              card.tapped.set_alpha(255)
+              card.image.set_alpha(255)
+              return "Left"
+            elif pygame.Rect.collidepoint(self.flankRectLeftTapped, (self.mousex, self.mousey)):
+              self.extraDraws = []
+              card.tapped.set_alpha(255)
+              card.image.set_alpha(255)
+              return "Left"
+            elif pygame.Rect.collidepoint(self.flankRectRight, (self.mousex, self.mousey)):
+              self.extraDraws = []
+              card.tapped.set_alpha(255)
+              card.image.set_alpha(255)
+              return "Right"
+            elif pygame.Rect.collidepoint(self.flankRectRightTapped, (self.mousex, self.mousey)):
+              self.extraDraws = []
+              card.tapped.set_alpha(255)
+              card.image.set_alpha(255)
+              return "Right"
+          elif True not in self.friendDraws and self.dragging:
+            card.tapped.set_alpha(255)
+            card.image.set_alpha(255)
+            self.activePlayer.hand.append(self.dragging.pop())
             self.extraDraws = []
-            return "Left"
-          elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.flankRectRight, (self.mousex, self.mousey)):
-            self.extraDraws = []
-            return "Right"
-          elif self.drawFriendDiscard and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
-            self.drawFriendDiscard = False
-            for card in self.activePlayer.discard:
-              card.rect.topleft = (-500, -500)
-          elif self.drawEnemyDiscard and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
-            self.drawEnemyDiscard = False
-            for card in self.inactivePlayer.discard:
-              card.rect.topleft = (-500, -500)
-          elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
-            self.drawFriendDiscard = True
-          elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
-            self.drawEnemyDiscard = True
+            return None
+          elif not self.dragging:
+            if True in self.friendDraws and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
+              self.drawFriendDiscard = False
+              self.drawFriendArchive = False
+              self.drawFriendPurge = False
+              for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
+                card.rect.topleft = (-500, -500)
+            elif True in self.enemyDraws and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
+              self.drawEnemyDiscard = False
+              self.drawEnemyArchive = False
+              self.drawEnemyPurge = False
+              for card in self.inactivePlayer.discard + self.inactivePlayer.purged + self.inactivePlayer.archive:
+                card.rect.topleft = (-500, -500)
+            elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
+              self.drawFriendDiscard = True
+            elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
+              self.drawEnemyDiscard = True
+            elif not self.drawFriendPurge and pygame.Rect.collidepoint(self.purge1_rect, (self.mousex, self.mousey)):
+              self.drawFriendPurge = True
+            elif not self.drawEnemyPurge and pygame.Rect.collidepoint(self.purge2_rect, (self.mousex, self.mousey)):
+              self.drawEnemyPurge = True
+            elif not self.drawFriendArchive and pygame.Rect.collidepoint(self.archive1_rect, (self.mousex, self.mousey)):
+              self.drawFriendArchive = True
+            elif not self.drawEnemyArchive and pygame.Rect.collidepoint(self.archive2_rect, (self.mousex, self.mousey)):
+              self.drawEnemyArchive = True
+          else:
+            card.tapped.set_alpha(255)
+            card.image.set_alpha(255)
+            return None
       self.CLOCK.tick(self.FPS)
       self.hovercard = []
       self.check_hover()
@@ -1556,7 +1883,7 @@ class Board():
     selected = 0
     while True:
       if selected:
-        self.extraDraws = [(confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
+        self.extraDraws = [(confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist] + self.previewHouse(self.activePlayer.houses[selected - 1])
       else:
         self.extraDraws = [(messageBackSurf, messageBackRect), (messageSurf, messageRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
       for e in pygame.event.get():
@@ -1565,6 +1892,8 @@ class Board():
         elif e.type == MOUSEMOTION:
           self.mousex, self.mousey = e.pos
         elif e.type == MOUSEBUTTONUP and e.button == 1:
+          self.friendDraws = [self.drawFriendDiscard, self.drawFriendArchive, self.drawFriendPurge]
+          self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
           if selected and pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)):
             self.extraDraws = []
             return [houses[clicked]]
@@ -1580,18 +1909,30 @@ class Board():
               clicked = click.index(True)
               selected = clicked + 1
               houses_rects[clicked][0].fill(COLORS["LIGHT_GREEN"])
-          elif self.drawFriendDiscard and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
+          elif True in self.friendDraws and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
             self.drawFriendDiscard = False
-            for card in self.activePlayer.discard:
+            self.drawFriendArchive = False
+            self.drawFriendPurge = False
+            for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
               card.rect.topleft = (-500, -500)
-          elif self.drawEnemyDiscard and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
+          elif True in self.enemyDraws and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = False
-            for card in self.inactivePlayer.discard:
+            self.drawEnemyArchive = False
+            self.drawEnemyPurge = False
+            for card in self.inactivePlayer.discard + self.inactivePlayer.purged + self.inactivePlayer.archive:
               card.rect.topleft = (-500, -500)
           elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
             self.drawFriendDiscard = True
           elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = True
+          elif not self.drawFriendPurge and pygame.Rect.collidepoint(self.purge1_rect, (self.mousex, self.mousey)):
+            self.drawFriendPurge = True
+          elif not self.drawEnemyPurge and pygame.Rect.collidepoint(self.purge2_rect, (self.mousex, self.mousey)):
+            self.drawEnemyPurge = True
+          elif not self.drawFriendArchive and pygame.Rect.collidepoint(self.archive1_rect, (self.mousex, self.mousey)):
+            self.drawFriendArchive = True
+          elif not self.drawEnemyArchive and pygame.Rect.collidepoint(self.archive2_rect, (self.mousex, self.mousey)):
+            self.drawEnemyArchive = True
       if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)):
         confirmBack.fill(COLORS["LIGHT_GREEN"])
       else:
@@ -1720,6 +2061,8 @@ class Board():
         elif e.type == MOUSEMOTION:
           self.mousex, self.mousey = e.pos
         elif e.type == MOUSEBUTTONUP and e.button == 1:
+          self.friendDraws = [self.drawFriendDiscard, self.drawFriendArchive, self.drawFriendPurge]
+          self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
           if pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)):
             self.extraDraws = []
             if retVal and not full:
@@ -1739,22 +2082,30 @@ class Board():
             retVal = []
             selected = []
             confirmBack.fill(COLORS["GREEN"])
-          elif self.drawFriendDiscard and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
+          elif True in self.friendDraws and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
             self.drawFriendDiscard = False
-            for card in self.activePlayer.discard:
+            self.drawFriendArchive = False
+            self.drawFriendPurge = False
+            for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
               card.rect.topleft = (-500, -500)
-          elif self.drawEnemyDiscard and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
+          elif True in self.enemyDraws and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = False
-            for card in self.inactivePlayer.discard:
+            self.drawEnemyArchive = False
+            self.drawEnemyPurge = False
+            for card in self.inactivePlayer.discard + self.inactivePlayer.purged + self.inactivePlayer.archive:
               card.rect.topleft = (-500, -500)
           elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
             self.drawFriendDiscard = True
           elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = True
-          # if the list is full, don't let more be added
-          # if len(retVal) == count:
-          #   break
-          # selection
+          elif not self.drawFriendPurge and pygame.Rect.collidepoint(self.purge1_rect, (self.mousex, self.mousey)):
+            self.drawFriendPurge = True
+          elif not self.drawEnemyPurge and pygame.Rect.collidepoint(self.purge2_rect, (self.mousex, self.mousey)):
+            self.drawEnemyPurge = True
+          elif not self.drawFriendArchive and pygame.Rect.collidepoint(self.archive1_rect, (self.mousex, self.mousey)):
+            self.drawFriendArchive = True
+          elif not self.drawEnemyArchive and pygame.Rect.collidepoint(self.archive2_rect, (self.mousex, self.mousey)):
+            self.drawEnemyArchive = True
           if targetPool != "Hand":
             if targetPool == "Discard":
               ### start section that needs updating
