@@ -6,7 +6,7 @@
 <ul>
  <li>Get hazardous and assault working - should be easy</li>
  <li>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</li>
- <li>I need a destroy function for handling ward and invulnerable.</li>
+ <li>I need a destroy function for handling ward and invulnerable -> or make changes to updateHealth.</li>
  <li><s>Interacting with the state dictionaries.</s> - in progress</li>
  <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal</li>
  <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs</li>
@@ -25,10 +25,10 @@
  <li>Ready creature entering next to tapped taunt looks like it has taunt in chooseFlank</li>
  <li>things in later sets that give other cards abilities</li>
  <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 16 card in hand or more than 12(?) creatures or artifacts</li>
+ <li>What about having the background color of the active Player's mat match the color of the house they've chosen?</li>
  <li></li>
  <li></li>
- <li></li>
- <li></li>
+ <li><s>Obsolete the chooseMulligan function by adding a color option to chooseHouse, which is now a misnamed function</s></li>
  <li><s>Room for optimizing draw, along the lines of what I did with keys, amber, and houses. For example, putting a function in passFunc that updates the board draws.</s></li>
  <li><s>Change color of End Turn button when no more available actions. - save until done with all activatable things - create a function to use canPlay, canDiscard, etc for this, but don't check every loop, only after each card is played (and there are a lot of ways to do that so that will be tough)</s></li>
  <li><s>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work. - creating canPlay, canDiscard, etc. functions for this</s> - This should be implemented now, though could use more testing. Amusingly, I had features like this from the first run that I actually removed.</li>

@@ -845,7 +845,7 @@ def key_hammer (game, card):
     if len(game.forgedLastTurn) > 1:
       unforge = game.forgedLastTurn[0]
     else:
-      unforge = game.chooseHouse("custom", ("Choose which key your opponent forged last turn to unforge", game.forgedLastTurn))[0]
+      unforge = game.chooseHouse("color", ("Choose which key your opponent forged last turn to unforge", game.forgedLastTurn, [x.upper() for x in game.forgedLastTurn]))[0]
     game.inactivePlayer.keys -= 1
     if unforge == "Red":
       game.inactivePlayer.red = False

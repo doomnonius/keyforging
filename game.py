@@ -418,6 +418,10 @@ class Board():
           self.friendDraws = [self.drawFriendDiscard, self.drawFriendArchive, self.drawFriendPurge]
           self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
           if pygame.Rect.collidepoint(self.endBackRect, (self.mousex, self.mousey)):
+            if self.remaining:
+              answer = self.chooseHouse("custom", ("Are you sure you want to end your turn?", ["Yes", "No"]))[0]
+              if answer == "No":
+                break
             self.drawEnemyDiscard = False
             self.drawEnemyArchive = False
             self.drawEnemyPurge = False
@@ -433,12 +437,14 @@ class Board():
             self.drawFriendPurge = False
             for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
               card.rect.topleft = (-500, -500)
+            self.cardChanged()
           elif True in self.enemyDraws and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = False
             self.drawEnemyArchive = False
             self.drawEnemyPurge = False
             for card in self.inactivePlayer.discard + self.inactivePlayer.purged + self.inactivePlayer.archive:
               card.rect.topleft = (-500, -500)
+            self.cardChanged()
           elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
             self.drawFriendDiscard = True
           elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
@@ -475,8 +481,8 @@ class Board():
           pyautogui.alert(f"\n{self.activePlayer.name} is going first.\n")
           self.activePlayer += 7
         else:
-          mull = self.chooseMulligan("Player 1")
-          if mull:
+          mull = self.chooseHouse("custom", ("Player 1, would you like to keep or mulligan?", ["Keep", "Mulligan"]), ["GREEN", "RED"])[0]
+          if mull == "Mulligan":
             for card in self.activePlayer.hand:
               self.activePlayer.deck.append(card)
             random.shuffle(self.activePlayer.deck)
@@ -485,8 +491,8 @@ class Board():
         if not self.do:
           self.inactivePlayer += 6
         else:
-          mull2 = self.chooseMulligan("Player 2")
-          if mull2:
+          mull2 = self.chooseHouse("custom", ("Player 2, would you like to keep or mulligan?", ["Keep", "Mulligan"]), ["GREEN", "RED"])[0]
+          if mull2 == "Mulligan":
             for card in self.inactivePlayer.hand:
               self.inactivePlayer.deck.append(card)
             random.shuffle(self.inactivePlayer.deck)
@@ -1291,13 +1297,17 @@ class Board():
       other = self.activePlayer
     if forger.amber >= cost:
       keys = [] #["Blue", "Red", "Yellow"]
+      colors = []
       if not forger.blue:
         keys.append("Blue")
+        colors.append("BLUE")
       if not forger.yellow:
         keys.append("Yellow")
+        colors.append("YELLOW")
       if not forger.red:
         keys.append("Red")
-      forged = self.chooseHouse("custom", ("Which key would you like to forge?", keys))[0]
+        colors.append("RED")
+      forged = self.chooseHouse("custom", ("Which key would you like to forge?", keys), colors)[0]
       forger.amber -= cost
       forger.keys += 1
       if forged == "Yellow":
@@ -1330,6 +1340,7 @@ class Board():
   def cardChanged(self):
     """ I don't think this function cares what the played card was. It will be called after a card is played/used, and it will do two things: (1) update self.cardBlits and (2) update what color the endTurn button is (by calling the function that actually checks this). The real question is where to call this from.
     """
+    self.cardBlits = []
     for board,area in [(self.activePlayer.board["Creature"], self.creatures1_rect), (self.inactivePlayer.board["Creature"], self.creatures2_rect), (self.activePlayer.board["Artifact"], self.artifacts1_rect), (self.inactivePlayer.board["Artifact"], self.artifacts2_rect)]:
       x = 0
       offset = ((area[0] + area[2]) // 2) - ((len(board) * self.target_cardh) // 2)
@@ -1646,6 +1657,7 @@ class Board():
     if card.house in self.activeHouse:
       return True
     # I don't think anything messes with your ability to discard
+    print(f"{card.title} belongs to house {card.house}")
     return False
   
   def playUpgrade(self, card, target = None):
@@ -2181,12 +2193,14 @@ class Board():
               self.drawFriendPurge = False
               for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
                 card.rect.topleft = (-500, -500)
+              self.cardChanged()
             elif True in self.enemyDraws and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
               self.drawEnemyDiscard = False
               self.drawEnemyArchive = False
               self.drawEnemyPurge = False
               for card in self.inactivePlayer.discard + self.inactivePlayer.purged + self.inactivePlayer.archive:
                 card.rect.topleft = (-500, -500)
+              self.cardChanged()
             elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
               self.drawFriendDiscard = True
             elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
@@ -2284,7 +2298,7 @@ class Board():
       self.extraDraws = []
 
   
-  def chooseHouse(self, varAsStr: str, custom: Tuple[str, List[str]] = ()) -> List[str]:
+  def chooseHouse(self, varAsStr: str, custom: Tuple[str, List[str]] = (), colors: List[str] = []) -> List[str]:
     """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak.
     """
     if varAsStr == "activeHouse":
@@ -2317,6 +2331,9 @@ class Board():
     elif varAsStr == "custom":
       message = custom[0]
       houses = custom[1]
+    # elif varAsStr == "color":
+    #   message = custom[0]
+    #   houses = custom[1]
     houses_rects = []
     # message
     messageSurf = self.BASICFONT.render(message, 1, COLORS["WHITE"])
@@ -2343,7 +2360,10 @@ class Board():
       houseMessageRect = houseMessageSurf.get_rect()
       houseMessageRect.top = messageRect[1] + messageRect[3] + self.margin
       houseBackSurf = pygame.Surface((houseMessageSurf.get_width(), houseMessageSurf.get_height()))
-      houseBackSurf.fill(COLORS["YELLOW"])
+      if colors:
+        houseBackSurf.fill(COLORS[colors[houses.index(house)]])
+      else:
+        houseBackSurf.fill(COLORS["YELLOW"])
       houseBackRect = houseBackSurf.get_rect()
       houseBackRect.top = messageRect[1] + messageRect[3] + self.margin
       houses_rects.append(( houseBackSurf, houseBackRect, houseMessageSurf, houseMessageRect))
@@ -2379,11 +2399,17 @@ class Board():
           if True in click:
             if selected and click.index(True) == clicked:
               for x in houses_rects:
-                x[0].fill(COLORS["YELLOW"])
+                if colors:
+                  x[0].fill(COLORS[colors[houses_rects.index(x)]])
+                else:
+                  x[0].fill(COLORS["YELLOW"])
                 selected = 0
             else:
               for x in houses_rects:
-                x[0].fill(COLORS["YELLOW"])
+                if colors:
+                  x[0].fill(COLORS[colors[houses_rects.index(x)]])
+                else:
+                  x[0].fill(COLORS["YELLOW"])
               clicked = click.index(True)
               selected = clicked + 1
               houses_rects[clicked][0].fill(COLORS["LIGHT_GREEN"])
@@ -2393,12 +2419,14 @@ class Board():
             self.drawFriendPurge = False
             for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
               card.rect.topleft = (-500, -500)
+            self.cardChanged()
           elif True in self.enemyDraws and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = False
             self.drawEnemyArchive = False
             self.drawEnemyPurge = False
             for card in self.inactivePlayer.discard + self.inactivePlayer.purged + self.inactivePlayer.archive:
               card.rect.topleft = (-500, -500)
+            self.cardChanged()
           elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
             self.drawFriendDiscard = True
           elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
@@ -2569,12 +2597,14 @@ class Board():
             self.drawFriendPurge = False
             for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
               card.rect.topleft = (-500, -500)
+            self.cardChanged()
           elif True in self.enemyDraws and pygame.Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = False
             self.drawEnemyArchive = False
             self.drawEnemyPurge = False
             for card in self.inactivePlayer.discard + self.inactivePlayer.purged + self.inactivePlayer.archive:
               card.rect.topleft = (-500, -500)
+            self.cardChanged()
           elif not self.drawFriendDiscard and pygame.Rect.collidepoint(self.discard1_rect, (self.mousex, self.mousey)):
             self.drawFriendDiscard = True
           elif not self.drawEnemyDiscard and pygame.Rect.collidepoint(self.discard2_rect, (self.mousex, self.mousey)):
