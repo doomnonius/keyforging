@@ -25,6 +25,8 @@ def basicBeforeFight(game, card):
   if "halacor" in [x.title for x in game.activePlayer.board["Creature"]] and card.isFlank():
     card.temp_skirmish = True
   print("End of basic before fight.")
+  if "stampede" in game.activePlayer.states:
+    game.activePlayer.states["stampede"] += 1
 
 if __name__ == '__main__':
   print ('This statement will be executed only if this script is called directly')

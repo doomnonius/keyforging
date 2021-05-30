@@ -238,6 +238,7 @@ def cowards_end (game, card):
   
   # finally, add chains
   game.activePlayer.chains += 3
+  game.setKeys()
 
 def follow_the_leader(game, card):
   """Follow the Leader: For the remainder of the turn, each friendly creature may fight.
@@ -560,26 +561,6 @@ def wardrummer (game, card):
   [pending.append(activeBoard.pop(abs(x - length + 1))) for x in range(len(activeBoard)) if activeBoard[abs(x - length + 1)].house == 'Brobnar' and abs(x - length + 1) != index]
   game.pending('hand')
 
-def blood_of_titans(game, card, side: str, choice: int):
-  """ Blood of Titans: This creature has +5 power.
-  """
-  passFunc(game, card)
-  if side == "fr":
-    game.activePlayer.board["Creature"][choice].power += 5
-  else:
-    game.inactivePlayer.board["Creature"][choice].power += 5
-
-def yo_mama_mastery(game, card, side: str, choice: int):
-  """Yo Mama Mastery: Fully heal this creature
-  """
-  passFunc(game, card)
-  # I'm going to only handle the play effect, I'll write something else to handle upgrades later
-  # whatever that looks like, this card is going to be attached first, so we'll need to heal the attached card
-  if side == "fr":
-    game.activePlayer.board["Creature"][choice].damage = 0
-  else:
-    game.inactivePlayer.board["Creature"][choice].damage = 0
-
 ## End house Brobnar
 
 #######
@@ -636,6 +617,7 @@ def arise (game, card):
       game.activePlayer.hand.append(active.pop(length-x))
   # finally, add chains
   game.activePlayer.chains += 1
+  game.setKeys()
 
 def control_the_weak (game, card):
   """ Control the Weak: Choose a house on opp's id card, they must choose that house on next turn.
@@ -711,6 +693,7 @@ def gateway_to_dis (game, card):
   game.pending()
   # add chains
   game.activePlayer.chains += 3
+  game.setKeys()
   
 def gongoozle (game, card):
   """ Gongoozle: Deal 3 to a creature. If it is not destroyed, its owner discards a random card from their hand.
@@ -859,8 +842,19 @@ def key_hammer (game, card):
   """
   passFunc(game, card)
   if game.forgedLastTurn:
+    if len(game.forgedLastTurn) > 1:
+      unforge = game.forgedLastTurn[0]
+    else:
+      unforge = game.chooseHouse("custom", ("Choose which key your opponent forged last turn to unforge", game.forgedLastTurn))
     game.inactivePlayer.keys -= 1
+    if unforge == "Red":
+      game.inactivePlayer.red = False
+    elif unforge == "Yellow":
+      game.inactivePlayer.yellow = False
+    elif unforge == "Blue":
+      game.inactivePlayer.red = False
   game.inactivePlayer.gainAmber(6, game)
+  # game.setKeys() # don't need to call this because gainAmber will
 
 def mind_barb (game, card):
   """ Mind Barb: Your opponent discards a random card from their hand.
@@ -1079,17 +1073,6 @@ def truebaru (game, card):
   passFunc(game, card)
   game.activePlayer.amber -= 3
 
-def flame_wreathed (game, card, side:str, choice:int):
-  """ This creature gains hazardous 2 and +2 power.
-  """
-  passFunc(game, card)
-  if side == "fr":
-    game.activePlayer.board["Creature"].power += 2
-    game.activePlayer.board["Creature"].hazard += 2
-  else:
-    game.inactivePlayer.board["Creature"].power += 2
-    game.inactivePlayer.board["Creature"].hazard += 2
-
 ## End house Dis
 
 #########
@@ -1151,6 +1134,7 @@ def effervescent_principle (game, card):
   else:
     pyautogui.alert("Your opponent still has no amber.")
   game.activePlayer.chains += 1
+  game.setKeys()
 
 def foggify (game, card):
   """ Foggify: your opponent cannot use creatures to fight on their next turn.
@@ -1617,7 +1601,7 @@ def key_abduction (game, card):
   game.pending('hand')
   game.activePlayer.keyCost = game.calculateCost()
   temp_cost = game.activePlayer.keyCost + 9 - len(game.activePlayer.hand)
-  if game.activePlayer.amber >= temp_cost:
+  if game.canForge() and game.activePlayer.amber >= temp_cost:
     forge = game.chooseHouse("custom", (f"You may now forge a key for {temp_cost} amber. Would you like to do so?", ["Yes", "No"]))[0]
     if forge == "No":
       pyautogui.alert("You have chosen not to forge a key.")
@@ -1626,6 +1610,10 @@ def key_abduction (game, card):
     if game.activePlayer.keys >= 3:
       pyautogui.alert(f"{game.activePlayer.name} wins!")
       pygame.quit()
+  elif game.canForge():
+    pyautogui.alert("You don't have enough amber to forge a key.")
+  else:
+    pyautogui.alert("You are unable to forge a key right now for some reason.")
 
 def martian_hounds (game, card):
   """ Martian Hounds: Choose a creature. For each damaged creature, give the chosen creature two +1 power counters.
@@ -1769,6 +1757,7 @@ def phosphorous_stars (game, card):
       x.stun = True
 
   game.activePlayer.chains += 2
+  game.setKeys()
 
 def psychic_network (game, card):
   """ Psychic Network: Steal 1 amber for each friendly ready Mars creature.
@@ -3080,6 +3069,7 @@ def key333(game, card):
   game.pending(pendingDiscard)
 
   game.activePlayer.chains += 1
+  game.setKeys()
 
 def key334(game, card):
   """ Scout: For the remainder of the turn, up to 2 friendly creatures gain skirmish. Then, fight with those creatures one at a time.

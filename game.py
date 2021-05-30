@@ -2,7 +2,7 @@ from tkinter.constants import E
 from pygame.constants import MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION, SRCALPHA
 import decks.decks as deck
 import cards.cardsAsClass as card
-import cards.play as play
+import cards.upgrades as upgrade
 import json, random, logging, time, pygame, pyautogui, os
 from helpers import makeChoice, willEnterReady, absa
 from typing import Dict, List, Set, Tuple
@@ -50,11 +50,12 @@ class Board():
     self.playedLastTurn = []
     self.discardLastTurn = []
     self.usedLastTurn = []
-    self.forgedThisTurn = False
-    self.forgedLastTurn = False
+    self.forgedThisTurn = []
+    self.forgedLastTurn = []
     self.turnStage = None
     self.pendingReloc = []
     self.extraDraws = []
+    self.dataBlits = []
     self.resetStates = []
     self.resetStatesNext = []
     # draw bools
@@ -112,11 +113,11 @@ class Board():
     self.target_cardw = int(CARDW // ratio)
     self.invisicard = card.Invisicard(self.target_cardw, self.target_cardh)
     first = random.choice([self.first, self.second])
-    self.activePlayer = deck.Deck(deck.deckName(first), self.target_cardw, self.target_cardh)
+    self.activePlayer = deck.Deck(deck.deckName(first), self.target_cardw, self.target_cardh, self.margin)
     if first == self.first:
-      self.inactivePlayer = deck.Deck(deck.deckName(self.second), self.target_cardw, self.target_cardh)
+      self.inactivePlayer = deck.Deck(deck.deckName(self.second), self.target_cardw, self.target_cardh, self.margin)
     else:
-      self.inactivePlayer = deck.Deck(deck.deckName(self.first), self.target_cardw, self.target_cardh)
+      self.inactivePlayer = deck.Deck(deck.deckName(self.first), self.target_cardw, self.target_cardh, self.margin)
     self.main()
 
   def __repr__(self):
@@ -260,15 +261,8 @@ class Board():
     self.divider2 = pygame.Surface((wid // 5, mat_third))
     self.divider2.convert()
     self.divider2.fill(COLORS["GREY"])
-    div2_w = self.divider2.get_width()
     self.divider2_rect = self.divider2.get_rect()
     self.divider2_rect.topright = (wid, int(mat_third * 2.5))
-    self.key2y, self.key2y_rect = load_image("yellow_key_back")
-    self.key2y_rect.topright = (div2_w - 2 - self.target_cardw - self.margin, 0)
-    self.key2r, self.key2r_rect = load_image("yellow_key_back")
-    self.key2r_rect.topright = (div2_w - 2 - self.target_cardw - self.margin, self.key2y.get_height() + self.margin)
-    self.key2b, self.key2b_rect = load_image("yellow_key_back")
-    self.key2b_rect.topright = (div2_w - 2 - self.target_cardw - self.margin, self.key2y.get_height() * 2 + self.margin * 2)
     self.board_blits.append((self.divider2, self.divider2_rect))
 
     # archive2
@@ -285,13 +279,6 @@ class Board():
     self.divider.fill(COLORS["GREEN"])
     self.divider_rect = self.divider.get_rect()
     self.divider_rect.topleft = (0, int(mat_third * 2.5))
-    self.key1y, self.key1y_rect = load_image("yellow_key_back", -1)
-    self.key_forged, self.key_forged_rect = load_image("yellow_key_front", -1)
-    self.key1y_rect.topleft = (2 + self.target_cardw + self.margin, 0)
-    self.key1r, self.key1r_rect = load_image("yellow_key_back", -1)
-    self.key1r_rect.topleft = (2 + self.target_cardw + self.margin, self.key1y.get_height() + self.margin)
-    self.key1b, self.key1b_rect = load_image("yellow_key_back", -1)
-    self.key1b_rect.topleft = (2 + self.target_cardw + self.margin, self.key1y.get_height() * 2 + self.margin * 2)
     self.board_blits.append((self.divider, self.divider_rect))
 
     # archive
@@ -357,7 +344,7 @@ class Board():
     self.hand1_rect.topright = (wid, int(mat_third * 5.5))
     self.board_blits.append((self.hand1, self.hand1_rect))
 
-    ## neutral zone - easier if we have this and can blit to it
+    ## neutral zone - easier if we have this and can blit to it's dimensions
     self.neutral = pygame.Surface(((wid // 5) * 3, mat_third))
     self.neutral.convert()
     self.neutral.fill(COLORS["BLACK"])
@@ -376,6 +363,8 @@ class Board():
     self.endBackRect = self.endBack.get_rect()
     self.endBackRect.centerx = wid // 2
     self.endBackRect.centery = hei // 2
+
+    self.setKeys()
 
     # log and other options submenu
 
@@ -479,7 +468,6 @@ class Board():
       ######################
 
       if self.turnStage == None:
-        self.forgedThisTurn = False
         #####################
         # Draw and mulligan #
         #####################
@@ -522,10 +510,8 @@ class Board():
       ###################################################
 
       elif self.turnStage == 1: # forge a key
-        if self.checkForgeStates(): # returns True if you can forge, false if you can't (and why you can't), which in CotA is basically only Miasma
+        if self.canForge(): # returns True if you can forge, false if you can't (and why you can't), which in CotA is basically only Miasma
           self.forgeKey("active", self.calculateCost())
-          # else:
-          #   pyautogui.alert("No key forged this turn, not enough amber.")
         else:
           pyautogui.alert("Forging skipped this turn but I'm not going to tell you why!")
         if self.activePlayer.keys >= 3:
@@ -560,7 +546,6 @@ class Board():
 
       elif self.turnStage == 3:
         if self.response:
-          # print(self.response)
           l = len(self.response)
           if l == 1:
             self.response = self.response[0]
@@ -675,9 +660,9 @@ class Board():
         for creature in self.inactivePlayer.board["Creature"]:
           creature.eot(self, creature)
         if self.forgedThisTurn:
-          self.forgedLastTurn = self.forgedThisTurn
+          self.forgedLastTurn = self.forgedThisTurn.copy()
         else:
-          self.forgedThisTurn = False
+          self.forgedThisTurn = []
         if "stampede" in self.activePlayer.states:
           self.activePlayer.states["stampede"] = 0
         self.activeHouse = []
@@ -688,8 +673,8 @@ class Board():
         self.discardedThisTurn = []
         self.usedLastTurn = self.usedThisTurn.copy()
         self.usedThisTurn = []
-        print(f"States: {self.resetStates}")
-        print(f"Next states: {self.resetStatesNext}")
+        # print(f"States: {self.resetStates}")
+        # print(f"Next states: {self.resetStatesNext}")
         if self.resetStates:
           for key in self.resetStates:
             if key[0] == "a":
@@ -698,9 +683,10 @@ class Board():
               self.inactivePlayer.states[key[1]] = 0
         self.resetStates = self.resetStatesNext.copy()
         self.resetStatesNext = []
-        print(f"States: {self.resetStates}")
-        print(f"Next states: {self.resetStatesNext}")
+        # print(f"States: {self.resetStates}")
+        # print(f"Next states: {self.resetStatesNext}")
         self.switch()
+        self.setKeys()
         self.turnNum += 1
         self.turnStage = 0
       
@@ -748,52 +734,8 @@ class Board():
   def draw(self, drawEnd: bool = True):
     # self.allsprites.update()
     self.WIN.blits(self.board_blits)
+    self.WIN.blits(self.dataBlits)
     
-    # amber
-    self.amber1 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['WHITE'])
-    self.amber1_rect = self.amber1.get_rect()
-    self.amber1_rect.topleft = (2 + self.target_cardw + 10 + self.key1y.get_width(), self.mat2_rect[1] + self.mat2_rect[3] + (3 * self.margin))
-
-    # chains
-    self.chains1 = self.BASICFONT.render(f"{self.activePlayer.chains} chains", 1, COLORS['WHITE'])
-    self.chains1_rect = self.chains1.get_rect()
-    self.chains1_rect.bottomleft = (2 + self.target_cardw + 10 + self.key1y.get_width(), self.mat1_rect[1] - (3 * self.margin))
-   
-    # amber
-    self.amber2 = self.BASICFONT.render(f"{self.inactivePlayer.amber} amber", 1, COLORS['BLACK'])
-    self.amber2_rect = self.amber2.get_rect()
-    self.amber2_rect.topright = (self.mat2_rect[0] + self.mat2_rect[2] - 2 - self.target_cardw - 10 - self.key2y.get_width(), self.mat2_rect[1] + self.mat2_rect[3] + (3 * self.margin))
-
-    # chains
-    self.chains2 = self.BASICFONT.render(f"{self.inactivePlayer.chains} chains", 1, COLORS['BLACK'])
-    self.chains2_rect = self.chains2.get_rect()
-    self.chains2_rect.bottomright = (self.mat2_rect[0] + self.mat2_rect[2] - 2 - self.target_cardw - 10 - self.key2y.get_width(), self.mat1_rect[1] - (3 * self.margin))
-
-    self.active_info = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect)]
-    self.inactive_info = [(self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect)]
-    self.divider.blits(self.active_info)
-    self.divider2.blits(self.inactive_info)
-        
-    self.house2a, self.house2a_rect = load_image(self.inactivePlayer.houses[0].lower())
-    self.house2a_rect.topleft = self.divider2_rect.topleft
-    self.house2b, self.house2b_rect = load_image(self.inactivePlayer.houses[1].lower())
-    self.house2b_rect.midleft = self.divider2_rect.midleft
-    self.house2c, self.house2c_rect = load_image(self.inactivePlayer.houses[2].lower())
-    self.house2c_rect.bottomleft = self.divider2_rect.bottomleft
-    self.WIN.blits([(self.house2a, self.house2a_rect), (self.house2b, self.house2b_rect), (self.house2c, self.house2c_rect)])
-
-    self.house1a, self.house1a_rect = load_image(self.activePlayer.houses[0].lower())
-    self.house1a_rect.topright = self.divider_rect.topright
-    self.house1b, self.house1b_rect = load_image(self.activePlayer.houses[1].lower())
-    self.house1b_rect.midright = self.divider_rect.midright
-    self.house1c, self.house1c_rect = load_image(self.activePlayer.houses[2].lower())
-    self.house1c_rect.bottomright = self.divider_rect.bottomright
-    self.WIN.blits([(self.house1a, self.house1a_rect), (self.house1b, self.house1b_rect), (self.house1c, self.house1c_rect)])
-
-    self.WIN.blit(self.amber1, self.amber1_rect)
-    self.WIN.blit(self.amber2, self.amber2_rect)
-    self.WIN.blit(self.chains1, self.chains1_rect)
-    self.WIN.blit(self.chains2, self.chains2_rect)
     # card areas
     for board,area in [(self.activePlayer.board["Creature"], self.creatures1_rect), (self.inactivePlayer.board["Creature"], self.creatures2_rect), (self.activePlayer.board["Artifact"], self.artifacts1_rect), (self.inactivePlayer.board["Artifact"], self.artifacts2_rect)]:
       x = 0
@@ -812,13 +754,14 @@ class Board():
           card_rect.bottom = area[1] + area[3] - self.margin
         x += 1
         if card.upgrade:
-          x = 1
+          y = len(card.upgrade)
           for up in card.upgrade:
             up_image, up_rect = up.image, up.rect
             up.tapped_rect.topleft = (-500, -500)
-            up_rect.left = card_rect.left - (3 * self.margin)
+            up_rect.left = card_rect.left - (3 * y * self.margin)
             up_rect.bottom = card_rect.bottom
             self.WIN.blit(up_image, up_rect)
+            y -= 1
         self.WIN.blit(card_image, card_rect)
     # hands
     for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
@@ -1112,6 +1055,87 @@ class Board():
     """
     self.activePlayer, self.inactivePlayer = self.inactivePlayer, self.activePlayer
 
+  def setKeys(self):
+    """ Sets the keys at the beginning of the game and swaps them each round.
+    """
+    if self.inactivePlayer.yellow:
+      print("Yellow key is forged.")
+      self.key2y, self.key2y_rect = self.inactivePlayer.key_forged
+    else:
+      self.key2y, self.key2y_rect = self.inactivePlayer.key_y
+    self.key2y_rect.topright = (WIDTH - (2 + self.target_cardw + self.margin), self.divider2_rect.top)
+    
+    if self.inactivePlayer.red:
+      print("Red key is forged.")
+      self.key2r, self.key2r_rect = self.inactivePlayer.key_forged
+    else:
+      self.key2r, self.key2r_rect = self.inactivePlayer.key_r
+    self.key2r_rect.midright = (WIDTH - (2 + self.target_cardw + self.margin), self.divider2_rect.centery)
+    
+    if self.inactivePlayer.blue:
+      print("Blue key is forged.")
+      self.key2b, self.key2b_rect = self.inactivePlayer.key_forged
+    else:
+      self.key2b, self.key2b_rect = self.inactivePlayer.key_b
+    self.key2b_rect.bottomright = (WIDTH - (2 + self.target_cardw + self.margin), self.divider2_rect.bottom)
+
+    self.house2a, self.house2a_rect = self.inactivePlayer.house1
+    self.house2a_rect.topleft = self.divider2_rect.topleft
+    self.house2b, self.house2b_rect = self.inactivePlayer.house2
+    self.house2b_rect.midleft = self.divider2_rect.midleft
+    self.house2c, self.house2c_rect = self.inactivePlayer.house3
+    self.house2c_rect.bottomleft = self.divider2_rect.bottomleft
+
+    if self.activePlayer.yellow:
+      print("Yellow key is forged.")
+      self.key1y, self.key1y_rect = self.activePlayer.key_forged
+    else:
+      self.key1y, self.key1y_rect = self.activePlayer.key_y
+    self.key1y_rect.topleft = (2 + self.target_cardw + self.margin, self.divider_rect.top)
+
+    if self.activePlayer.red:
+      print("Red key is forged.")
+      self.key1r, self.key1r_rect = self.activePlayer.key_forged
+    else:
+      self.key1r, self.key1r_rect = self.activePlayer.key_r
+    self.key1r_rect.midleft = (2 + self.target_cardw + self.margin, self.divider_rect.centery)
+    
+    if self.activePlayer.blue:
+      print("Blue key is forged.")
+      self.key1b, self.key1b_rect = self.activePlayer.key_forged
+    else:
+      self.key1b, self.key1b_rect = self.activePlayer.key_b
+    self.key1b_rect.bottomleft = (2 + self.target_cardw + self.margin, self.divider_rect.bottom)
+
+    self.house1a, self.house1a_rect = self.activePlayer.house1
+    self.house1a_rect.topright = self.divider_rect.topright
+    self.house1b, self.house1b_rect = self.activePlayer.house2
+    self.house1b_rect.midright = self.divider_rect.midright
+    self.house1c, self.house1c_rect = self.activePlayer.house3
+    self.house1c_rect.bottomright = self.divider_rect.bottomright
+
+    # amber
+    self.amber1 = self.BASICFONT.render(f"{self.activePlayer.amber} amber", 1, COLORS['WHITE'])
+    self.amber1_rect = self.amber1.get_rect()
+    self.amber1_rect.topleft = (2 + self.target_cardw + 10 + self.key1y.get_width(), self.mat2_rect[1] + self.mat2_rect[3] + (3 * self.margin))
+
+    # chains
+    self.chains1 = self.BASICFONT.render(f"{self.activePlayer.chains} chains", 1, COLORS['WHITE'])
+    self.chains1_rect = self.chains1.get_rect()
+    self.chains1_rect.bottomleft = (2 + self.target_cardw + 10 + self.key1y.get_width(), self.mat1_rect[1] - (3 * self.margin))
+   
+    # amber
+    self.amber2 = self.BASICFONT.render(f"{self.inactivePlayer.amber} amber", 1, COLORS['BLACK'])
+    self.amber2_rect = self.amber2.get_rect()
+    self.amber2_rect.topright = (self.mat2_rect[0] + self.mat2_rect[2] - 2 - self.target_cardw - 10 - self.key1y.get_width(), self.mat2_rect[1] + self.mat2_rect[3] + (3 * self.margin))
+
+    # chains
+    self.chains2 = self.BASICFONT.render(f"{self.inactivePlayer.chains} chains", 1, COLORS['BLACK'])
+    self.chains2_rect = self.chains2.get_rect()
+    self.chains2_rect.bottomright = (self.mat2_rect[0] + self.mat2_rect[2] - 2 - self.target_cardw - 10 - self.key1y.get_width(), self.mat1_rect[1] - (3 * self.margin))
+
+    self.dataBlits = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect), (self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect), (self.house2a, self.house2a_rect), (self.house2b, self.house2b_rect), (self.house2c, self.house2c_rect), (self.house1a, self.house1a_rect), (self.house1b, self.house1b_rect), (self.house1c, self.house1c_rect), (self.amber1, self.amber1_rect), (self.amber2, self.amber2_rect), (self.chains1, self.chains1_rect), (self.chains2, self.chains2_rect)]
+
   
   def calculateCost(self):
     """ Calculates the cost of a key considering current board state.
@@ -1138,7 +1162,7 @@ class Board():
         if "Skirmish" in x.text: x.skirmish = True
         else: x.skirmish = False
 
-  def checkForgeStates(self):
+  def canForge(self):
     """ Checks if there is anything in Deck.states["Forge"]. This isn't checking if you have enough amber.
     """
     if True: #optimization: if no cards in deck with this effect, just return
@@ -1147,7 +1171,7 @@ class Board():
       pyautogui.alert("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
       self.activePlayer.states["miasma"] = 0
       return False
-    if "The Sting" in [x.title for x in self.activePlayer.board["Artifact"]]:
+    if "the_sting" in [x.title for x in self.activePlayer.board["Artifact"]]:
       pyautogui.alert("You skip your forge a key step this turn because you have 'The Sting' in play.")
       return False
     return True
@@ -1417,6 +1441,22 @@ class Board():
       return False
     return True
   
+  def canDiscard(self, card, reset = True):
+    if self.turnNum == 1 and len(self.playedThisTurn) > 0 or len(self.discardedThisTurn) > 0:
+      return False
+    if card.house in self.activeHouse:
+      return True
+    # I don't think anything messes with your ability to discard
+    return False
+
+  def canFight(self, card, reset = True):
+    pass
+
+  def canReap(self, card, reset = True):
+    pass
+
+  def canAction(self, card, reset = True):
+    pass
   
   def playUpgrade(self, card, target = None):
     """ Plays an upgrade on a creature.
@@ -1428,13 +1468,13 @@ class Board():
     broken = False
     
     if target:
-      self.activePlayer.board["Upgrade"].append(hand.pop(card))
+      self.activePlayer.board["Upgrade"].append(hand.pop(hand.index(card)))
       side, choice = target
       if side == "fr":
         active[choice].upgrade.append(card)
       else:
         inactive[choice].upgrade.append(card)
-      eval(f"play.{card.title}(self, card, side, choice)")
+      eval(f"upgrade.{card.title}(self, card, side, choice)")
       return
     
     drawMe = []
@@ -1451,10 +1491,19 @@ class Board():
     # draw all targets
     for temp_card in active + inactive:
       if temp_card.ready:
-        drawMe.append((selectedSurf, card.rect))
+        drawMe.append((selectedSurf, temp_card.rect))
       else:
-        drawMe.append((selectedSurfTapped, card.tapped_rect))
-
+        drawMe.append((selectedSurfTapped, temp_card.tapped_rect))
+  
+    if self.canDiscard(card, reset = False):
+      ## discard stuff here - if you can play it, you can discard it
+      discSurf = pygame.Surface((self.target_cardw, self.target_cardh))
+      discSurf.convert_alpha()
+      discSurf.set_alpha(80)
+      discSurf.fill(COLORS["LIGHT_GREEN"])
+      discRect = discSurf.get_rect()
+      discRect.topleft = self.discard1_rect.topleft
+      drawMe.append((discSurf, discRect))
     
     while True:
       self.extraDraws = drawMe.copy()
@@ -1478,18 +1527,21 @@ class Board():
               temp_card = hand[x]
               if x == 0 and self.mousex < temp_card.rect.centerx:
                 hand.insert(0, self.dragging.pop())
+                self.extraDraws = []
                 return
               elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
                 hand.insert(x + 1, self.dragging.pop())
+                self.extraDraws = []
                 return
             hand.append(self.dragging.pop())
+            self.extraDraws = []
             return
           elif True in activeHit:
             self.activePlayer.board["Upgrade"].append(self.dragging.pop())
             side = "fr"
             choice = activeHit.index(True)
             active[choice].upgrade.append(card)
-            eval(f"play.{card.title}(self, card, side, choice)")
+            eval(f"upgrade.{card.title}(self, card, side, choice)")
             broken = True
             break
           elif True in activeHitTapped:
@@ -1497,7 +1549,7 @@ class Board():
             side = "fr"
             choice = activeHitTapped.index(True)
             active[choice].upgrade.append(card)
-            eval(f"play.{card.title}(self, card, side, choice)")
+            eval(f"upgrade.{card.title}(self, card, side, choice)")
             broken = True
             break
           elif True in inactiveHit:
@@ -1505,7 +1557,7 @@ class Board():
             side = "fo"
             choice = inactiveHit.index(True)
             inactive[choice].upgrade.append(card)
-            eval(f"play.{card.title}(self, card, side, choice)")
+            eval(f"upgrade.{card.title}(self, card, side, choice)")
             broken = True
             break
           elif True in inactiveHitTapped:
@@ -1513,11 +1565,17 @@ class Board():
             side = "fo"
             choice = inactiveHitTapped.index(True)
             inactive[choice].upgrade.append(card)
-            eval(f"play.{card.title}(self, card, side, choice)")
+            eval(f"upgrade.{card.title}(self, card, side, choice)")
             broken = True
             break
+          elif self.canDiscard(card, reset=False) and pygame.Rect.collidepoint(discRect, (self.mousex, self.mousey)):
+            hand.append(self.dragging.pop())
+            self.discardCard(-1)
+            self.extraDraws = []
+            return
           else:
             hand.append(self.dragging.pop())
+            self.extraDraws = []
             return
 
         if e.type == MOUSEBUTTONDOWN and e.button == 1:
@@ -1575,16 +1633,30 @@ class Board():
     return
 
   def forgeKey(self, player: str, cost: int):
-    if "active":
+    if player == "active":
       forger = self.activePlayer
       other = self.inactivePlayer
     else:
       forger = self.inactivePlayer
       other = self.activePlayer
     if forger.amber >= cost:
+      keys = [] #["Blue", "Red", "Yellow"]
+      if not forger.blue:
+        keys.append("Blue")
+      if not forger.yellow:
+        keys.append("Yellow")
+      if not forger.red:
+        keys.append("Red")
+      forged = self.chooseHouse("custom", ("Which key would you like to forge?", keys))[0]
       forger.amber -= cost
       forger.keys += 1
-      pyautogui.alert(f"You forged a key for {cost} amber. You now have {forger.keys} key(s) and {forger.amber} amber.\n")
+      if forged == "Yellow":
+        forger.yellow = True
+      if forged == "Blue":
+        forger.blue = True
+      if forged == "Red":
+        forger.red = True
+      self.setKeys()
       if player == "active" and "interdimensional_graft" in other.states and other.states["interdimensional_graft"] and forger.amber > 0:
         pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber.")
         # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
@@ -1600,9 +1672,10 @@ class Board():
           if card.updateHealth():
             self.pendingReloc.append(other.board["Creature"].pop(length-x))
         self.pending()
+      # pyautogui.alert(f"You forged a key for {cost} amber. You now have {forger.keys} key(s) and {forger.amber} amber.\n")
       pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
       if player == "active":
-        self.forgedThisTurn = True
+        self.forgedThisTurn.append(forged)
 
   def previewHouse(self, house: str) -> List[Tuple[pygame.Surface, pygame.Rect]]:
     """ Highlights the cards in the selected house during the choose house step.
@@ -1639,8 +1712,17 @@ class Board():
     hand = self.activePlayer.hand
     drawMe = []
 
+    if self.canDiscard(card, reset = False):
+      ## discard stuff here - if you can play it, you can discard it
+      discSurf = pygame.Surface((self.target_cardw, self.target_cardh))
+      discSurf.convert_alpha()
+      discSurf.set_alpha(80)
+      discSurf.fill(COLORS["LIGHT_GREEN"])
+      discRect = discSurf.get_rect()
+      discRect.topleft = self.discard1_rect.topleft
+      drawMe = [(discSurf, discRect)]
+    
     if self.canPlay(card, reset=False):
-      ## discard stuff here
       if card.type == "Action":
         dropSurf = pygame.Surface((self.creatures1.get_width(), (self.mat1.get_height() // 3) * 2))
         dropSurf.convert_alpha()
@@ -1648,7 +1730,7 @@ class Board():
         dropSurf.fill(COLORS["LIGHT_GREEN"])
         dropRect = dropSurf.get_rect()
         dropRect.topleft = self.creatures1_rect.topleft
-        drawMe = [(dropSurf, dropRect)]
+        drawMe.append((dropSurf, dropRect))
       elif card.type == "Artifact":
         dropSurf = pygame.Surface(self.artifacts1.get_size())
         dropSurf.convert_alpha()
@@ -1656,7 +1738,7 @@ class Board():
         dropSurf.fill(COLORS["LIGHT_GREEN"])
         dropRect = dropSurf.get_rect()
         dropRect.topleft = self.artifacts1_rect.topleft
-        drawMe = [(dropSurf, dropRect)]
+        drawMe.append((dropSurf, dropRect))
       elif card.type == "Upgrade":
         self.playUpgrade(card)
         return
@@ -1668,7 +1750,10 @@ class Board():
           self.playCard(-1, flank=flank, ask=False)
         elif self.dragging:
           self.activePlayer.hand.append(self.dragging.pop())
+        self.extraDraws = []
         return
+    elif self.canDiscard(card, reset = False):
+      pass
 
     while True:
       self.extraDraws = drawMe.copy()
@@ -1688,19 +1773,28 @@ class Board():
               temp_card = hand[x]
               if x == 0 and self.mousex < temp_card.rect.centerx:
                 hand.insert(0, self.dragging.pop())
+                self.extraDraws = []
                 return
               elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
                 hand.insert(x + 1, self.dragging.pop())
+                self.extraDraws = []
                 return
             hand.append(self.dragging.pop())
+            self.extraDraws = []
             return
-          elif pygame.Rect.collidepoint(dropRect, (self.mousex, self.mousey)):
+          elif self.canPlay(card, reset=False) and pygame.Rect.collidepoint(dropRect, (self.mousex, self.mousey)):
             hand.append(self.dragging.pop())
             self.playCard(-1, ask = False)
             self.extraDraws = []
             return
+          elif self.canDiscard(card, reset=False) and pygame.Rect.collidepoint(discRect, (self.mousex, self.mousey)):
+            hand.append(self.dragging.pop())
+            self.discardCard(-1)
+            self.extraDraws = []
+            return
           else:
             hand.append(self.dragging.pop())
+            self.extraDraws = []
             return
 
         if e.type == MOUSEBUTTONDOWN and e.button == 1:
@@ -1734,7 +1828,7 @@ class Board():
     """
     hand = self.activePlayer.hand
     # message
-    messageSurf = self.BASICFONT.render("Choose which flank to play this creature on:", 1, COLORS["WHITE"])
+    messageSurf = self.BASICFONT.render(f"Choose which flank to play this {card.type.lower()} on:", 1, COLORS["WHITE"])
     messageRect = messageSurf.get_rect()
     messageRect.center = (WIDTH // 2, (HEIGHT // 2) - (self.target_cardh // 4))
     # message background
@@ -1755,6 +1849,17 @@ class Board():
     self.flankRectRightTapped = self.flankSurfTapped.get_rect()
 
     drawMe = [(messageSurf, messageRect)]
+
+    if self.canDiscard(card, reset = False):
+      ## discard stuff here - if you can play it, you can discard it
+      discSurf = pygame.Surface((self.target_cardw, self.target_cardh))
+      discSurf.convert_alpha()
+      discSurf.set_alpha(80)
+      discSurf.fill(COLORS["LIGHT_GREEN"])
+      discRect = discSurf.get_rect()
+      discRect.topleft = self.discard1_rect.topleft
+      drawMe.append((discSurf, discRect))
+
     if card.type == "Creature" and len(self.activePlayer.board[card.type]) > 0:
       board = self.activePlayer.board[card.type]
       # right
@@ -1918,6 +2023,13 @@ class Board():
               card.tapped.set_alpha(255)
               card.image.set_alpha(255)
               return "Right"
+          elif self.canDiscard(card, reset = False) and pygame.Rect.collidepoint(discRect, (self.mousex, self.mousey)):
+            card.tapped.set_alpha(255)
+            card.image.set_alpha(255)
+            hand.append(self.dragging.pop())
+            self.discardCard(-1)
+            self.extraDraws = []
+            return
           elif True not in self.friendDraws and self.dragging:
             card.tapped.set_alpha(255)
             card.image.set_alpha(255)
@@ -1952,6 +2064,7 @@ class Board():
           else:
             card.tapped.set_alpha(255)
             card.image.set_alpha(255)
+            self.extraDraws = []
             return None
       if pygame.Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
         l = len(hand)
@@ -2103,7 +2216,9 @@ class Board():
     selected = 0
     while True:
       if selected:
-        self.extraDraws = [(confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist] + self.previewHouse(self.activePlayer.houses[selected - 1])
+        self.extraDraws = [(confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
+        if varAsStr == "activeHouse":
+          self.extraDraws += self.previewHouse(self.activePlayer.houses[selected - 1])
       else:
         self.extraDraws = [(messageBackSurf, messageBackRect), (messageSurf, messageRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
       for e in pygame.event.get():
@@ -2638,21 +2753,6 @@ class Board():
                 #####################
                 # End of Game Class #
                 #####################
-
-def load_image(title, colorkey=None): # this loads keys and house symbols
-  fullname = os.path.join(f'game_assets', title + '.png')
-  try:
-      image = pygame.image.load(fullname)
-  except pygame.error as message:
-      logging.error(f'Cannot load image: {title}, {message}')
-      raise SystemExit(message)
-  image = image.convert_alpha()
-  # if colorkey is not None:
-  #     if colorkey == -1:
-  #         colorkey = image.get_at((0,0))
-  #     image.set_colorkey(colorkey)
-  scaled = pygame.transform.scale(image, (HEIGHT // 21, HEIGHT // 21))
-  return scaled, scaled.get_rect()
 
 def developer(game):
   """Developer functions for manually changing the game state.

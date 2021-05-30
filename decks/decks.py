@@ -1,12 +1,10 @@
-import pyautogui
+import random, os, pygame, requests, json, pyautogui
 import cards.cardsAsClass as cards
-import random
 import cards.destroyed as dest
-import requests
-import json
+from constants import WIDTH, HEIGHT
 
 class Deck:
-    def __init__(self, name, card_width, card_height):
+    def __init__(self, name, card_width, card_height, margin):
         with open('decks/deckList.json', encoding='UTF-8') as f:
             data = json.load(f)
             for deck in data:
@@ -30,8 +28,19 @@ class Deck:
         self.keys = 0
         self.amber = 0
         self.keyCost = 6
-        # a couple notes: (1) I don't think I need the subcategories (2) 0 is equivalent to false
+        self.yellow = False
+        self.blue = False
+        self.red = False
         self.states = {card.title:0 for card in self.deck}
+        # keys
+        self.key_forged = self.load_image("yellow_key_front")
+        self.key_y = self.load_image("yellow_key_back")
+        self.key_r = self.load_image("yellow_key_back")
+        self.key_b = self.load_image("yellow_key_back")
+        # houses
+        self.house1 = self.load_image(self.houses[0].lower())
+        self.house2 = self.load_image(self.houses[1].lower())
+        self.house3 = self.load_image(self.houses[2].lower())
         
     def __repr__(self):
         """ How to represent a deck when called.
@@ -95,6 +104,7 @@ class Deck:
         """ This function will handle the possiblity of ether spider.
         """
         self.amber += count
+        game.setKeys()
 
     def __iadd__(self, num):
         """ Draws num cards.
@@ -106,6 +116,17 @@ class Deck:
             num -= 1
         self.hand.sort(key = lambda x: x.house)
         return self
+
+    def load_image(self, title): # this loads keys and house symbols
+        fullname = os.path.join(f'game_assets', title + '.png')
+        try:
+            image = pygame.image.load(fullname)
+        except pygame.error as message:
+            # logging.error(f'Cannot load image: {title}, {message}')
+            raise SystemExit(message)
+        image = image.convert_alpha()
+        scaled = pygame.transform.scale(image, (HEIGHT // 21, HEIGHT // 21))
+        return scaled, scaled.get_rect()
 
 url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=1&links=cards&search="
 url2 = "https://www.keyforgegame.com/deck-details/"
