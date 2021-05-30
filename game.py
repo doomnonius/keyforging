@@ -44,6 +44,7 @@ class Board():
     # reset each turn cycle
     self.activeHouse = []
     self.extraFightHouses = []
+    self.extraUseHouses = []
     self.playedThisTurn = []
     self.discardedThisTurn = []
     self.usedThisTurn = []
@@ -56,9 +57,12 @@ class Board():
     self.pendingReloc = []
     self.extraDraws = []
     self.dataBlits = []
+    self.cardBlits = []
+    self.highlight = []
     self.resetStates = []
     self.resetStatesNext = []
     # draw bools
+    self.remaining = True
     self.drawFriendDiscard = False
     self.closeFriendDiscard = None
     self.drawEnemyDiscard = False
@@ -144,58 +148,49 @@ class Board():
     card = self.activePlayer.board[loc][cardNum]
     if not card.ready:
       return ["You can't use a card that isn't ready."]
-    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      return ["'Skippy Timehog' is preventing you from using cards"]
-    if card.type == "Creature":
-      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
-        return ["You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'."]
-      if (card.house in self.activeHouse or card.house in self.extraFightHouses or card.title == "tireless_crocag"):
-        if card.house in self.activeHouse and card.title != "tireless_crocag":
-          retVal.append("Reap")
-        if card.stun:
-          return ["Unstun"]
-        if len(self.inactivePlayer.board["Creature"]) > 0:
-        # put a check here for the cards that can't fight, or things that prevent fight
-          if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] \
-          or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
-          # bigtwig can only attack stunned
-            pass
-          else:
-            retVal.append("Fight")
-    if card.action:
-      retVal.append("Action")
-    if card.omni:
-      retVal.append("Omni")
+    if self.canFight(card, reset=False, r_click = True):
+      retVal.append("Fight")
+    if self.canReap(card, reset=False, r_click = True):
+      retVal.append("Reap")
+    if self.canAction(card, reset=False, r_click = True):
+      retVal.append("Action/Omni")
+    if card.type == "Creature" and card.stun and retVal: # have to be able to use a card to unstun, so this is perfect
+      return ["Unstun"]
     if not retVal:
       return ["You can't use this card right now."]
     return retVal
 
   def handOptions(self, cardNum: int) -> List:
     # There are other things that prevent playing cards that I want to include here as well, think I have most of them
+    retVal = []
     card = self.activePlayer.hand[cardNum]
-    if card.house in self.activeHouse or ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0):
-      if self.turnNum == 1 and len(self.playedThisTurn) >= 1:
-        return ["No remaining plays this turn"]
-      if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and len(self.playedThisTurn) >= 2:
-        return ["'Ember Imp' prevents playing this", "Discard"]
-      if card.type == "Upgrade" and len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
-        return ["Cannot play upgrade with no creatures in play", "Discard"]
-      if card.type == "Action" and "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
-        return ["'Scrambler Storm' prevents playing actions this turn", "Discard"]
-      if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
-        return ["'Treasure Map' prevents playing more cards this turn", "Discard"]
-      if card.type == "Creature":
-        if card.title == "truebaru" and self.activePlayer.amber < 3:
-          return ["You must have 3 amber to sacrifice in order to play 'Truebaru'", "Discard"]
-        if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
-          return ["You need 7 amber to play 'Kelifi Dragon'", "Discard"]
-        if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
-          return ["You can't play creatures with 'Grommid' in play", "Discard"]
-        if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
-          return ["You can't play creatures because of 'Lifeward'", "Discard"]
-      return ["Play", "Discard"]
-    else:
-      return ["Cannot interact with card not in active house."]
+    # if card.house in self.activeHouse or ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0):
+    #   if self.turnNum == 1 and len(self.playedThisTurn) >= 1:
+    #     return ["No remaining plays this turn"]
+    #   if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and len(self.playedThisTurn) >= 2:
+    #     return ["'Ember Imp' prevents playing this", "Discard"]
+    #   if card.type == "Upgrade" and len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
+    #     return ["Cannot play upgrade with no creatures in play", "Discard"]
+    #   if card.type == "Action" and "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
+    #     return ["'Scrambler Storm' prevents playing actions this turn", "Discard"]
+    #   if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
+    #     return ["'Treasure Map' prevents playing more cards this turn", "Discard"]
+    #   if card.type == "Creature":
+    #     if card.title == "truebaru" and self.activePlayer.amber < 3:
+    #       return ["You must have 3 amber to sacrifice in order to play 'Truebaru'", "Discard"]
+    #     if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
+    #       return ["You need 7 amber to play 'Kelifi Dragon'", "Discard"]
+    #     if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
+    #       return ["You can't play creatures with 'Grommid' in play", "Discard"]
+    #     if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
+    #       return ["You can't play creatures because of 'Lifeward'", "Discard"]
+    if self.canPlay(card):
+      retVal.append("Play")
+    if self.canDiscard(card):
+      retVal.append("Discard")
+    if not retVal:
+      return ["You can't play or discard this card."]
+    return retVal
 
   def main(self):
     wid, hei = [int(x) for x in self.WIN.get_size()]
@@ -395,6 +390,10 @@ class Board():
         if event.type == pygame.MOUSEMOTION:
           #update mouse position
           self.mousex, self.mousey = event.pos
+          if not self.remaining or pygame.Rect.collidepoint(self.endBackRect, (self.mousex, self.mousey)):
+            self.endBack.fill(COLORS["LIGHT_GREEN"])
+          else:
+            self.endBack.fill(COLORS["GREEN"])
 
         if event.type == pygame.QUIT:
           run = False
@@ -495,6 +494,7 @@ class Board():
             self.inactivePlayer += 5
           self.turnNum = 1
           self.turnStage = 0
+        self.cardChanged()
         self.do = True
 
       ###################################
@@ -527,13 +527,20 @@ class Board():
       elif self.turnStage == 2: # choose a house, optionally pick up archive
         archive = self.activePlayer.archive
         self.activeHouse = self.chooseHouse("activeHouse")
+        highSurf = pygame.Surface(self.house1a.get_size())
+        highSurf.convert()
+        highSurf.fill(COLORS["LIGHT_GREEN"])
+        i = self.activePlayer.houses.index(self.activeHouse[0])
+        if i == 0:
+          self.highlight = [(highSurf, self.house1a_rect)]
+        elif i == 1:
+          self.highlight = [(highSurf, self.house1b_rect)]
+        elif i == 2:
+          self.highlight = [(highSurf, self.house1c_rect)]
+        self.draw(False)
+        pygame.display.flip()
         if len(self.activePlayer.archive) > 0:
-          # self.activePlayer.printShort(self.activePlayer.archive)
           show = self.chooseHouse("custom", ("Would you like to pick up your archive?", ["Yes", "No"]))
-          # show = 'Would you like to pick up your archive? It contains:\n\n'
-          # for card in self.activePlayer.archive:
-          #   show += f"{card.title} [{card.house}]\n"
-          # archive = pyautogui.confirm(show, buttons=["Yes", "No"])
           if archive == "Yes":
             for card in archive:
               self.pendingReloc.append(archive.pop(archive.index(card))) # this is in case you archive an enemy card - it needs to return to their hand
@@ -666,6 +673,7 @@ class Board():
         if "stampede" in self.activePlayer.states:
           self.activePlayer.states["stampede"] = 0
         self.activeHouse = []
+        self.highlight = []
         self.extraFightHouses = []
         self.playedLastTurn = self.playedThisTurn.copy()
         self.playedThisTurn = []
@@ -685,15 +693,13 @@ class Board():
         self.resetStatesNext = []
         # print(f"States: {self.resetStates}")
         # print(f"Next states: {self.resetStatesNext}")
+        self.endBack.fill(COLORS["GREEN"])
         self.switch()
+        self.cardChanged()
         self.setKeys()
         self.turnNum += 1
         self.turnStage = 0
       
-      if pygame.Rect.collidepoint(self.endBackRect, (self.mousex, self.mousey)):
-        self.endBack.fill(COLORS["LIGHT_GREEN"])
-      else:
-        self.endBack.fill(COLORS["GREEN"])
       
       self.draw() # this will need hella updates
       pygame.display.flip()
@@ -734,78 +740,12 @@ class Board():
   def draw(self, drawEnd: bool = True):
     # self.allsprites.update()
     self.WIN.blits(self.board_blits)
+    if self.highlight:
+      self.WIN.blits(self.highlight)
     self.WIN.blits(self.dataBlits)
+    if self.cardBlits:
+      self.WIN.blits(self.cardBlits)
     
-    # card areas
-    for board,area in [(self.activePlayer.board["Creature"], self.creatures1_rect), (self.inactivePlayer.board["Creature"], self.creatures2_rect), (self.activePlayer.board["Artifact"], self.artifacts1_rect), (self.inactivePlayer.board["Artifact"], self.artifacts2_rect)]:
-      x = 0
-      offset = ((area[0] + area[2]) // 2) - ((len(board) * self.target_cardh) // 2)
-      for card in board:
-        if card.ready:
-          card_image, card_rect = card.image, card.rect
-          card.tapped_rect.topleft = (-500, -500)
-        else:
-          card_image, card_rect = card.tapped, card.tapped_rect
-          card.rect.topleft = (-500, -500)
-        card_rect.topleft = (offset + (x * self.target_cardh) + self.margin * (x + 1), area.top)
-        if card in self.activePlayer.board["Creature"] and not card.taunt:
-          card_rect.bottom = area[1] + area[3] - self.margin
-        if card in self.inactivePlayer.board["Creature"] and card.taunt:
-          card_rect.bottom = area[1] + area[3] - self.margin
-        x += 1
-        if card.upgrade:
-          y = len(card.upgrade)
-          for up in card.upgrade:
-            up_image, up_rect = up.image, up.rect
-            up.tapped_rect.topleft = (-500, -500)
-            up_rect.left = card_rect.left - (3 * y * self.margin)
-            up_rect.bottom = card_rect.bottom
-            self.WIN.blit(up_image, up_rect)
-            y -= 1
-        self.WIN.blit(card_image, card_rect)
-    # hands
-    for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
-      x = 0
-      for card in board:
-        card_image, card_rect = card.image, card.rect
-        card.tapped_rect.topleft = (-500, -500)
-        card_rect.topleft = (area.left + (x * self.target_cardw) + self.margin * (x + 1), area.top)
-        x += 1
-        self.WIN.blit(card_image, card_rect)
-    # discards
-    l = len(self.activePlayer.discard)
-    if l > 0:
-      card_image, card_rect = self.activePlayer.discard[l - 1].image, self.activePlayer.discard[l - 1].rect
-      card_rect.topleft = (self.discard1_rect.left, self.discard1_rect.top)
-      self.WIN.blit(card_image, card_rect)
-    l = len(self.inactivePlayer.discard)
-    if l > 0: 
-      card_image, card_rect = self.inactivePlayer.discard[l - 1].image, self.inactivePlayer.discard[l - 1].rect
-      card_rect.topleft = (self.discard2_rect.left, self.discard2_rect.top)
-      self.WIN.blit(card_image, card_rect)
-    # archive
-    l = len(self.activePlayer.archive)
-    if l > 0:
-      card_image, card_rect = self.activePlayer.archive[l - 1].image, self.activePlayer.archive[l - 1].rect
-      card_rect.center = self.archive1_rect.center
-      self.WIN.blit(card_image, card_rect)
-    l = len(self.inactivePlayer.archive)
-    if l > 0: 
-      card_image, card_rect = self.inactivePlayer.archive[l - 1].image, self.inactivePlayer.archive[l - 1].rect
-      card_rect.center = self.archive2_rect.center
-      self.WIN.blit(card_image, card_rect)
-    # decks
-    # going to need a card back of some sort to put here
-    l = len(self.activePlayer.deck)
-    if l > 0:
-      card_image, card_rect = self.activePlayer.deck[-1].image, self.activePlayer.deck[-1].rect
-      card_rect.topleft = (self.deck1_rect.left, self.deck1_rect.top)
-      self.WIN.blit(card_image, card_rect)
-    l = len(self.inactivePlayer.deck)
-    if l > 0:
-      card_image, card_rect = self.inactivePlayer.deck[-1].image, self.inactivePlayer.deck[-1].rect
-      card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
-      self.WIN.blit(card_image, card_rect)
     # self.allsprites.draw(self.WIN)
     if drawEnd and self.activeHouse:
       self.WIN.blit(self.endBack, self.endBackRect)
@@ -1135,7 +1075,6 @@ class Board():
     self.chains2_rect.bottomright = (self.mat2_rect[0] + self.mat2_rect[2] - 2 - self.target_cardw - 10 - self.key1y.get_width(), self.mat1_rect[1] - (3 * self.margin))
 
     self.dataBlits = [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect), (self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect), (self.house2a, self.house2a_rect), (self.house2b, self.house2b_rect), (self.house2c, self.house2c_rect), (self.house1a, self.house1a_rect), (self.house1b, self.house1b_rect), (self.house1c, self.house1c_rect), (self.amber1, self.amber1_rect), (self.amber2, self.amber2_rect), (self.chains1, self.chains1_rect), (self.chains2, self.chains2_rect)]
-
   
   def calculateCost(self):
     """ Calculates the cost of a key considering current board state.
@@ -1181,27 +1120,36 @@ class Board():
 # Card functions #
 ##################
 
-  def actionCard(self, cardNum: int, loc: str, omni: bool = False):
+  def actionCard(self, cardNum: int, loc: str, omni: bool = False, cheat: bool = False):
     """ Trigger a card's action from within the turn.
     """
     card = self.activePlayer.board[loc][cardNum]
-    if card.house in self.activeHouse and not card.stun:
-      # Trigger action
+    if not self.canAction(card, r_click=True, cheat=cheat):
+      pyautogui.alert(f"{card.title} can't use action right now")
+      return
+    if card.type == "Creature" and card.stun:
+      pyautogui.alert("Creature is stunned and unable to act. Unstunning creature instead.")
+      card.stun = False
+      card.ready = False
+      self.usedThisTurn.append(card)
+      self.cardChanged()
+      return
+    # Trigger action
+    if card.action:
       try:
-        eval(f"actions.key{card.number}(self, card)")
+        card.action(self, card)
         # act.action(self, act)
       except:
         pyautogui.alert("Action failed.")
-    elif card.stun:
-      card.stun = False
-    elif omni:
+    elif card.omni:
       try:
-        eval(f"actions.key{card.number}(self, card)")
+        card.omni(self, card)
       except:
         pyautogui.alert("Omni failed.")
     card.ready = False
-    self.usedThisTurn.append(card)
-      
+    if card not in self.usedThisTurn:
+      self.usedThisTurn.append(card)
+    self.cardChanged()
   
   def discardCard(self, cardNum: int, cheat: bool = False):
     """ Discard a card from hand, within the turn. Doesn't need to use pending for discards, but does use it for Rock-Hurling Giant.
@@ -1211,7 +1159,8 @@ class Board():
     card = self.activePlayer.hand[cardNum]
     if card.house in self.activeHouse or cheat:
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
-      if "rock_hurling_giant" in [x.title for x in active] and self.activePlayer.discard[-1].house == "Brobnar":
+      self.cardChanged()
+      if "rock_hurling_giant" in [x.title for x in active] and card.house == "Brobnar":
         targeting = self.chooseCards("Creature", "Deal 4 damage to:")[0]
         if targeting[0] == "fr":
           target = active[targeting[1]]
@@ -1224,9 +1173,10 @@ class Board():
       self.discardedThisTurn.append(card)
     else:
       pyautogui.alert("You can only discard cards of the active house.")
+    self.cardChanged()
 
 
-  def fightCard(self, attacker: int):
+  def fightCard(self, attacker: int, cheat: bool = True):
     """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.
     """
     # This will actually probably need to be incorporated into the main loop in some way
@@ -1235,15 +1185,14 @@ class Board():
     if len(self.inactivePlayer.board["Creature"]) == 0:
       pyautogui.alert("Your opponent has no creatures for you to attack. Fight canceled.")
       return self
-    if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] \
-    or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
-      pyautogui.alert("Fighting prevented by a fog effect.")
-      return self
+    if not self.canFight(card, cheat=cheat, r_click = True):
+      pyautogui.alert("This card can't fight right now.")
     if card.stun:
       pyautogui.alert("Creature is stunned and unable to fight. Unstunning creature instead.")
       card.stun = False
       card.ready = False
       self.usedThisTurn.append(card)
+      self.cardChanged()
       return
     if card.title != "niffle_ape":
       defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors(self)]), con_message = "This minion is protected by taunt.")[0][1]
@@ -1256,7 +1205,243 @@ class Board():
       print("Trying to fight.")
       card.fightCard(defenderCard, self)
     except: print("Fight failed.")
-    self.usedThisTurn.append(card)
+    if card not in self.usedThisTurn:
+      self.usedThisTurn.append(card)
+    self.cardChanged()
+
+  def playCard(self, chosen: int, cheat: str = "Hand", flank = "Right", ask = True):
+    """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
+    """
+    print(f"numPlays: {len(self.playedThisTurn)}")
+    if cheat == "Deck":
+      source = self.activePlayer.deck
+    elif cheat == "Discard":
+      source = self.activePlayer.discard
+    else:
+      source = self.activePlayer.hand
+    card = source[chosen]
+    if not self.canPlay(card, message = True):
+      return
+    # cardOptions() makes sure that you can't try to play a card you're not allowed to play
+    # canPlay() does the same for drag and drop and cheating out cards
+    # Increases amber, adds the card to the action section of the board, then calls the card's play function
+    if card.amber > 0:
+      self.activePlayer.gainAmber(card.amber, self)
+      pyautogui.alert(f"{source[chosen].title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
+    if ask:
+      if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
+        flank = self.chooseFlank(card)
+    # left flank
+    if card.type != "Upgrade" and flank == "Left":
+      self.activePlayer.board[card.type].insert(0, source.pop(chosen))
+      print(f"numPlays: {len(self.playedThisTurn)}") # test line
+    # default case: right flank
+    elif card.type != "Upgrade":
+      print(card.type)
+      self.activePlayer.board[card.type].append(source.pop(chosen))
+      print(f"numPlays: {len(self.playedThisTurn)}") # test line
+    else:
+      print("Choose a creature to play this upgrade on: ")
+      targeted = self.chooseCards("Creature", "Choose a creature to attach the upgrade to:")[0]
+      self.playUpgrade(card, targeted)
+      self.cardChanged()
+      return
+    #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
+    self.playedThisTurn.append(card)
+    self.cardChanged()
+    self.draw()
+    pygame.display.update()
+    card.play(self, card)
+    print(f"numPlays: {len(self.playedThisTurn)}")
+    # if the card is an action, now add it to the discard pile
+    if card.type == "Action":
+      if card.title == "library_access":
+        self.activePlayer.purged.append(self.activePlayer.board["Action"].pop())
+      else:
+        self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
+    self.cardChanged()
+
+  def reapCard(self, cardNum: int, cheat:bool = False):
+    """ Triggers a card's reap effect from within the turn.
+    """
+    card = self.activePlayer.board["Creature"][cardNum]
+    # check reap states when building cardOptions
+    if not self.canReap(card, r_click = True, cheat=cheat):
+      # pyautogui.alert("{card.title} can't reap right now.")
+      return
+    if card.stun:
+      pyautogui.alert("Creature is stunned and unable to reap. Unstunning creature instead.")
+      card.stun = False
+      card.ready = False
+      self.usedThisTurn.append(card)
+      self.cardChanged()
+      return
+    card.reap(self, card)
+    # reaper.ready = False # commented out for testing
+    if card not in self.usedThisTurn:
+      self.usedThisTurn.append(card)
+    self.cardChanged()
+
+  def forgeKey(self, player: str, cost: int):
+    if player == "active":
+      forger = self.activePlayer
+      other = self.inactivePlayer
+    else:
+      forger = self.inactivePlayer
+      other = self.activePlayer
+    if forger.amber >= cost:
+      keys = [] #["Blue", "Red", "Yellow"]
+      if not forger.blue:
+        keys.append("Blue")
+      if not forger.yellow:
+        keys.append("Yellow")
+      if not forger.red:
+        keys.append("Red")
+      forged = self.chooseHouse("custom", ("Which key would you like to forge?", keys))[0]
+      forger.amber -= cost
+      forger.keys += 1
+      if forged == "Yellow":
+        forger.yellow = True
+      if forged == "Blue":
+        forger.blue = True
+      if forged == "Red":
+        forger.red = True
+      self.setKeys()
+      if player == "active" and "interdimensional_graft" in other.states and other.states["interdimensional_graft"] and forger.amber > 0:
+        pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber.")
+        # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
+        other.gainAmber(forger.amber, self) # this is why setKeys doesn't need to be lower
+        forger.amber = 0
+        pyautogui.alert(f"They now have {other.amber} amber.")
+      if "bilgum_avalanche" in [x.title for x in forger.board["Creature"]]:
+        # deal two damage to each enemy creature. I don't remember how I set this up to work
+        length = len(other.board["Creature"])
+        for x in range(1, length+1):
+          card = other.board["Creature"][length-x]
+          card.damageCalc(self, 2)
+          if card.updateHealth():
+            self.pendingReloc.append(other.board["Creature"].pop(length-x))
+        self.pending()
+      # pyautogui.alert(f"You forged a key for {cost} amber. You now have {forger.keys} key(s) and {forger.amber} amber.\n")
+      pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
+      if player == "active":
+        self.forgedThisTurn.append(forged)
+
+  def cardChanged(self):
+    """ I don't think this function cares what the played card was. It will be called after a card is played/used, and it will do two things: (1) update self.cardBlits and (2) update what color the endTurn button is (by calling the function that actually checks this). The real question is where to call this from.
+    """
+    for board,area in [(self.activePlayer.board["Creature"], self.creatures1_rect), (self.inactivePlayer.board["Creature"], self.creatures2_rect), (self.activePlayer.board["Artifact"], self.artifacts1_rect), (self.inactivePlayer.board["Artifact"], self.artifacts2_rect)]:
+      x = 0
+      offset = ((area[0] + area[2]) // 2) - ((len(board) * self.target_cardh) // 2)
+      for card in board:
+        if card.ready:
+          card_image, card_rect = card.image, card.rect
+          card.tapped_rect.topleft = (-500, -500)
+        else:
+          card_image, card_rect = card.tapped, card.tapped_rect
+          card.rect.topleft = (-500, -500)
+        card_rect.topleft = (offset + (x * self.target_cardh) + self.margin * (x + 1), area.top)
+        if card in self.activePlayer.board["Creature"] and not card.taunt:
+          card_rect.bottom = area[1] + area[3] - self.margin
+        if card in self.inactivePlayer.board["Creature"] and card.taunt:
+          card_rect.bottom = area[1] + area[3] - self.margin
+        x += 1
+        if card.upgrade:
+          y = len(card.upgrade)
+          for up in card.upgrade:
+            up_image, up_rect = up.image, up.rect
+            up.tapped_rect.topleft = (-500, -500)
+            up_rect.left = card_rect.left - (3 * y * self.margin)
+            up_rect.bottom = card_rect.bottom
+            self.cardBlits.append((up_image, up_rect))
+            y -= 1
+        self.cardBlits.append((card_image, card_rect))
+    # card areas
+    for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
+      x = 0
+      for card in board:
+        card_image, card_rect = card.image, card.rect
+        card.tapped_rect.topleft = (-500, -500)
+        card_rect.topleft = (area.left + (x * self.target_cardw) + self.margin * (x + 1), area.top)
+        x += 1
+        self.cardBlits.append((card_image, card_rect))
+    # discards
+    l = len(self.activePlayer.discard)
+    if l > 0:
+      card_image, card_rect = self.activePlayer.discard[l - 1].image, self.activePlayer.discard[l - 1].rect
+      card_rect.topleft = (self.discard1_rect.left, self.discard1_rect.top)
+      self.cardBlits.append((card_image, card_rect))
+    l = len(self.inactivePlayer.discard)
+    if l > 0: 
+      card_image, card_rect = self.inactivePlayer.discard[l - 1].image, self.inactivePlayer.discard[l - 1].rect
+      card_rect.topleft = (self.discard2_rect.left, self.discard2_rect.top)
+      self.cardBlits.append((card_image, card_rect))
+    # archive
+    l = len(self.activePlayer.archive)
+    if l > 0:
+      card_image, card_rect = self.activePlayer.archive[l - 1].image, self.activePlayer.archive[l - 1].rect
+      card_rect.center = self.archive1_rect.center
+      self.cardBlits.append((card_image, card_rect))
+    l = len(self.inactivePlayer.archive)
+    if l > 0: 
+      card_image, card_rect = self.inactivePlayer.archive[l - 1].image, self.inactivePlayer.archive[l - 1].rect
+      card_rect.center = self.archive2_rect.center
+      self.cardBlits.append((card_image, card_rect))
+    # decks
+    # going to need a card back of some sort to put here
+    l = len(self.activePlayer.deck)
+    if l > 0:
+      card_image, card_rect = self.activePlayer.deck[-1].image, self.activePlayer.deck[-1].rect
+      card_rect.topleft = (self.deck1_rect.left, self.deck1_rect.top)
+      self.cardBlits.append((card_image, card_rect))
+    l = len(self.inactivePlayer.deck)
+    if l > 0:
+      card_image, card_rect = self.inactivePlayer.deck[-1].image, self.inactivePlayer.deck[-1].rect
+      card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
+      self.cardBlits.append((card_image, card_rect))
+    
+    if self.activeHouse:
+      self.playsRemaining()
+    
+  def playsRemaining(self):
+    # now, check if we should change the fill on endTurn
+    if True not in [self.canPlay(c, reset = False) for c in self.activePlayer.hand if c.type] + [self.canDiscard(c, reset = False) for c in self.activePlayer.hand if c.type]:
+      if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canFight(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canReap(c, reset = False) for c in self.activePlayer.board["Creature"]]:
+        if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Artifact"]]:
+          print("Nothing left to do!")
+          self.endBack.fill(COLORS["LIGHT_GREEN"])
+          self.remaining = False
+          return
+    print("There's stuff left to do.")
+    self.remaining = True
+    
+
+  def previewHouse(self, house: str) -> List[Tuple[pygame.Surface, pygame.Rect]]:
+    """ Highlights the cards in the selected house during the choose house step.
+    """
+    retVal = []
+
+    selectedSurf = pygame.Surface((self.target_cardw, self.target_cardh))
+    selectedSurf.convert_alpha()
+    selectedSurf.set_alpha(80)
+    selectedSurf.fill(COLORS["LIGHT_GREEN"])
+
+    selectedSurfTapped = pygame.Surface((self.target_cardh, self.target_cardw))
+    selectedSurfTapped.convert_alpha()
+    selectedSurfTapped.set_alpha(80)
+    selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
+
+    for card in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
+      if card.house == house:
+        if card.ready:
+          retVal.append((selectedSurf, card.rect))
+        else:
+          retVal.append((selectedSurfTapped, card.tapped_rect))
+    for card in self.activePlayer.hand:
+      if card.house == house:
+        retVal.append((selectedSurf, card.rect))
+    
+    return retVal
 
   def pending(self, destination = "discard", destroyed = True):
     """ Pending is the function that handles when multiple cards leave play at the same time, whether it be to hand or to discard. It will trigger leaves play and destroyed effects. Allowable options for dest are 'purge', 'discard', 'hand', 'deck'.
@@ -1266,11 +1451,13 @@ class Board():
     L = self.pendingReloc
 
     if not L:
+      self.cardChanged()
       return # just in case we feed it an empty list
     for card in L:
       card.reset()
     if destination not in ['purge', 'discard', 'hand', 'deck']:
       pyautogui.alert("Pending was given an invalid destination.")
+      self.cardChanged()
       return
     if "annihilation_ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Artifact"]]) and destroyed:
       destination = "annihilate"
@@ -1348,67 +1535,20 @@ class Board():
           self.inactivePlayer.deck.append(pendingI.pop(choice))
         self.inactivePlayer.deck.append(pendingI.pop())
     # check that the list was emptied
-    if L != []:
+    if L:
       pyautogui.alert("Pending did not properly empty the list.")
+    self.cardChanged()
 
 
-  def playCard(self, chosen: int, cheat: str = "Hand", flank = "Right", ask = True):
-    """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
-    """
-    print(f"numPlays: {len(self.playedThisTurn)}")
-    if cheat == "Deck":
-      source = self.activePlayer.deck
-    elif cheat == "Discard":
-      source = self.activePlayer.discard
-    else:
-      source = self.activePlayer.hand
-    card = source[chosen]
-    if not self.canPlay(card, message = True):
-      return
-    # cardOptions() makes sure that you can't try to play a card you're not allowed to play
-    # canPlay() does the same for drag and drop and cheating out cards
-    # Increases amber, adds the card to the action section of the board, then calls the card's play function
-    if card.amber > 0:
-      self.activePlayer.gainAmber(card.amber, self)
-      pyautogui.alert(f"{source[chosen].title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
-    if ask:
-      if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
-        flank = self.chooseFlank(card)
-    # left flank
-    if card.type != "Upgrade" and flank == "Left":
-      self.activePlayer.board[card.type].insert(0, source.pop(chosen))
-      print(f"numPlays: {len(self.playedThisTurn)}") # test line
-    # default case: right flank
-    elif card.type != "Upgrade":
-      print(card.type)
-      self.activePlayer.board[card.type].append(source.pop(chosen))
-      print(f"numPlays: {len(self.playedThisTurn)}") # test line
-    else:
-      print("Choose a creature to play this upgrade on: ")
-      targeted = self.chooseCards("Creature", "Choose a creature to attach the upgrade to:")[0]
-      # if targeted[0] == "fr":
-      #   target = self.activePlayer.board["Creature"][targeted[1]]
-      # else:
-      #   target = self.activePlayer.board["Creature"][targeted[1]]
-      self.playUpgrade(card, targeted)
-      return
-    #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
-    self.playedThisTurn.append(card)
-    self.draw()
-    pygame.display.update()
-    card.play(self, card)
-    print(f"numPlays: {len(self.playedThisTurn)}")
-    # if the card is an action, now add it to the discard pile
-    if card.type == "Action":
-      if card.title == "library_access":
-        self.activePlayer.purged.append(self.activePlayer.board["Action"].pop())
-      else:
-        self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
-
-
-  def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = True):
+  def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
     if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
-      if message: pyautogui.alert("You cannot play another card this turn.")
+      if message: pyautogui.alert("You cannot play more than one card on your first turn.")
+      return False
+    if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and len(self.playedThisTurn) >= 2: #
+      pyautogui.alert("'Ember Imp' prevents playing this")
+      return False
+    if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
+      pyautogui.alert("'Treasure Map' prevents playing more cards this turn")
       return False
     if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
       if card.type == "Action":
@@ -1441,6 +1581,65 @@ class Board():
       return False
     return True
   
+  def canFight(self, card, reset = True, cheat: bool = False, r_click: bool = False):
+    if not card.ready or (card.stun and not r_click):
+      return False
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
+      return False
+    if card.type == "Creature": # why wouldn't it?
+      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
+        pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+        return False
+      if card.house not in self.activeHouse and card.house not in self.extraFightHouses and card.house not in self.extraUseHouses and card.title != "tireless_crocag" and not cheat:
+        return False
+      if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
+        return False
+      if card.title == "bigtwig" and True not in [x.stun for x in self.inactivePlayer.board["Creature"]]:
+        return False
+    
+
+    return True
+
+  def canReap(self, card, reset = True, r_click: bool = False, cheat: bool = False):
+    if card.type != "Creature" or not card.ready or (card.stun and not r_click):
+      return False
+    if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
+      return False
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
+      return False
+    if card.type == "Creature":
+      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
+        pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+        return False
+      if card.title == "tireless_crocag":
+        return False
+    
+
+    return True
+
+  def canAction(self, card, reset = True, r_click: bool = False, cheat: bool = False):
+    if not card.ready:
+      return False
+    if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
+      return False
+    if card.type == "Creature" and (card.stun and not r_click):
+      return False
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
+      return False
+    if card.type == "Creature":
+      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
+        pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+        return False
+    
+
+    if card.action or card.omni:
+      return True
+    else:
+      return False
+  
   def canDiscard(self, card, reset = True):
     if self.turnNum == 1 and len(self.playedThisTurn) > 0 or len(self.discardedThisTurn) > 0:
       return False
@@ -1448,15 +1647,6 @@ class Board():
       return True
     # I don't think anything messes with your ability to discard
     return False
-
-  def canFight(self, card, reset = True):
-    pass
-
-  def canReap(self, card, reset = True):
-    pass
-
-  def canAction(self, card, reset = True):
-    pass
   
   def playUpgrade(self, card, target = None):
     """ Plays an upgrade on a creature.
@@ -1475,6 +1665,7 @@ class Board():
       else:
         inactive[choice].upgrade.append(card)
       eval(f"upgrade.{card.title}(self, card, side, choice)")
+      self.cardChanged()
       return
     
     drawMe = []
@@ -1528,10 +1719,12 @@ class Board():
               if x == 0 and self.mousex < temp_card.rect.centerx:
                 hand.insert(0, self.dragging.pop())
                 self.extraDraws = []
+                self.cardChanged()
                 return
               elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
                 hand.insert(x + 1, self.dragging.pop())
                 self.extraDraws = []
+                self.cardChanged()
                 return
             hand.append(self.dragging.pop())
             self.extraDraws = []
@@ -1572,10 +1765,12 @@ class Board():
             hand.append(self.dragging.pop())
             self.discardCard(-1)
             self.extraDraws = []
+            self.cardChanged()
             return
           else:
             hand.append(self.dragging.pop())
             self.extraDraws = []
+            self.cardChanged()
             return
 
         if e.type == MOUSEBUTTONDOWN and e.button == 1:
@@ -1587,9 +1782,11 @@ class Board():
           temp_card = hand[x]
           if x == 0 and self.mousex < temp_card.rect.centerx:
             hand.insert(0, self.invisicard)
+            self.cardChanged()
             break
           elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
             hand.insert(x + 1, self.invisicard)
+            self.cardChanged()
             break
 
       self.CLOCK.tick(self.FPS)
@@ -1603,108 +1800,16 @@ class Board():
       pygame.display.flip()
       self.extraDraws = []
       if broken:
+        self.cardChanged()
         break
     
     if not target and card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
       pyautogui.alert(f"{card.title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
     self.playedThisTurn.append(card)
+    self.cardChanged()
     return
 
-  def reapCard(self, cardNum: int):
-    """ Triggers a card's reap effect from within the turn.
-    """
-    card = self.activePlayer.board["Creature"][cardNum]
-    # check reap states when building cardOptions
-    if not card.ready:
-      pyautogui.alert("Can't reap with a card that isn't ready.")
-      return
-    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
-      return
-    if card.type == "Creature":
-      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
-        pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
-        return
-      if card.title == "tireless_crocag":
-        pyautogui.alert("'Tireless Crocag' can't reap")
-    card.reap(self, card)
-    # reaper.ready = False # commented out for testing
-    return
-
-  def forgeKey(self, player: str, cost: int):
-    if player == "active":
-      forger = self.activePlayer
-      other = self.inactivePlayer
-    else:
-      forger = self.inactivePlayer
-      other = self.activePlayer
-    if forger.amber >= cost:
-      keys = [] #["Blue", "Red", "Yellow"]
-      if not forger.blue:
-        keys.append("Blue")
-      if not forger.yellow:
-        keys.append("Yellow")
-      if not forger.red:
-        keys.append("Red")
-      forged = self.chooseHouse("custom", ("Which key would you like to forge?", keys))[0]
-      forger.amber -= cost
-      forger.keys += 1
-      if forged == "Yellow":
-        forger.yellow = True
-      if forged == "Blue":
-        forger.blue = True
-      if forged == "Red":
-        forger.red = True
-      self.setKeys()
-      if player == "active" and "interdimensional_graft" in other.states and other.states["interdimensional_graft"] and forger.amber > 0:
-        pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber.")
-        # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
-        other.gainAmber(forger.amber, self)
-        forger.amber = 0
-        pyautogui.alert(f"They now have {other.amber} amber.")
-      if "bilgum_avalanche" in [x.title for x in forger.board["Creature"]]:
-        # deal two damage to each enemy creature. I don't remember how I set this up to work
-        length = len(other.board["Creature"])
-        for x in range(1, length+1):
-          card = other.board["Creature"][length-x]
-          card.damageCalc(self, 2)
-          if card.updateHealth():
-            self.pendingReloc.append(other.board["Creature"].pop(length-x))
-        self.pending()
-      # pyautogui.alert(f"You forged a key for {cost} amber. You now have {forger.keys} key(s) and {forger.amber} amber.\n")
-      pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
-      if player == "active":
-        self.forgedThisTurn.append(forged)
-
-  def previewHouse(self, house: str) -> List[Tuple[pygame.Surface, pygame.Rect]]:
-    """ Highlights the cards in the selected house during the choose house step.
-    """
-    retVal = []
-
-    selectedSurf = pygame.Surface((self.target_cardw, self.target_cardh))
-    selectedSurf.convert_alpha()
-    selectedSurf.set_alpha(80)
-    selectedSurf.fill(COLORS["LIGHT_GREEN"])
-
-    selectedSurfTapped = pygame.Surface((self.target_cardh, self.target_cardw))
-    selectedSurfTapped.convert_alpha()
-    selectedSurfTapped.set_alpha(80)
-    selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
-
-    for card in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
-      if card.house == house:
-        if card.ready:
-          retVal.append((selectedSurf, card.rect))
-        else:
-          retVal.append((selectedSurfTapped, card.tapped_rect))
-    for card in self.activePlayer.hand:
-      if card.house == house:
-        retVal.append((selectedSurf, card.rect))
-    
-    return retVal
-  
-  
   def dragCard(self) -> None:
     """ Enables dragging a card from your hand around the screen.
     """
@@ -1731,18 +1836,10 @@ class Board():
         dropRect = dropSurf.get_rect()
         dropRect.topleft = self.creatures1_rect.topleft
         drawMe.append((dropSurf, dropRect))
-      elif card.type == "Artifact":
-        dropSurf = pygame.Surface(self.artifacts1.get_size())
-        dropSurf.convert_alpha()
-        dropSurf.set_alpha(80)
-        dropSurf.fill(COLORS["LIGHT_GREEN"])
-        dropRect = dropSurf.get_rect()
-        dropRect.topleft = self.artifacts1_rect.topleft
-        drawMe.append((dropSurf, dropRect))
       elif card.type == "Upgrade":
         self.playUpgrade(card)
         return
-      elif card.type == "Creature":
+      elif card.type == "Creature" or card.type == "Artifact":
         flank = self.chooseFlank(card)
         print(flank)
         if flank:
@@ -1752,8 +1849,6 @@ class Board():
           self.activePlayer.hand.append(self.dragging.pop())
         self.extraDraws = []
         return
-    elif self.canDiscard(card, reset = False):
-      pass
 
     while True:
       self.extraDraws = drawMe.copy()
@@ -1774,27 +1869,33 @@ class Board():
               if x == 0 and self.mousex < temp_card.rect.centerx:
                 hand.insert(0, self.dragging.pop())
                 self.extraDraws = []
+                self.cardChanged()
                 return
               elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
                 hand.insert(x + 1, self.dragging.pop())
                 self.extraDraws = []
+                self.cardChanged()
                 return
             hand.append(self.dragging.pop())
             self.extraDraws = []
+            self.cardChanged()
             return
           elif self.canPlay(card, reset=False) and pygame.Rect.collidepoint(dropRect, (self.mousex, self.mousey)):
             hand.append(self.dragging.pop())
             self.playCard(-1, ask = False)
             self.extraDraws = []
+            self.cardChanged()
             return
           elif self.canDiscard(card, reset=False) and pygame.Rect.collidepoint(discRect, (self.mousex, self.mousey)):
             hand.append(self.dragging.pop())
             self.discardCard(-1)
             self.extraDraws = []
+            self.cardChanged()
             return
           else:
             hand.append(self.dragging.pop())
             self.extraDraws = []
+            self.cardChanged()
             return
 
         if e.type == MOUSEBUTTONDOWN and e.button == 1:
@@ -1806,9 +1907,11 @@ class Board():
           temp_card = hand[x]
           if x == 0 and self.mousex < temp_card.rect.centerx:
             hand.insert(0, self.invisicard)
+            self.cardChanged()
             break
           elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
             hand.insert(x + 1, self.invisicard)
+            self.cardChanged()
             break
 
       self.CLOCK.tick(self.FPS)
@@ -1849,8 +1952,9 @@ class Board():
     self.flankRectRightTapped = self.flankSurfTapped.get_rect()
 
     drawMe = [(messageSurf, messageRect)]
+    discard = self.canDiscard(card, reset = False)
 
-    if self.canDiscard(card, reset = False):
+    if discard:
       ## discard stuff here - if you can play it, you can discard it
       discSurf = pygame.Surface((self.target_cardw, self.target_cardh))
       discSurf.convert_alpha()
@@ -1969,7 +2073,32 @@ class Board():
         self.flankRectLeft.topright = (-500, -500)
         self.flankRectRight.topright = (-500, -500)
         drawMe.append((self.flankSurfTapped, self.flankRectRightTapped))
-        
+    
+    if card.type == "Artifact":
+      artifact = self.activePlayer.board["Artifact"]
+      if willEnterReady(self, card, False):
+        self.flankRectRight.center = self.artifacts1_rect.center
+        if len(artifact) > 0:
+          if artifact[-1].ready:
+            self.flankRectRight.left = artifact[-1].rect.right + self.margin
+          else:
+            self.flankRectRight.left = artifact[-1].rect.right + self.margin
+        self.flankRectLeft.topright = (-500, -500)
+        self.flankRectLeftTapped.topright = (-500, -500)
+        self.flankRectRightTapped.topright = (-500, -500)
+        drawMe.append((self.flankSurf, self.flankRectRight))
+      else:
+        self.flankRectRightTapped.center = self.artifacts1_rect.center
+        if len(artifact) > 0:
+          if artifact[-1].ready:
+            self.flankRectRightTapped.left = artifact[-1].tapped_rect.right + self.margin
+          else:
+            self.flankRectRightTapped.left = artifact[-1].tapped_rect.right + self.margin
+        self.flankRectLeftTapped.topright = (-500, -500)
+        self.flankRectLeft.topright = (-500, -500)
+        self.flankRectRight.topright = (-500, -500)
+        drawMe.append((self.flankSurfTapped, self.flankRectRightTapped))
+
 
     while True:
       self.extraDraws = drawMe.copy()
@@ -1990,51 +2119,60 @@ class Board():
                 self.extraDraws = []
                 card.tapped.set_alpha(255)
                 card.image.set_alpha(255)
+                self.cardChanged()
                 return
               elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
                 hand.insert(x + 1, self.dragging.pop())
                 self.extraDraws = []
                 card.tapped.set_alpha(255)
                 card.image.set_alpha(255)
+                self.cardChanged()
                 return
             hand.append(self.dragging.pop())
             self.extraDraws = []
             card.tapped.set_alpha(255)
             card.image.set_alpha(255)
+            self.cardChanged()
             return
           elif True not in self.friendDraws and True in [pygame.Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]:
             if pygame.Rect.collidepoint(self.flankRectLeft, (self.mousex, self.mousey)):
               self.extraDraws = []
               card.tapped.set_alpha(255)
               card.image.set_alpha(255)
+              self.cardChanged()
               return "Left"
             elif pygame.Rect.collidepoint(self.flankRectLeftTapped, (self.mousex, self.mousey)):
               self.extraDraws = []
               card.tapped.set_alpha(255)
               card.image.set_alpha(255)
+              self.cardChanged()
               return "Left"
             elif pygame.Rect.collidepoint(self.flankRectRight, (self.mousex, self.mousey)):
               self.extraDraws = []
               card.tapped.set_alpha(255)
               card.image.set_alpha(255)
+              self.cardChanged()
               return "Right"
             elif pygame.Rect.collidepoint(self.flankRectRightTapped, (self.mousex, self.mousey)):
               self.extraDraws = []
               card.tapped.set_alpha(255)
               card.image.set_alpha(255)
+              self.cardChanged()
               return "Right"
-          elif self.canDiscard(card, reset = False) and pygame.Rect.collidepoint(discRect, (self.mousex, self.mousey)):
+          elif discard and pygame.Rect.collidepoint(discRect, (self.mousex, self.mousey)):
             card.tapped.set_alpha(255)
             card.image.set_alpha(255)
             hand.append(self.dragging.pop())
             self.discardCard(-1)
             self.extraDraws = []
+            self.cardChanged()
             return
           elif True not in self.friendDraws and self.dragging:
             card.tapped.set_alpha(255)
             card.image.set_alpha(255)
             self.activePlayer.hand.append(self.dragging.pop())
             self.extraDraws = []
+            self.cardChanged()
             return None
           elif not self.dragging:
             if True in self.friendDraws and pygame.Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
@@ -2065,16 +2203,20 @@ class Board():
             card.tapped.set_alpha(255)
             card.image.set_alpha(255)
             self.extraDraws = []
+            self.cardChanged()
             return None
+      
       if pygame.Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
         l = len(hand)
         for x in range(len(hand)):
           temp_card = hand[x]
           if x == 0 and self.mousex < temp_card.rect.centerx:
             hand.insert(0, self.invisicard)
+            self.cardChanged()
             break
           elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
             hand.insert(x + 1, self.invisicard)
+            self.cardChanged()
             break
       
       self.CLOCK.tick(self.FPS)
@@ -2231,6 +2373,7 @@ class Board():
           self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
           if selected and pygame.Rect.collidepoint(confirmBackRect, (self.mousex, self.mousey)):
             self.extraDraws = []
+            self.cardChanged()
             return [houses[clicked]]
           click = [pygame.Rect.collidepoint(x[1], (self.mousex, self.mousey)) for x in houses_rects]
           if True in click:
@@ -2402,16 +2545,19 @@ class Board():
             self.extraDraws = []
             if retVal and not full:
               if len(retVal) <= count and not full:
+                self.cardChanged()
                 return retVal
               else:
                 pyautogui.alert("Not enough targets selected!")
             elif retVal and full and len(retVal) == count:
+              self.cardChanged()
               return retVal
             elif not full:
               incomplete = None
               while not incomplete:
                 incomplete = pyautogui.confirm("Are you sure you want to target less than the full number of targets?", buttons=["Yes", "No"])
               if incomplete == "Yes":
+                self.cardChanged()
                 return retVal
           elif pygame.Rect.collidepoint(cancelBackRect, (self.mousex, self.mousey)):
             retVal = []
@@ -2443,13 +2589,11 @@ class Board():
             self.drawEnemyArchive = True
           if targetPool != "Hand":
             if targetPool == "Discard":
-              ### start section that needs updating
               if canHit == "both": # this means I can select from both boards at the same time, eg natures call
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
                 if True in friend:
                   index = friend.index(True)
                   card = self.activePlayer.discard[index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2458,15 +2602,14 @@ class Board():
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
                 if True in foe:
                   index = foe.index(True)
                   card = self.inactivePlayer.discard[index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2475,16 +2618,15 @@ class Board():
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
               elif canHit == "either": # this means I can select multiples, but only all from same side
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
                 if True in friend and (not retVal or retVal[0][0] == "fr"):
                   index = friend.index(True)
                   card = self.activePlayer.discard[index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2493,15 +2635,14 @@ class Board():
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
                 if True in foe and (not retVal or retVal[0][0] == "fo"):
                   index = foe.index(True)
                   card = self.inactivePlayer.discard[index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2510,16 +2651,15 @@ class Board():
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
               elif canHit == "enemy": # this means I can only target unfriendlies
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
                 if True in foe:
                   index = foe.index(True)
                   card = self.inactivePlayer.discard[index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2528,16 +2668,15 @@ class Board():
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
               elif canHit == "friend": # this means I can only target friendlies
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
                 if True in friend:
                   index = friend.index(True)
                   card = self.activePlayer.discard[index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2546,9 +2685,9 @@ class Board():
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
             else: # Creature or Artifact
               if canHit == "both": # this means I can select from both boards at the same time, eg natures call
@@ -2558,7 +2697,6 @@ class Board():
                 if True in friend:
                   index = friend.index(True)
                   card = active[targetPool][index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2573,15 +2711,14 @@ class Board():
                         selected.remove((selectedSurf, card.rect))
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
                 if True in foe:
                   index = foe.index(True)
                   card = inactive[targetPool][index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2596,9 +2733,9 @@ class Board():
                         selected.remove((selectedSurf, card.rect))
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
               elif canHit == "either": # this means I can select multiples, but only all from same side
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
@@ -2607,7 +2744,6 @@ class Board():
                 if True in friend and (not retVal or retVal[0][0] == "fr"):
                   index = friend.index(True)
                   card = active[targetPool][index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2622,15 +2758,14 @@ class Board():
                         selected.remove((selectedSurf, card.rect))
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
                 if True in foe and (not retVal or retVal[0][0] == "fo"):
                   index = foe.index(True)
                   card = inactive[targetPool][index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2645,16 +2780,15 @@ class Board():
                         selected.remove((selectedSurf, card.rect))
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
               elif canHit == "enemy": # this means I can only target unfriendlies
                 foe = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in inactive[targetPool]]
                 if True in foe:
                   index = foe.index(True)
                   card = inactive[targetPool][index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2669,19 +2803,17 @@ class Board():
                         selected.remove((selectedSurf, card.rect))
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
               elif canHit == "friend": # this means I can only target friendlies
                 friend = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in active[targetPool]]
                 if True not in friend:
                   friend = [pygame.Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)) for card in active[targetPool]]
-                print(f"We're in targetPool {targetPool} and canHit {canHit}.")
                 if True in friend:
                   index = friend.index(True)
                   card = active[targetPool][index]
-                  print("before condition")
                   if condition(card):
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
@@ -2691,16 +2823,14 @@ class Board():
                         selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
-                      print(f"Selected before: {selected}")
                       retVal.remove(toAdd)
                       if card.ready:
                         selected.remove((selectedSurf, card.rect))
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
-                      print(f"Selected after: {selected}")
-                    print(retVal)
                   else:
                     pyautogui.alert(con_message)
+                    self.cardChanged()
                     break
           else:
             if canHit == "enemy":
@@ -2708,7 +2838,6 @@ class Board():
               if True in hand:
                 index = hand.index(True)
                 card = self.activePlayer.hand[index]
-                print("before condition")
                 if condition(card):
                   toAdd = ("fo", index)
                   if toAdd not in retVal and len(retVal) < count:
@@ -2717,16 +2846,15 @@ class Board():
                   elif toAdd in retVal:
                     retVal.remove(toAdd)
                     selected.remove((selectedSurf, card.rect))
-                  print(retVal)
                 else:
                   pyautogui.alert(con_message)
+                  self.cardChanged()
                   break
             else:
               hand = [pygame.Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.hand]
               if True in hand:
                 index = hand.index(True)
                 card = self.activePlayer.hand[index]
-                print("before condition")
                 if condition(card):
                   toAdd = ("fr", index)
                   if toAdd not in retVal and len(retVal) < count:
@@ -2735,9 +2863,9 @@ class Board():
                   elif toAdd in retVal:
                     retVal.remove(toAdd)
                     selected.remove((selectedSurf, card.rect))
-                  print(retVal)
                 else:
                   pyautogui.alert(con_message)
+                  self.cardChanged()
                   break
       if not full or (full and len(retVal) == count):
         confirmBack.fill(COLORS["LIGHT_GREEN"])

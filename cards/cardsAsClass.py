@@ -401,6 +401,7 @@ class Invisicard():
         self.image.set_alpha(0)
         self.rect = self.image.get_rect()
         self.tapped_rect = self.image.get_rect()
+        self.type = False
 
 
 if __name__ == '__main__':

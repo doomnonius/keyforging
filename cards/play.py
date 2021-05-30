@@ -93,9 +93,9 @@ def anger(game, card):
   choice = game.chooseCards("Creature", "Choose a friendly creature:", "friend")[0][1]
   if not game.activePlayer.board["Creature"][choice].ready:
     game.activePlayer.board["Creature"][choice].ready = True
-    game.fightCard(choice)
+    game.fightCard(choice, cheat=True)
   else:
-    game.fightCard(choice)
+    game.fightCard(choice, cheat=True)
 
 
 def barehanded(game, card):
@@ -204,9 +204,9 @@ def champions_challenge(game, card):
   choice = game.chooseCards("Creature", "Choose a creature to fight with:", "friend")[0][1] # because ward will be a thing, and something could happen
   if not game.activePlayer.board["Creature"][choice].ready:
     game.activePlayer.board["Creature"][choice].ready = True
-    game.fightCard(choice)
+    game.fightCard(choice, cheat=True)
   else:
-    game.fightCard(choice)
+    game.fightCard(choice, cheat=True)
 
 def cowards_end (game, card):
   """Coward's End: Destroy each undamaged creature. Gain 3 chains.
@@ -353,7 +353,7 @@ def relentless_assault (game, card):
     # first choice should always be valid, but not the rest
     if card not in chosen:
       card.ready = True
-      game.fightCard(choice)
+      game.fightCard(choice, cheat=True)
     else:
       pyautogui.alert("You've already chosen that creature, you can't fight with it again.")
       continue
@@ -492,13 +492,13 @@ def ganger_chieftain (game, card):
     maybe = pyautogui.confirm(f"Would you like to ready and fight with {activeBoard[1].title}", buttons=["Yes", "No"])
     if maybe == "Yes":
       activeBoard[1].ready = True
-      game.fightCard(1)
+      game.fightCard(1, cheat=True)
     return
   elif activeBoard.index(card) == len(activeBoard)-1:
     maybe = pyautogui.confirm(f"Would you like to ready and fight with {activeBoard[-2].title}", buttons=["Yes", "No"])
     if maybe == "Yes":
       activeBoard[-2].ready = True
-      game.fightCard(len(activeBoard)-2)
+      game.fightCard(len(activeBoard)-2, cheat=True)
     return
 
 def hebe_the_huge (game, card):
@@ -913,11 +913,11 @@ def poltergeist (game, card):
 
   choice = game.chooseCards("Artifact", "Choose an artifact to use as if it were yours, then destroy it:")[0]
   if choice[0] == "fr": # friendly side
-    if active[choice[1]].ready:
-      game.actionCard(choice[1], "Artifact")
+    if active[choice[1]].ready and active[choice[1]].action:
+      game.actionCard(choice[1], "Artifact", cheat=True)
     pending.append(active.pop(choice[1]))
   else:
-    if inactive[choice[1]].ready:
+    if inactive[choice[1]].ready and active[choice[1]].action:
       inactive[choice[1]].action(game, inactive[choice[1]])
     pending.append(inactive.pop(choice[1]))
   game.pending()
@@ -1320,10 +1320,12 @@ def remote_access(game, card):
   """ Remote Access: use an opponent's artifact as if it were yours.
   """
   passFunc(game, card)
-  if len(game.inactivePlayer.board["Artifact"]) > 0:
+  inactive = game.inactivePlayer.board["Artifact"]
+  if len(inactive) > 0:
     choice = game.chooseCards("Artifact", "Choose an opponent's artifact to use:", "enemy")[0][1]
-    game.inactivePlayer.board["Artifact"][choice].action(game, game.inactivePlayer.board["Artifact"][choice])
-    game.inactivePlayer.board["Artifact"][choice].ready = False
+    if inactive[choice].ready and inactive[choice].action:
+      inactive[choice].action(game, game.inactivePlayer.board["Artifact"][choice])
+      inactive[choice].ready = False
   else:
     pyautogui.alert("Your opponent has no artifacts. The card is stil played.")
 
@@ -1353,7 +1355,7 @@ def sloppy_labwork (game, card):
     pyautogui.alert("Card archived!")
   if len(hand) > 0:
     choice = game.chooseCards("Hand", "Choose a card to discard:")[0][1]
-    game.activePlayer.discard.append(hand.pop(choice))
+    game.discardCard(choice, cheat=True)
     pyautogui.alert("Card discarded!")
 
 def twin_bolt_emission (game, card):
@@ -2010,7 +2012,7 @@ def key220(game, card):
     return
   if use[0] == "F":
     if game.checkFightStates(active[choice]):
-      game.fightCard(choice)
+      game.fightCard(choice, cheat=True)
     return
   if use[0] == "A":
     if game.checkActionStates:
@@ -2115,6 +2117,7 @@ def key223(game, card):
       continue
     if not game.checkFightStates(active[choice]):
       return # checkFightStates will explain why
+    # note to future self: remember, cheat=True
     active[choice].fightCard(inactive[target], game)
     fought.append(inactive[target])
     if inactive[target].updateHealth():
@@ -2338,12 +2341,14 @@ def key258(game, card):
     maybe = input("Would you like to ready and fight with " + str(activeBoard[1]) + " [Y/n]?").title()
     if maybe[0] != "N":
       activeBoard[1].ready = True
+      # note to future self: remember, cheat=True
       game.fightCard(1)
     return
   elif activeBoard.index(card) == len(activeBoard)-1:
     maybe = input("Would you like to ready and fight with " + str(activeBoard[(len(activeBoard)-2)]) + " [Y/n]?").title()
     if maybe[0] != "N":
       activeBoard[(len(activeBoard)-2)].ready = True
+      # note to future self: remember, cheat=True
       game.fightCard(len(activeBoard)-2)
     return
 
@@ -3094,6 +3099,7 @@ def key334(game, card):
       if again[0] == "N":
         break
   game.activePlayer.states["Fight"][card.title] = [active[x] for x in choices]
+  # note to future self: remember, cheat=True
   [game.fightCard(x) for x in choices]
   # I need to find a way to make sure these cards lose skirmish at the end of the turn, but not sooner, so I can't make them lose skirmish here
   # perhaps use states? store the cards I gave skirmish to, and at end of turn check

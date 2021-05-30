@@ -87,7 +87,7 @@ class Deck:
             else:
                 self.shuffleDiscard()
         self.hand.sort(key = lambda x: x.house, reverse=True)
-        self.deck.sort(key = lambda x: x.house, reverse=True) # why was this even here? testing
+        # self.deck.sort(key = lambda x: x.house, reverse=True) # why was this even here? testing
     
     def shuffleDiscard(self):
         """ Deals with an empty deck.

@@ -1,25 +1,22 @@
-<h1>This is a very complicated project</h1>
+<h1>This project will attempt to create a graphical version of keyforge. If things go real well, I may attempt online play and a simple ai, but I've got a lot of work ahead of me.<h1>
 
-<h2>This project will attempt to create a graphical version of keyforge. If things go real well, I may attempt online play and a simple ai, but I've got a lot of work ahead of me.<h2>
+<h2>This project uses pygame: https://www.pygame.org/docs/genindex.html</h2>
+
 <h3>Planned features / Current Goals:<h3>
 <ul>
- <li>https://www.pygame.org/docs/genindex.html</li>
- <li>Highlight active house</li>
- <li>Artifacts use chooseFlank too</li>
- <li>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work. - creating canPlay, canDiscard, etc. functions for this</li>
- <li>Change color of End Turn button when no more available actions. - save until done with all activatable things - create a function to use canPlay, canDiscard, etc for this, but don't check every loop, only after each card is played (and there are a lot of ways to do that so that will be tough)</li>
  <li>Get hazardous and assault working - should be easy</li>
+ <li>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</li>
+ <li>I need a destroy function for handling ward and invulnerable.</li>
  <li><s>Interacting with the state dictionaries.</s> - in progress</li>
  <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal</li>
  <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs</li>
  <li>game.pending should be able to handle things going into archives</li>
- <li>I need a destroy function for handling ward and invulnerable.</li>
  <li>Code not yet implemented to only display valid options for items, instead of all. - in progress</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed. - in progress</li>
  <li>Get rid of remaining print statements.</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, house symbols, etc.</li>
- <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor. Operate banner of battle similarly.</li>
+ <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor. <s>Operate banner of battle similarly.</s></li>
  <li>Is captured amber returned, while amber on artifacts lost? - this will be in game.pending</li>
  <li>Picking decks within game window - will be another while loop</li>
  <li>Verify game integrity at ends of turns.</li>
@@ -27,8 +24,16 @@
  <li>Make a tiny purged image.</li>
  <li>Ready creature entering next to tapped taunt looks like it has taunt in chooseFlank</li>
  <li>things in later sets that give other cards abilities</li>
- <li>Room for optimizing draw, along the lines of what I did with keys, amber, and houses. For example, putting a function in passFunc that updates the board draws.</li>
+ <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 16 card in hand or more than 12(?) creatures or artifacts</li>
  <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li><s>Room for optimizing draw, along the lines of what I did with keys, amber, and houses. For example, putting a function in passFunc that updates the board draws.</s></li>
+ <li><s>Change color of End Turn button when no more available actions. - save until done with all activatable things - create a function to use canPlay, canDiscard, etc for this, but don't check every loop, only after each card is played (and there are a lot of ways to do that so that will be tough)</s></li>
+ <li><s>The checks for if you can fight/play/reap with a card need to be in the playCard/etc. sections because "cheating" out those things shouldn't work. - creating canPlay, canDiscard, etc. functions for this</s> - This should be implemented now, though could use more testing. Amusingly, I had features like this from the first run that I actually removed.</li>
+ <li><s>Artifacts use chooseFlank too</s></li>
+ <li><s>Highlight active house</s></li>
  <li><s>Upgrades don't work.</s></li>
  <li><s>Keys don't flip - going to need to switch keys each turn too</s></li>
  <li><s>Drag to discard.</s></li>
@@ -112,7 +117,7 @@
 <li>If scout gives a minion skirmish for a turn, it keeps skirmish until death. Might be fixed.</li>
 <li>Nocturnal Manuevers didn't work.</li>
 <li>Artifact of active house thinks it can't be used. - b/c actions aren't set up yet</li>
-<li></li>
+<li>Experienced a glitch where extra cards I couldn't hover ended up in my hand. This was on turn one in a game. Haven't seen it replicated yet.</li>
 <li></li>
 <li></li>
 <li></li>
