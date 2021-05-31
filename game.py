@@ -4,7 +4,7 @@ import decks.decks as deck
 import cards.cardsAsClass as card
 import cards.upgrades as upgrade
 import json, random, logging, time, pygame, pyautogui, os
-from helpers import makeChoice, willEnterReady, absa
+from helpers import makeChoice, willEnterReady, absa, destroy
 from typing import Dict, List, Set, Tuple
 from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW
 
@@ -144,7 +144,7 @@ class Board():
     return ['House', 'Turn', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Card', 'MyDeck', 'OppDeck','OppHand', 'Concede', 'Quit']
     
   def cardOptions(self, cardNum: int, loc: str) -> List:
-    retVal = []
+    retVal = ["Details"]
     card = self.activePlayer.board[loc][cardNum]
     if not card.ready:
       return ["You can't use a card that isn't ready."]
@@ -164,26 +164,6 @@ class Board():
     # There are other things that prevent playing cards that I want to include here as well, think I have most of them
     retVal = []
     card = self.activePlayer.hand[cardNum]
-    # if card.house in self.activeHouse or ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0):
-    #   if self.turnNum == 1 and len(self.playedThisTurn) >= 1:
-    #     return ["No remaining plays this turn"]
-    #   if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and len(self.playedThisTurn) >= 2:
-    #     return ["'Ember Imp' prevents playing this", "Discard"]
-    #   if card.type == "Upgrade" and len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
-    #     return ["Cannot play upgrade with no creatures in play", "Discard"]
-    #   if card.type == "Action" and "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
-    #     return ["'Scrambler Storm' prevents playing actions this turn", "Discard"]
-    #   if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
-    #     return ["'Treasure Map' prevents playing more cards this turn", "Discard"]
-    #   if card.type == "Creature":
-    #     if card.title == "truebaru" and self.activePlayer.amber < 3:
-    #       return ["You must have 3 amber to sacrifice in order to play 'Truebaru'", "Discard"]
-    #     if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
-    #       return ["You need 7 amber to play 'Kelifi Dragon'", "Discard"]
-    #     if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
-    #       return ["You can't play creatures with 'Grommid' in play", "Discard"]
-    #     if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
-    #       return ["You can't play creatures because of 'Lifeward'", "Discard"]
     if self.canPlay(card):
       retVal.append("Play")
     if self.canDiscard(card):
@@ -367,23 +347,6 @@ class Board():
 
     while run:
       self.CLOCK.tick(self.FPS)
-      
-      # this feels like a weird place to put this, but it works? as long as only one tireless on the field at a time
-      active = self.activePlayer.board["Creature"]
-      inactive = self.inactivePlayer.board["Creature"]
-      length = len(active)
-      if len(inactive) == 0 and "tireless_crocag" in [x.title for x in active]:
-        for x in range(1, length+1):
-          if active[length-x].title == "tireless_crocag":
-            self.pendingReloc.append(active.pop(length-x))
-      length = len(inactive)
-      if len(active) == 0 and "tireless_crocag" in [x.title for x in inactive]:
-        for x in range(1, length+1):
-          if inactive[length-x].title == "tireless_crocag":
-            self.pendingReloc.append(inactive.pop(length-x))
-      if self.pendingReloc:
-        self.pending()
-
 
       for event in pygame.event.get():
         
@@ -546,10 +509,10 @@ class Board():
         self.draw(False)
         pygame.display.flip()
         if len(self.activePlayer.archive) > 0:
-          show = self.chooseHouse("custom", ("Would you like to pick up your archive?", ["Yes", "No"]))
+          show = self.chooseHouse("custom", ("Would you like to pick up your archive?", ["Yes", "No"], ["GREEN", "RED"]))
           if archive == "Yes":
             for card in archive:
-              self.pendingReloc.append(archive.pop(archive.index(card))) # this is in case you archive an enemy card - it needs to return to their hand
+              self.pendingReloc.append(archive.pop(0)) # this is in case you archive an enemy card - it needs to return to their hand
             self.pending('hand')
         self.turnStage += 1
 
@@ -640,7 +603,12 @@ class Board():
           elif self.response == "Omni":
             self.actionCard(self.targetCard, self.loc, True)
           elif self.response == "Unstun":
-            self.actionCard(self.targetCard, self.loc)
+            self.activePlayer.board["Creature"][self.targetCard].stun = False
+            self.activePlayer.board["Creature"][self.targetCard].ready = False
+            self.cardChanged()
+            # self.actionCard(self.targetCard, self.loc)
+          elif self.response == "Details":
+            print(self.activePlayer.board[self.loc][self.targetCard])
 
           self.response = []
           self.targetCard = None
@@ -687,6 +655,7 @@ class Board():
         self.discardedThisTurn = []
         self.usedLastTurn = self.usedThisTurn.copy()
         self.usedThisTurn = []
+        self.remaining = True
         # print(f"States: {self.resetStates}")
         # print(f"Next states: {self.resetStatesNext}")
         if self.resetStates:
@@ -1163,6 +1132,10 @@ class Board():
     active = self.activePlayer.board["Creature"]
     inactive = self.inactivePlayer.board["Creature"]
     card = self.activePlayer.hand[cardNum]
+    if self.pendingReloc:
+      pending = []
+    else:
+      pending = self.pendingReloc
     if card.house in self.activeHouse or cheat:
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       self.cardChanged()
@@ -1170,11 +1143,14 @@ class Board():
         targeting = self.chooseCards("Creature", "Deal 4 damage to:")[0]
         if targeting[0] == "fr":
           target = active[targeting[1]]
+          target.damageCalc(self, 4)
+          target.updateHealth(self.activePlayer)
         else:
           target = inactive[targeting[1]]
-        active[target].damageCalc(self, 4)
-        if active[target].updateHealth():
-          self.pendingReloc.append(active.pop(target))
+          target.damageCalc(self, 4)
+          target.updateHealth(self.inactivePlayer)
+        if target.destroyed:
+          pending.append(target)
         self.pending()
       self.discardedThisTurn.append(card)
     else:
@@ -1329,8 +1305,11 @@ class Board():
         for x in range(1, length+1):
           card = other.board["Creature"][length-x]
           card.damageCalc(self, 2)
-          if card.updateHealth():
-            self.pendingReloc.append(other.board["Creature"].pop(length-x))
+          card.updateHealth(self.inactivePlayer)
+          if card.destroyed:
+            self.pendingReloc.append(card) # this trigger shouldn't end up nested, though it could create a nest
+          # if card.updateHealth():
+          #   self.pendingReloc.append(other.board["Creature"].pop(length-x))
         self.pending()
       # pyautogui.alert(f"You forged a key for {cost} amber. You now have {forger.keys} key(s) and {forger.amber} amber.\n")
       pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
@@ -1340,6 +1319,21 @@ class Board():
   def cardChanged(self):
     """ I don't think this function cares what the played card was. It will be called after a card is played/used, and it will do two things: (1) update self.cardBlits and (2) update what color the endTurn button is (by calling the function that actually checks this). The real question is where to call this from.
     """
+    
+    # check if tireless_crocag should still be alive
+    active = self.activePlayer.board["Creature"]
+    inactive = self.inactivePlayer.board["Creature"]
+    if len(inactive) == 0 and "tireless_crocag" in [x.title for x in active]:
+      for card in active[::-1]:
+        if card.title == "tireless_crocag":
+          destroy(card, self.activePlayer, self)
+    if len(active) == 0 and "tireless_crocag" in [x.title for x in inactive]:
+      for card in inactive[::-1]:
+        if card.title == "tireless_crocag":
+          destroy(card, self.inactivePlayer, self)
+    if self.pendingReloc:
+      self.pending()
+      
     self.cardBlits = []
     for board,area in [(self.activePlayer.board["Creature"], self.creatures1_rect), (self.inactivePlayer.board["Creature"], self.creatures2_rect), (self.activePlayer.board["Artifact"], self.artifacts1_rect), (self.inactivePlayer.board["Artifact"], self.artifacts2_rect)]:
       x = 0
@@ -1454,97 +1448,101 @@ class Board():
     
     return retVal
 
-  def pending(self, destination = "discard", destroyed = True):
-    """ Pending is the function that handles when multiple cards leave play at the same time, whether it be to hand or to discard. It will trigger leaves play and destroyed effects. Allowable options for dest are 'purge', 'discard', 'hand', 'deck'.
+  def pending(self, destination = "discard", secondary: List = [], target = None):
+    """ Pending is the function that handles when multiple cards leave play at the same time, whether it be to hand or to discard. It will trigger leaves play and destroyed effects. Allowable options for dest are 'purge', 'discard', 'hand', 'deck', 'archive'.
     """
     active = self.activePlayer.board
     inactive = self.inactivePlayer.board
-    L = self.pendingReloc
+    if secondary:
+      L = secondary # this is for handling if destruction triggers another destruction
+    else:
+      L = self.pendingReloc
 
     if not L:
       self.cardChanged()
       return # just in case we feed it an empty list
-    for card in L:
-      card.reset()
-    if destination not in ['purge', 'discard', 'hand', 'deck']:
+    # at this point I would let them order the destroyed triggers - draw the pending destroyed cards and use chooseCards to pick them one at a time, but I won't implement that yet
+    for card in L[::-1]:
+      if card.destroyed:
+        card.dest(self, card) # some card.dests will put the card into a different zone, arma_cloak won't though (I think)
+        if "armageddon_cloak" in [x.title for x in card.upgrade]:
+          L.remove(card)
+        destroyed = True
+      else:
+        card.reset()
+        # card.reset() card.reset is part of basicDest, so destroyed cards don't need to be reset
+    if destination not in ['purge', 'discard', 'hand', 'deck', 'archive', 'annihilate']:
       pyautogui.alert("Pending was given an invalid destination.")
       self.cardChanged()
       return
-    if "annihilation_ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Artifact"]]) and destroyed:
-      destination = "annihilate"
     if destination == "purge":
-      length = len(L)
-      for x in range(length):
-        if L[absa(x, length)].deck == self.activePlayer.name:
-          self.activePlayer.purge.append(L.pop(absa(x, length)))
-        elif L[absa(x, length)].deck == self.inactivePlayer.name:
-          self.inactivePlayer.purge.append(L.pop(absa(x, length)))
-    if destination == "annihilate": # we'll do this one first to remove all creatures (b/c annihilation ritual only affects creatures)
-      length = len(L)
-      for x in range(length):
-        if L[absa(x, length)].deck == self.activePlayer.name and L[absa(x, length)].type == "Creature":
-          self.activePlayer.purge.append(L.pop(absa(x, length)))
-        elif L[absa(x, length)].deck == self.inactivePlayer.name and L[absa(x, length)].type == "Creature":
-          self.inactivePlayer.purge.append(L.pop(absa(x, length)))
-        destination = "discard" #now that all the creatures are out
-    if destination == "discard":
-      length = len(L)
-      pendingA = []
-      pendingI = []
-      for x in range(length):
-        if L[absa(x, length)].deck == self.activePlayer.name:
-          pendingA.append(L.pop(absa(x, length)))
-        elif L[absa(x, length)].deck == self.inactivePlayer.name:
-          pendingI.append(L.pop(absa(x, length)))
-        # now that they're sorted by owner
-      if len(pendingA) > 0:
-        while len(pendingA) > 1:
-          # choice = makeChoice("Choose which card to add to your discard first: ", pendingA)
-          choice = 0
-          self.activePlayer.discard.append(pendingA.pop(choice))
-        self.activePlayer.discard.append(pendingA.pop())
-      if len(pendingI) > 0:
-        while len(pendingI) > 1:
-          # choice = makeChoice("Choose which card to add to your opponent's discard first: ", pendingI)
-          choice = 0
-          if not destroyed:
-            self.inactivePlayer.discard.append(pendingI.pop(choice))
-          else:
-            self.inactivePlayer.discard.append(pendingI.pop(choice))
-        # this is for the edge case of discarding cards from your opponents archive - if you have cards in your opponent's archive, they don't get discarded but added to your hand
-        choice = 0
-        if not destroyed:
-          self.inactivePlayer.discard.append(pendingI.pop(choice))
+      for card in L[::-1]:
+        if card.deck == self.activePlayer.name:
+          self.activePlayer.purge.append(card)
         else:
-          self.inactivePlayer.discard.append(pendingI.pop(choice))
-    if destination == "hand":
-      length = len(L)
-      for x in range(length):
-        if L[absa(x, length)].deck == self.activePlayer.name:
-          self.activePlayer.hand.append(L.pop(absa(x, length)))
-        elif L[absa(x, length)].deck == self.inactivePlayer.name:
-          self.inactivePlayer.hand.append(L.pop(absa(x, length)))
-      self.activePlayer.hand.sort(key = lambda x: x.house)
-      self.inactivePlayer.hand.sort(key = lambda x: x.house)
-    if destination == "deck":
-      length = len(L)
-      pendingA = []
-      pendingI = []
-      for x in range(length):
-        if L[absa(x, length)].deck == self.activePlayer.name:
-          pendingA.append(L.pop(absa(x, length)))
-        elif L[absa(x, length)].deck == self.inactivePlayer.name:
-          pendingI.append(L.pop(absa(x, length)))
-      if len(pendingA) > 0:
-        while len(pendingA) > 1:
-          choice = makeChoice("Choose which card to add to your deck first: ", pendingA)
-          self.activePlayer.deck.append(pendingA.pop(choice))
-        self.activePlayer.deck.append(pendingA.pop())
-      if len(pendingI) > 0:
-        while len(pendingI) > 1:
-          choice = makeChoice("Choose which card to add to your opponent's deck first: ", pendingI)
-          self.inactivePlayer.deck.append(pendingI.pop(choice))
-        self.inactivePlayer.deck.append(pendingI.pop())
+          self.inactivePlayer.purge.append(card)
+        L.remove(card)
+    
+    # here is where we'd want to let them make choices about order, b/c choosing order of destroyed triggers and order of things entering discard is different - so they set the order here, and then it goes to resolve
+    
+    # some code here that will lead to L being reordered - it will show both boards at the same time, but build one list
+
+    # if we let them choose which one will go in first, and append the rest, we won't need to reverse the list as we already do that as part of the process
+    
+    # if destination == "annihilate": # we'll do this one first to remove all creatures (b/c annihilation ritual only affects creatures)
+
+    # if we do this right, we shouldn't end up in a situation where we have some cards that were destroyed in this list and some that weren't (this is dependent on making sure dest effects only add to pendingReloc if it's empty)
+
+    elif destination == "discard":
+      for card in L[::-1]:
+        if card.deck == self.activePlayer.name:
+          if "annihilation_ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Artifact"]]) and card.type == "Creature" and destroyed == True:
+            self.activePlayer.discard.append(card)
+          else:
+            self.activePlayer.discard.append(card)
+        else:
+          if "annihilation_ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Artifact"]]) and card.type == "Creature" and destroyed == True:
+            self.inactivePlayer.purge.append(card)
+          else:
+            self.inactivePlayer.discard.append(card)
+        L.remove(card)
+    elif destination == "hand":
+      for card in L[::-1]:
+        if card.deck == self.activePlayer.name:
+          for up in card.upgrade:
+            if up.deck == self.activePlayer.name:
+              self.activePlayer.discard.append(up)
+            else:
+              self.inactivePlayer.discard.append(up)
+          self.activePlayer.hand.append(card)
+        else:
+          for up in card.upgrade:
+            if up.deck == self.inactivePlayer.name:
+              self.activePlayer.discard.append(up)
+            else:
+              self.inactivePlayer.discard.append(up)
+          self.inactivePlayer.hand.append(card)
+        card.reset()
+        card.reveal = True
+        L.remove(card)
+      # I think it would be confusing if I sorted the hand, at this point they will have chosen the order of L so things should be returned to their hand in that order
+      # self.activePlayer.hand.sort(key = lambda x: x.house)
+      # self.inactivePlayer.hand.sort(key = lambda x: x.house)
+    elif destination == "deck":
+      for card in L[::-1]:
+        if card.name == self.activePlayer.name:
+          self.activePlayer.deck.append(card)
+        else:
+          self.inactivePlayer.deck.append(card)
+        card.reset()
+        card.reveal = True
+        L.remove(card)
+    elif destination == "archive":
+      if target == None:
+        raise ValueError("'archive' given as argument to pending() without a target player.")
+      for card in L[::-1]:
+        # this is where we use target
+        target.archive.append(card)
     # check that the list was emptied
     if L:
       pyautogui.alert("Pending did not properly empty the list.")
@@ -1556,7 +1554,7 @@ class Board():
       if message: pyautogui.alert("You cannot play more than one card on your first turn.")
       return False
     if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and len(self.playedThisTurn) >= 2: #
-      pyautogui.alert("'Ember Imp' prevents playing this")
+      if message: pyautogui.alert("'Ember Imp' prevents playing this")
       return False
     if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
       pyautogui.alert("'Treasure Map' prevents playing more cards this turn")
@@ -1652,12 +1650,12 @@ class Board():
       return False
   
   def canDiscard(self, card, reset = True):
-    if self.turnNum == 1 and len(self.playedThisTurn) > 0 or len(self.discardedThisTurn) > 0:
+    if self.turnNum == 1 and (len(self.playedThisTurn) > 0 or len(self.discardedThisTurn) > 0):
       return False
     if card.house in self.activeHouse:
       return True
     # I don't think anything messes with your ability to discard
-    print(f"{card.title} belongs to house {card.house}")
+    # print(f"{card.title} belongs to house {card.house}")
     return False
   
   def playUpgrade(self, card, target = None):
@@ -2094,7 +2092,7 @@ class Board():
           if artifact[-1].ready:
             self.flankRectRight.left = artifact[-1].rect.right + self.margin
           else:
-            self.flankRectRight.left = artifact[-1].rect.right + self.margin
+            self.flankRectRight.left = artifact[-1].tapped_rect.right + self.margin
         self.flankRectLeft.topright = (-500, -500)
         self.flankRectLeftTapped.topright = (-500, -500)
         self.flankRectRightTapped.topright = (-500, -500)
@@ -2103,7 +2101,7 @@ class Board():
         self.flankRectRightTapped.center = self.artifacts1_rect.center
         if len(artifact) > 0:
           if artifact[-1].ready:
-            self.flankRectRightTapped.left = artifact[-1].tapped_rect.right + self.margin
+            self.flankRectRightTapped.left = artifact[-1].rect.right + self.margin
           else:
             self.flankRectRightTapped.left = artifact[-1].tapped_rect.right + self.margin
         self.flankRectLeftTapped.topright = (-500, -500)

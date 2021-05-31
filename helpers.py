@@ -15,6 +15,16 @@ def absa(num, length):
   """
   return abs(num - length + 1)
 
+def destroy(card, player, game):
+  """ Destroys a card owned by player. Make sure you call pending afterwards
+  """
+  if card.type == "Creature":
+    card.destroyed = True
+    if "armageddon_cloak" not in [x.title for x in card.upgrade]:
+      player.board["Creature"].remove(card)
+  elif card.type == "Artifact":
+    player.board["Artifact"].remove(card)
+
 def makeChoice(stringy, L = [], show = True):
   """ Takes a string explaining the choice and a list, only accepts results within the length of the list.
   """

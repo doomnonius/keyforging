@@ -4,13 +4,11 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
- <li>Get hazardous and assault working - should be easy</li>
  <li>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</li>
- <li>I need a destroy function for handling ward and invulnerable -> or make changes to updateHealth.</li>
  <li><s>Interacting with the state dictionaries.</s> - in progress</li>
- <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal</li>
+ <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal - everytime a function tries to ref pendingReloc, it needs to check if pendingReloc contains something - if it does, then this is a nested destroy, and secondary needs to be used instead - I think this shouldn't matter for play effects</li>
  <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs</li>
- <li>game.pending should be able to handle things going into archives</li>
+ <li>game.pending should be able to handle things going into archives (because of card.reset())</li>
  <li>Code not yet implemented to only display valid options for items, instead of all. - in progress</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed. - in progress</li>
@@ -28,6 +26,7 @@
  <li>What about having the background color of the active Player's mat match the color of the house they've chosen?</li>
  <li></li>
  <li></li>
+ <li><s>I need a destroy function for handling ward and invulnerable -> or make changes to updateHealth.</s> - both and, and seems to be working</li>
  <li><s>Obsolete the chooseMulligan function by adding a color option to chooseHouse, which is now a misnamed function</s></li>
  <li><s>Room for optimizing draw, along the lines of what I did with keys, amber, and houses. For example, putting a function in passFunc that updates the board draws.</s></li>
  <li><s>Change color of End Turn button when no more available actions. - save until done with all activatable things - create a function to use canPlay, canDiscard, etc for this, but don't check every loop, only after each card is played (and there are a lot of ways to do that so that will be tough)</s></li>
@@ -104,10 +103,12 @@
  <li></li>
 </ul>
 
-<h2>Testing: </h2>
+<h2>Testing / Rules: </h2>
 <ol>
-<li><b>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</b></li>
-<li>Can use wild wormhole to cheat out a card with ember imp in play?</li>
+ <li>Get hazardous and assault working - should be easy, but I made it more difficult than it needed to be. Could use more testing.</li>
+<li><b>If a card is trying to find it's own index, can it tell itself apart from another card with the same name? - still haven't confirmed</b></li>
+<li>Can use wild wormhole to cheat out a card with ember imp in play? Rules-wise it can't, as wildwormhole only gets around the first turn rule b/c that rule applies to playing out of hand.</li>
+<li>Dysania won't work. - now maybe she will</li>
 </ol>
 
 <h2>Bugs: </h2>
@@ -117,7 +118,6 @@
 <li>If scout gives a minion skirmish for a turn, it keeps skirmish until death. Might be fixed.</li>
 <li>Nocturnal Manuevers didn't work.</li>
 <li>Artifact of active house thinks it can't be used. - b/c actions aren't set up yet</li>
-<li>Experienced a glitch where extra cards I couldn't hover ended up in my hand. This was on turn one in a game. Haven't seen it replicated yet.</li>
 <li></li>
 <li></li>
 <li></li>
@@ -125,7 +125,7 @@
 <li></li>
 <li></li>
 <li></li>
-<li></li>
+<li><s>Experienced a glitch where extra cards I couldn't hover ended up in my hand. This was on turn one in a game. Haven't seen it replicated yet.</s> - wasn't resetting cardBlits.</li>
 <li><s>add things that enter ready and/or stunned to the play list.</s></li>
 <li><s>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</s></li>
 <li><s>Can cheat out extra fighting with stunned things, shouldn't be able to.</s></li>

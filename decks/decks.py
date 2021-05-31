@@ -19,7 +19,7 @@ class Deck:
                     # card creation will give them the appropriate reap  and etc functions
                     random.shuffle(self.deck)
         self.hand = [] #first index is always size of full hand
-        self.handSize = 6
+        self.handSize = 16
         self.chains = 0
         self.discard = []
         self.archive = []

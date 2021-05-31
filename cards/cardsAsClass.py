@@ -51,7 +51,7 @@ class Card(pygame.sprite.Sprite):
         self.exp = self.cardInfo["expansion"]
         self.maverick = self.cardInfo['is_maverick']
         self.revealed = False
-        self.taunt = False
+        self.destroyed = False
         self.upgrade = []
         self.load_image()
         # conditionals to add?
@@ -79,6 +79,9 @@ class Card(pygame.sprite.Sprite):
         #     self.attached = False
         # creature only abilities
         if self.type == "Creature":
+            self.taunt = False
+            self.ward = False
+            self.enrage = False
             self.upgrade = []
             if self.title == "Giant Sloth":
                 self.usable = False
@@ -178,12 +181,12 @@ class Card(pygame.sprite.Sprite):
                 s += " E"
             if self.taunt:
                 s += " T"
-            if self.hazard[0]:
-                s += " H"
+            if self.hazard:
+                s += f" H: {self.hazard}"
             if self.skirmish:
                 s += " S"
-            if self.assault[0]:
-                s += " As"            
+            if self.assault:
+                s += f" As: {self.assault}"            
             if "Reap:" in self.text:
                 s += " R"
             if self.fight:
@@ -266,7 +269,27 @@ class Card(pygame.sprite.Sprite):
     def fightCard(self, other, game) -> None:
         print(self.title + " is fighting " + other.title + "!")
         # add hazardous and assault in here too
-        print("Hazardous and assault currently ignored.")
+        print(f"Hazard: {other.hazard}")
+        if other.hazard:
+            self.damageCalc(game, other.hazard)
+            print("Damage from hazard calced")
+            self.updateHealth(game.activePlayer)
+        print(f"Assault: {self.assault}")
+        if self.assault:
+            other.damageCalc(game, self.assault)
+            print("Damage from assault calced")
+            other.updateHealth(game.inactivePlayer)
+        retEarly = False
+        if self.destroyed:
+            retEarly = True
+            game.pendingReloc.append(self)
+        if other.destroyed:
+            retEarly = True
+            game.pendingReloc.append(other)
+        if retEarly:
+            print("Exiting fight early b/c attacker or defender died during hazard/assault step.")
+            game.pending()
+            return
         print("Before fight effects would go here too.")
         self.before(game, self)
         print("If you're reading this, it's not self.before")
@@ -290,18 +313,22 @@ class Card(pygame.sprite.Sprite):
         print("After fight effects would go here, if attacker survives.")
         print(f"Damage on attacker: {self.damage}")
         print(f"Damage on defender: {other.damage}")
-        if self.updateHealth():
-            game.pendingReloc.append(game.activePlayer.board["Creature"].pop(game.activePlayer.board["Creature"].index(self)))
+        self.updateHealth(game.activePlayer)
+        print("Updated attacker health.")
+        if self.destroyed:
+            game.pendingReloc.append(self)
         else:
             self.fight(game, self, other)
             print("I know it isn't self.fight that's failing.")
-        if other.updateHealth():
-            game.pendingReloc.append(game.inactivePlayer.board["Creature"].pop(game.inactivePlayer.board["Creature"].index(other)))
+        other.updateHealth(game.inactivePlayer)
+        print("Updated defender health.")
+        if other.destroyed:
+            game.pendingReloc.append(other)
         game.pending()
         print("Another comment after pending has completed.")
 
-    def health(self) -> int:
-        return (self.power + self.extraPow) - self.damage
+    # def health(self) -> int:
+    #     return (self.power + self.extraPow) - self.damage
 
     def neighbors(self, game) -> List[int]:
         """ Returns a list of the indexes of a card's neighbors.
@@ -348,11 +375,15 @@ class Card(pygame.sprite.Sprite):
             self.elusive = True
         # I can change Gray Monk to match this by giving it a play effect and a leaves play effect.
 
-    def updateHealth(self) -> bool:
-        if self.health() <= 0:
+    def updateHealth(self, player) -> None:
+        if (self.power + self.extraPow - self.damage) <= 0:
             print(self.title + " is dead.")
-            return True
-        return False
+            self.destroyed = True
+            if "armageddon_cloak" not in [x.title for x in self.upgrade]:
+                print("Did we at least get here?")
+                player.board["Creature"].remove(self)
+        #     return True
+        # return False
 
     def tap(self):
         if self.image.get_width() > self.image.get_height():
