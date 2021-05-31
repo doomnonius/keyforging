@@ -341,6 +341,12 @@ class Board():
 
     self.setKeys()
 
+    # check warning
+    self.warnSurf = pygame.Surface((self.amber2.get_size()))
+    self.warnSurf.fill(COLORS["RED"])
+    self.warnRect = self.warnSurf.get_rect()
+    self.warnRect.topleft = self.amber2_rect.topleft
+
     # log and other options submenu
 
     run = True
@@ -501,11 +507,11 @@ class Board():
         highSurf.fill(COLORS["LIGHT_GREEN"])
         i = self.activePlayer.houses.index(self.activeHouse[0])
         if i == 0:
-          self.highlight = [(highSurf, self.house1a_rect)]
+          self.highlight.append((highSurf, self.house1a_rect))
         elif i == 1:
-          self.highlight = [(highSurf, self.house1b_rect)]
+          self.highlight.append((highSurf, self.house1b_rect))
         elif i == 2:
-          self.highlight = [(highSurf, self.house1c_rect)]
+          self.highlight.append((highSurf, self.house1c_rect))
         self.draw(False)
         pygame.display.flip()
         if len(self.activePlayer.archive) > 0:
@@ -647,7 +653,6 @@ class Board():
         if "stampede" in self.activePlayer.states:
           self.activePlayer.states["stampede"] = 0
         self.activeHouse = []
-        self.highlight = []
         self.extraFightHouses = []
         self.playedLastTurn = self.playedThisTurn.copy()
         self.playedThisTurn = []
@@ -669,6 +674,11 @@ class Board():
         # print(f"States: {self.resetStates}")
         # print(f"Next states: {self.resetStatesNext}")
         self.endBack.fill(COLORS["GREEN"])
+        if self.activePlayer.amber >= self.calculateCost():
+          pyautogui.alert(f"Check for key {self.activePlayer.keys + 1}!")
+          self.highlight = [(self.warnSurf, self.warnRect)]
+        else:
+          self.highlight = []
         self.switch()
         self.cardChanged()
         self.setKeys()
@@ -1464,7 +1474,12 @@ class Board():
     # at this point I would let them order the destroyed triggers - draw the pending destroyed cards and use chooseCards to pick them one at a time, but I won't implement that yet
     for card in L[::-1]:
       if card.destroyed:
+        # here will be all the stuff I was going to put in basicDest
+        # loot the bodies
+        # return captured amber if a creature, don't if an artifact
+        # handle upgrades
         card.dest(self, card) # some card.dests will put the card into a different zone, arma_cloak won't though (I think)
+        card.reset()
         if "armageddon_cloak" in [x.title for x in card.upgrade]:
           L.remove(card)
         destroyed = True

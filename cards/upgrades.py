@@ -5,12 +5,12 @@ def yo_mama_mastery(game, card, side: str, choice: int):
   """Yo Mama Mastery: Fully heal this creature
   """
   passFunc(game, card)
-  # I'm going to only handle the play effect, I'll write something else to handle upgrades later
-  # whatever that looks like, this card is going to be attached first, so we'll need to heal the attached card
   if side == "fr":
     game.activePlayer.board["Creature"][choice].damage = 0
+    game.activePlayer.board["Creature"][choice].taunt = True
   else:
     game.inactivePlayer.board["Creature"][choice].damage = 0
+    game.inactivePlayer.board["Creature"][choice].taunt = 0
 
 def blood_of_titans(game, card, side: str, choice: int):
   """ Blood of Titans: This creature has +5 power.

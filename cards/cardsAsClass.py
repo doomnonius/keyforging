@@ -131,13 +131,13 @@ class Card(pygame.sprite.Sprite):
                 self.hazard = 0
             # check for destroyed abilities
             if self.title in dir(dest):
-                self.dest = eval(f"dest.{self.title}")
+                self.dest = [eval(f"dest.{self.title}")]
             else:
-                self.dest = dest.basicDest
+                self.dest = []
             if f"lp_{self.title}" in dir(dest):
                 self.leaves = eval(f"dest.lp_{self.title}")
             else:
-                self.leaves = dest.basicLeaves
+                self.leaves = []
         # start of turn effects
         if f"eot_{self.title}" in dir(turnEffects):
             self.eot = eval(f"turnEffects.eot_{self.title}")
