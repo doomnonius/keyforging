@@ -1089,8 +1089,6 @@ class Board():
   def canForge(self):
     """ Checks if there is anything in Deck.states["Forge"]. This isn't checking if you have enough amber.
     """
-    if True: #optimization: if no cards in deck with this effect, just return
-      pass # return True
     if "miasma" in self.inactivePlayer.states and self.inactivePlayer.states["miasma"]:
       pyautogui.alert("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
       self.activePlayer.states["miasma"] = 0
@@ -1168,7 +1166,7 @@ class Board():
     self.cardChanged()
 
 
-  def fightCard(self, attacker: int, cheat: bool = True):
+  def fightCard(self, attacker: int, cheat: bool = True, defender = None):
     """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.
     """
     # This will actually probably need to be incorporated into the main loop in some way
@@ -1186,10 +1184,11 @@ class Board():
       self.usedThisTurn.append(card)
       self.cardChanged()
       return
-    if card.title != "niffle_ape":
-      defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors(self)]), con_message = "This minion is protected by taunt.")[0][1]
-    else:
-      defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0][1]
+    if defender == None:
+      if card.title != "niffle_ape":
+        defender = self.chooseCards("Creature", "Choose an enemy creature to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors(self)]), con_message = "This minion is protected by taunt.")[0][1]
+      else:
+        defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0][1]
     if defender == None:
       return
     defenderCard = self.inactivePlayer.board["Creature"][defender]
@@ -1306,7 +1305,7 @@ class Board():
       if player == "active" and "interdimensional_graft" in other.states and other.states["interdimensional_graft"] and forger.amber > 0:
         pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber.")
         # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
-        other.gainAmber(forger.amber, self) # this is why setKeys doesn't need to be lower
+        other.gainAmber(forger.amber, self) # setKeys is called in here
         forger.amber = 0
         pyautogui.alert(f"They now have {other.amber} amber.")
       if "bilgum_avalanche" in [x.title for x in forger.board["Creature"]]:
@@ -1318,10 +1317,7 @@ class Board():
           card.updateHealth(self.inactivePlayer)
           if card.destroyed:
             self.pendingReloc.append(card) # this trigger shouldn't end up nested, though it could create a nest
-          # if card.updateHealth():
-          #   self.pendingReloc.append(other.board["Creature"].pop(length-x))
         self.pending()
-      # pyautogui.alert(f"You forged a key for {cost} amber. You now have {forger.keys} key(s) and {forger.amber} amber.\n")
       pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
       if player == "active":
         self.forgedThisTurn.append(forged)
@@ -1484,8 +1480,9 @@ class Board():
           L.remove(card)
         destroyed = True
       else:
+        # so these cards are probably leaving play, so we need to do the basic leaves play stuff (though not always, need to figure out the triggers for that)
+        # I could build these things into reset, which means I wouldn't write functions for leaves play, stuff, I'd just catch it in reset
         card.reset()
-        # card.reset() card.reset is part of basicDest, so destroyed cards don't need to be reset
     if destination not in ['purge', 'discard', 'hand', 'deck', 'archive', 'annihilate']:
       pyautogui.alert("Pending was given an invalid destination.")
       self.cardChanged()
