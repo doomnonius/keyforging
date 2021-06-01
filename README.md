@@ -6,6 +6,7 @@
 <ul>
  <li>Mantle of Zealot and Experimental Therapy in canReap, canFight, canAction: note that these actually do work differently, and Experimental Therapy is going to be a b to implement properly.</li>
  <li>Code reap, fight, action, abilities with knowledge that there might be more than one</li>
+ <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves. Actually, I think I'll have basic dest, but I'll call it from pending, not tied to the card. Potentially the same with basicReap and basicFight</li>
  <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal - everytime a function tries to ref pendingReloc, it needs to check if pendingReloc contains something - if it does, then this is a nested destroy, and secondary needs to be used instead - I think this shouldn't matter for play effects</li>
  <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs</li>
  <li>game.pending should be able to handle things going into archives (because of card.reset())</li>
@@ -24,7 +25,6 @@
  <li>things in later sets that give other cards abilities</li>
  <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 15 card in hand or more than 12(?) creatures or artifacts</li>
  <li>What about having the background color of the active Player's mat match the color of the house they've chosen?</li>
- <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves</li>
  <li>Display the card that's under Masterplan</li>
  <li>Implement poison</li>
  <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged</li>
