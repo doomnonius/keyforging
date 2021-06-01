@@ -52,7 +52,7 @@ class Card(pygame.sprite.Sprite):
         self.maverick = self.cardInfo['is_maverick']
         self.revealed = False
         self.destroyed = False
-        self.upgrade = []
+        self.upgrade = [] # needs to be on artifacts b/c using for masterplan
         self.load_image()
         # conditionals to add?
         # status effects
@@ -373,6 +373,7 @@ class Card(pygame.sprite.Sprite):
         self.armor = self.base_armor + self.extraArm
         if "Elusive" in self.text:
             self.elusive = True
+        self.temp_skirmish = False
         # I can change Gray Monk to match this by giving it a play effect and a leaves play effect.
 
     def updateHealth(self, player) -> None:

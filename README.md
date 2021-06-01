@@ -24,6 +24,7 @@
  <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 16 card in hand or more than 12(?) creatures or artifacts</li>
  <li>What about having the background color of the active Player's mat match the color of the house they've chosen?</li>
  <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves</li>
+ <li>Display the card that's under Masterplan</li>
  <li></li>
  <li></li>
  <li></li>
@@ -31,8 +32,7 @@
  <li></li>
  <li></li>
  <li></li>
- <li></li>
- <li>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</li>
+ <li><s>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</s></li>
  <li><s>I need a destroy function for handling ward and invulnerable -> or make changes to updateHealth.</s> - both and, and seems to be working</li>
  <li><s>Obsolete the chooseMulligan function by adding a color option to chooseHouse, which is now a misnamed function</s></li>
  <li><s>Room for optimizing draw, along the lines of what I did with keys, amber, and houses. For example, putting a function in passFunc that updates the board draws.</s></li>
@@ -126,7 +126,7 @@
 <li>Nocturnal Manuevers didn't work.</li>
 <li>Artifact of active house thinks it can't be used. - b/c actions aren't set up yet</li>
 <li>Bug with keys that I'm pretty sure is because all forged keys are referencing the same image.</li>
-<li></li>
+<li>Technically supposed to be able to choose whether library access or a card's play effect triggers first, but that's not how it's implemented in the code.</li>
 <li></li>
 <li></li>
 <li></li>

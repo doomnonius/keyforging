@@ -4,7 +4,7 @@ import decks.decks as deck
 import cards.cardsAsClass as card
 import cards.upgrades as upgrade
 import json, random, logging, time, pygame, pyautogui, os
-from helpers import makeChoice, willEnterReady, absa, destroy
+from helpers import willEnterReady, destroy
 from typing import Dict, List, Set, Tuple
 from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW
 
@@ -646,12 +646,14 @@ class Board():
           creature.eot(self, creature)
         for creature in self.inactivePlayer.board["Creature"]:
           creature.eot(self, creature)
+        for creature in self.activePlayer.board["Creature"]:
+          creature.resetArmor(self, creature)
+        for creature in self.inactivePlayer.board["Creature"]:
+          creature.resetArmor(self, creature)
         if self.forgedThisTurn:
           self.forgedLastTurn = self.forgedThisTurn.copy()
         else:
           self.forgedThisTurn = []
-        if "stampede" in self.activePlayer.states:
-          self.activePlayer.states["stampede"] = 0
         self.activeHouse = []
         self.extraFightHouses = []
         self.playedLastTurn = self.playedThisTurn.copy()
@@ -1454,7 +1456,7 @@ class Board():
     
     return retVal
 
-  def pending(self, destination = "discard", secondary: List = [], target = None):
+  def pending(self, destination = "discard", secondary: List = [], target = None, reveal: bool = False):
     """ Pending is the function that handles when multiple cards leave play at the same time, whether it be to hand or to discard. It will trigger leaves play and destroyed effects. Allowable options for dest are 'purge', 'discard', 'hand', 'deck', 'archive'.
     """
     active = self.activePlayer.board
@@ -1534,7 +1536,6 @@ class Board():
             else:
               self.inactivePlayer.discard.append(up)
           self.inactivePlayer.hand.append(card)
-        card.reset()
         card.reveal = True
         L.remove(card)
       # I think it would be confusing if I sorted the hand, at this point they will have chosen the order of L so things should be returned to their hand in that order
@@ -1546,8 +1547,7 @@ class Board():
           self.activePlayer.deck.append(card)
         else:
           self.inactivePlayer.deck.append(card)
-        card.reset()
-        card.reveal = True
+        card.reveal = reveal
         L.remove(card)
     elif destination == "archive":
       if target == None:
@@ -1589,15 +1589,23 @@ class Board():
         if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
           if message: pyautogui.alert("You can't play creatures because of 'Lifeward'")
           return False
-      if card.house not in self.activeHouse:
+      if card.house not in self.activeHouse and not cheat:
         return True
+    if card.type == "Artifact":
+      # if there are other things that affect playing artifacts, make sure this one is last
+      if "customs_office" in [x.title for x in self.inactivePlayer.board["Artifact"]] and self.activePlayer.amber < sum(x.title == "customs_office" for x in self.inactivePlayer.board["Artifact"]):
+        if message: pyautogui.alert("You are unable to pay for your opponent's custom office.")
+        return False
+      elif "customs_office" in [x.title for x in self.inactivePlayer.board["Artifact"]] and reset:
+        self.activePlayer.amber -= 1
+        self.inactivePlayer.gainAmber(1, self)
     if card.type == "Upgrade" and len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
       if message: pyautogui.alert("No valid targets for this upgrade.")
       return False
     if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0) and not cheat:
       if reset:
         self.activePlayer.states["phase_shift"] -= 1 # reset to false
-    elif card.house not in self.activeHouse:
+    elif card.house not in self.activeHouse and not cheat:
       if message: pyautogui.alert("Can't play cards not from the active house.")
       return False
     return True
@@ -2471,6 +2479,7 @@ class Board():
         If a condition is set, only cards that match the condition can be picked\n
         If condition isn't met, the con_message is displayed
     """
+    self.cardChanged()
     active = self.activePlayer.board
     inactive = self.inactivePlayer.board
 

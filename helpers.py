@@ -111,6 +111,10 @@ def willEnterReady(game, card, reset: bool = True):
         if reset:
           activeS["blypyp"] = 0
         return True
+    if "speed_sigil" in [x.title for x in game.activePlayer.board["Artifacts"] + game.inactivePlayer.board["Artifacts"]]:
+      c_played = sum(x.type == "Creature" for x in game.playedThisTurn)
+      if (not c_played and not reset) or (c_played == 1 and reset):
+        return True
   if "soft_landing" in activeS and activeS["soft_landing"] and (card.type == "Creature" or card.type == "Artifact"):
     if reset:
       activeS["soft_landing"] = 0
