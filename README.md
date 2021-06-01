@@ -4,7 +4,8 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
- <li><s>Interacting with the state dictionaries.</s> - in progress</li>
+ <li>Mantle of Zealot and Experimental Therapy in canReap, canFight, canAction: note that these actually do work differently, and Experimental Therapy is going to be a b to implement properly.</li>
+ <li>Code reap, fight, action, abilities with knowledge that there might be more than one</li>
  <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal - everytime a function tries to ref pendingReloc, it needs to check if pendingReloc contains something - if it does, then this is a nested destroy, and secondary needs to be used instead - I think this shouldn't matter for play effects</li>
  <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs</li>
  <li>game.pending should be able to handle things going into archives (because of card.reset())</li>
@@ -21,17 +22,16 @@
  <li>Make a tiny purged image.</li>
  <li>Ready creature entering next to tapped taunt looks like it has taunt in chooseFlank</li>
  <li>things in later sets that give other cards abilities</li>
- <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 16 card in hand or more than 12(?) creatures or artifacts</li>
+ <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 15 card in hand or more than 12(?) creatures or artifacts</li>
  <li>What about having the background color of the active Player's mat match the color of the house they've chosen?</li>
  <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves</li>
  <li>Display the card that's under Masterplan</li>
+ <li>Implement poison</li>
+ <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged</li>
  <li></li>
  <li></li>
  <li></li>
- <li></li>
- <li></li>
- <li></li>
- <li></li>
+<li><s>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</s> - Yes</li>
  <li><s>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</s></li>
  <li><s>I need a destroy function for handling ward and invulnerable -> or make changes to updateHealth.</s> - both and, and seems to be working</li>
  <li><s>Obsolete the chooseMulligan function by adding a color option to chooseHouse, which is now a misnamed function</s></li>
@@ -55,6 +55,7 @@
  <li><s>Incorporate a condition into chooseCards</s></li>
  <li><s>Put a red layer over items that aren't allowed to be selected.</s></li>
  <li><s>I want the algo for drawing creatures, artifacts, to put them in the middle of their area. For now I'm not going to do this for hands.</s> - That was easier than I thought it was going to be.</li>
+ <li><s>Interacting with the state dictionaries.</s> - in progress</li>
  <li><s>If a card is tapped, it's untapped rect should be outside the board, and vice versa - this could be put in game.switch()</s> - actually put it in draw</li>
  <li><s>game.chooseCards: (1) can infinite loop if the list they try to target is empty (2) can't handle choosing from different lists at the same time (3) should highlight chosen cards</s></li>
  <li><s>Key locations not scaled to size of display.</s></li>
@@ -103,7 +104,7 @@
  <li>write after fights for Krump and creatures of his ilk - this means after fight will need to fed three variables</li>
  <li>the pending function will need to call card.dest, and definitely will need to call card.leaves</li>
  <li>when do I check for taunt?</li>
- <li>implement the rule of six</li>
+ <li>implement the rule of six: change playedThisTurn, etc into dictionaries?</li>
  <li><s>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</s></li>
  <li>Reset cards back to default state after leaving the board (the function needs to written in cardsAsClass, and then called in game.pending)</li>
  <li></li>
@@ -112,8 +113,7 @@
 
 <h2>Testing / Rules: </h2>
 <ol>
- <li>Get hazardous and assault working - should be easy, but I made it more difficult than it needed to be. Could use more testing.</li>
-<li><b>If a card is trying to find it's own index, can it tell itself apart from another card with the same name? - still haven't confirmed</b></li>
+<li>Get hazardous and assault working - should be easy, but I made it more difficult than it needed to be. Could use more testing.</li>
 <li>Can use wild wormhole to cheat out a card with ember imp in play? Rules-wise it can't, as wildwormhole only gets around the first turn rule b/c that rule applies to playing out of hand.</li>
 <li>Dysania won't work. - now maybe she will</li>
 </ol>

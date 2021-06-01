@@ -53,12 +53,14 @@ class Board():
     self.usedLastTurn = []
     self.forgedThisTurn = []
     self.forgedLastTurn = []
+    self.destInFight = []
     self.turnStage = None
     self.pendingReloc = []
     self.extraDraws = []
     self.dataBlits = []
     self.cardBlits = []
     self.highlight = []
+    self.resetHouse = []
     self.resetStates = []
     self.resetStatesNext = []
     # draw bools
@@ -501,7 +503,7 @@ class Board():
 
       elif self.turnStage == 2: # choose a house, optionally pick up archive
         archive = self.activePlayer.archive
-        self.activeHouse = self.chooseHouse("activeHouse")
+        self.activeHouse.append(self.chooseHouse("activeHouse")[0]) # this allows something to belong to all houses
         highSurf = pygame.Surface(self.house1a.get_size())
         highSurf.convert()
         highSurf.fill(COLORS["LIGHT_GREEN"])
@@ -662,6 +664,7 @@ class Board():
         self.discardedThisTurn = []
         self.usedLastTurn = self.usedThisTurn.copy()
         self.usedThisTurn = []
+        self.destInFight = []
         self.remaining = True
         # print(f"States: {self.resetStates}")
         # print(f"Next states: {self.resetStatesNext}")
@@ -671,6 +674,8 @@ class Board():
               self.activePlayer.states[key[1]] = 0
             if key[0] == "i":
               self.inactivePlayer.states[key[1]] = 0
+        for card in self.resetHouse:
+          card.house = card.cardInfo["house"]
         self.resetStates = self.resetStatesNext.copy()
         self.resetStatesNext = []
         # print(f"States: {self.resetStates}")
@@ -1066,12 +1071,16 @@ class Board():
   def calculateCost(self):
     """ Calculates the cost of a key considering current board state.
     """
+    cost = 6
+    for c in self.activePlayer.board["Creature"]:
+      if "jammer_pack" in [x.title for x in c.upgrade]:
+        cost += 2
+
     if True: # check if things that affect cost are even in any decks
       pass # return cost
     
-    # Things to check: That annoying Dis artifact, Murmook, Grabber Jammer, that Mars upgrade, Titan Mechanic
-    # Need to add a tag for affecting amber cost.
-    cost = 6
+    # Things to check: That annoying Dis artifact, Murmook, Grabber Jammer, Jammer Pack, Titan Mechanic, Iron Obelisk
+    # Need to add a tag for affecting amber cost?
     return cost
 
 
@@ -1116,7 +1125,8 @@ class Board():
       pyautogui.alert("Creature is stunned and unable to act. Unstunning creature instead.")
       card.stun = False
       card.ready = False
-      self.usedThisTurn.append(card)
+      if card not in self.usedThisTurn:
+        self.usedThisTurn.append(card)
       self.cardChanged()
       return
     # Trigger action
@@ -1183,7 +1193,8 @@ class Board():
       pyautogui.alert("Creature is stunned and unable to fight. Unstunning creature instead.")
       card.stun = False
       card.ready = False
-      self.usedThisTurn.append(card)
+      if card not in self.usedThisTurn:
+        self.usedThisTurn.append(card)
       self.cardChanged()
       return
     if defender == None:
@@ -1213,7 +1224,7 @@ class Board():
     else:
       source = self.activePlayer.hand
     card = source[chosen]
-    if not self.canPlay(card, message = True):
+    if not self.canPlay(card, message = False):
       return
     # cardOptions() makes sure that you can't try to play a card you're not allowed to play
     # canPlay() does the same for drag and drop and cheating out cards
@@ -1266,7 +1277,8 @@ class Board():
       pyautogui.alert("Creature is stunned and unable to reap. Unstunning creature instead.")
       card.stun = False
       card.ready = False
-      self.usedThisTurn.append(card)
+      if card not in self.usedThisTurn:
+        self.usedThisTurn.append(card)
       self.cardChanged()
       return
     card.reap(self, card)
@@ -1429,7 +1441,7 @@ class Board():
     self.remaining = True
     
 
-  def previewHouse(self, house: str) -> List[Tuple[pygame.Surface, pygame.Rect]]:
+  def previewHouse(self, house: str, both: bool = False) -> List[Tuple[pygame.Surface, pygame.Rect]]:
     """ Highlights the cards in the selected house during the choose house step.
     """
     retVal = []
@@ -1444,12 +1456,18 @@ class Board():
     selectedSurfTapped.set_alpha(80)
     selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
 
-    for card in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
+    board = self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]
+    if both:
+      board += self.inactivePlayer.board["Creature"] + self.inactivePlayer.board["Artifact"]
+
+    for card in board:
       if card.house == house:
         if card.ready:
           retVal.append((selectedSurf, card.rect))
         else:
           retVal.append((selectedSurfTapped, card.tapped_rect))
+    if both:
+      return retVal
     for card in self.activePlayer.hand:
       if card.house == house:
         retVal.append((selectedSurf, card.rect))
@@ -1571,6 +1589,10 @@ class Board():
     if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
       pyautogui.alert("'Treasure Map' prevents playing more cards this turn")
       return False
+    if "witch_of_the_wilds" in [x.title for x in self.activePlayer.board["Creature"]] \
+    and "Untamed" not in self.activeHouse \
+    and sum(x.house == "Untamed" for x in self.playedThisTurn) < 2:
+      return True # the problem is this probably does stack with phase shift
     if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
       if card.type == "Action":
         if "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
@@ -2316,13 +2338,12 @@ class Board():
       self.extraDraws = []
 
   
-  def chooseHouse(self, varAsStr: str, custom: Tuple[str, List[str]] = (), colors: List[str] = []) -> List[str]:
+  def chooseHouse(self, varAsStr: str, custom: Tuple[str, List[str]] = (), colors: List[str] = [], highlight:str = "") -> List[str]:
     """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak.
     """
     if varAsStr == "activeHouse":
       message = "Choose your house for this turn:"
       if "control_the_weak" in self.inactivePlayer.states and self.inactivePlayer.states["control_the_weak"]:
-        # self.activeHouse = [self.inactivePlayer.states["control_the_weak"]]
         houses = self.inactivePlayer.states["control_the_weak"]
       else:
         houses = [self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]]
@@ -2349,9 +2370,6 @@ class Board():
     elif varAsStr == "custom":
       message = custom[0]
       houses = custom[1]
-    # elif varAsStr == "color":
-    #   message = custom[0]
-    #   houses = custom[1]
     houses_rects = []
     # message
     messageSurf = self.BASICFONT.render(message, 1, COLORS["WHITE"])
@@ -2399,6 +2417,8 @@ class Board():
         self.extraDraws = [(confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
         if varAsStr == "activeHouse":
           self.extraDraws += self.previewHouse(self.activePlayer.houses[selected - 1])
+        elif highlight:
+          self.extraDraws += self.previewHouse(highlight, True)
       else:
         self.extraDraws = [(messageBackSurf, messageBackRect), (messageSurf, messageRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
       for e in pygame.event.get():

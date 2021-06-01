@@ -28,5 +28,43 @@ def basicBeforeFight(game, card):
   if "stampede" in game.activePlayer.states:
     game.activePlayer.states["stampede"] += 1
 
+
+###########
+# Brobnar #
+###########
+
+#######
+# Dis #
+#######
+
+#########
+# Logos #
+#########
+
+def rocket_boots (game, card):
+  """ Rocket Boots: If this is the first time this creature was used this turn, ready it.
+  """
+  pass
+
+########
+# Mars #
+########
+
+
+
+###########
+# Sanctum #
+###########
+
+
+
+###########
+# Shadows #
+###########
+
+###########
+# Untamed #
+###########
+
 if __name__ == '__main__':
   print ('This statement will be executed only if this script is called directly')

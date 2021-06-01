@@ -20,11 +20,60 @@
 #     # handle upgrades
 #     card.reset() # I think this should be last
 
-#############
-## Brobnar ##
-#############
+###########
+# Brobnar #
+###########
 
+def phoenix_heart (game, card):
+  """ Phoenix Heart: Return this creature to its owner's hand and deal 3 damage to each creature.
+  """
+  pass
+
+
+#######
+# Dis #
+#######
+
+#########
+# Logos #
+#########
+
+# Harland mindlock too
+
+########
+# Mars #
+########
+
+def biomatrix_backup (game, card):
+  """ Biomatrix Backup: Fully heal this creature and destroy armageddon cloak instead.
+  """
+  pass
+
+###########
+# Sanctum #
+###########
+
+def armageddon_cloak (game, card):
+  """ Armageddon Cloak" If this creature would be destroyed, 
+  """
+  card.hazard -= 2
+  card.damage = 0
+  for c in card.upgrade[::-1]:
+    if c.title == "armageddon_cloak":
+      game.pendingReloc.append(c)
+      card.upgrade.remove(c)
+  game.pending()
+
+# gray monk too
+
+###########
+# Shadows #
+###########
+
+###########
+# Untamed #
+###########
 
 
 if __name__ == '__main__':
-    print ('This statement will be executed only if this script is called directly')
+  print ('This statement will be executed only if this script is called directly')

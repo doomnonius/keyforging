@@ -64,7 +64,7 @@ class Card(pygame.sprite.Sprite):
             self.play = play.passFunc
         # action abilities
         if self.title in dir(action):
-            self.action = eval(f"action.{self.title}")
+            self.action = [eval(f"action.{self.title}")]
         else:
             self.action = False
         # omni abilitiestry:
@@ -87,6 +87,7 @@ class Card(pygame.sprite.Sprite):
                 self.usable = False
             self.ready = False
             self.stun = False
+            self.harland = None
             self.captured = 0
             # check for skirmish in self.text
             if "Skirmish" in self.text:
@@ -106,19 +107,19 @@ class Card(pygame.sprite.Sprite):
                 self.taunt = False
             # check for reaping abilities
             if self.title in dir(reap):
-                self.reap = eval(f"reap.{self.title}")
+                self.reap = [eval(f"reap.{self.title}")]
             else:
-                self.reap = reap.basicReap
+                self.reap = [reap.basicReap]
             # check for before fight abilities
             if f"before_{self.title}" in dir(fight):
-                self.before = eval(f"fight.before_{self.title}")
+                self.before = [eval(f"fight.before_{self.title}")]
             else:
-                self.before = fight.basicBeforeFight
+                self.before = [fight.basicBeforeFight]
             # check for after fight abilities
             if self.title in dir(fight):
-                self.fight = eval(f"fight.{self.title}")
+                self.fight = [eval(f"fight.{self.title}")]
             else:
-                self.fight = fight.basicFight
+                self.fight = [fight.basicFight]
             # check for assault
             if "Assault" in self.text:
                 self.assault = int(self.text[self.text.index("Assault") + 8])
