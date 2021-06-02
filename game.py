@@ -1347,10 +1347,14 @@ class Board():
       for card in active[::-1]:
         if card.title == "tireless_crocag":
           destroy(card, self.activePlayer, self)
+          if card.destroyed:
+            self.pendingReloc.append(card)
     if len(active) == 0 and "tireless_crocag" in [x.title for x in inactive]:
       for card in inactive[::-1]:
         if card.title == "tireless_crocag":
           destroy(card, self.inactivePlayer, self)
+          if card.destroyed:
+            self.pendingReloc.append(card)
     if self.pendingReloc:
       self.pending()
       
@@ -1460,17 +1464,17 @@ class Board():
     if both:
       board += self.inactivePlayer.board["Creature"] + self.inactivePlayer.board["Artifact"]
 
-    for card in board:
-      if card.house == house:
-        if card.ready:
-          retVal.append((selectedSurf, card.rect))
+    for c in board:
+      if c.house == house or "experimental_therapy" in [x.title for x in c.upgrade]:
+        if c.ready:
+          retVal.append((selectedSurf, c.rect))
         else:
-          retVal.append((selectedSurfTapped, card.tapped_rect))
+          retVal.append((selectedSurfTapped, c.tapped_rect))
     if both:
       return retVal
-    for card in self.activePlayer.hand:
-      if card.house == house:
-        retVal.append((selectedSurf, card.rect))
+    for c in self.activePlayer.hand:
+      if c.house == house or "experimental_therapy" in [x.title for x in c.upgrade]:
+        retVal.append((selectedSurf, c.rect))
     
     return retVal
 
@@ -1643,7 +1647,10 @@ class Board():
         pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
         return False
       if card.house not in self.activeHouse and card.house not in self.extraFightHouses and card.house not in self.extraUseHouses and card.title != "tireless_crocag" and not cheat:
-        return False
+        if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
+          pass
+        else:
+          return False
       if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
         return False
       if card.title == "bigtwig" and True not in [x.stun for x in self.inactivePlayer.board["Creature"]]:
@@ -1656,16 +1663,18 @@ class Board():
     if card.type != "Creature" or not card.ready or (card.stun and not r_click):
       return False
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
-      return False
+      if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
+        pass
+      else:
+        return False
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
       pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
       return False
-    if card.type == "Creature":
-      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
-        pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
-        return False
-      if card.title == "tireless_crocag":
-        return False
+    if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
+      pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+      return False
+    if card.title == "tireless_crocag":
+      return False
     
 
     return True
@@ -1674,7 +1683,10 @@ class Board():
     if not card.ready:
       return False
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
-      return False
+      if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
+        pass
+      else:
+        return False
     if card.type == "Creature" and (card.stun and not r_click):
       return False
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:

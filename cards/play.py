@@ -287,8 +287,8 @@ def take_that_smartypants (game, card):
   passFunc(game, card)
   inactiveBoard = game.inactivePlayer.board
   count = 0
-  for x in (inactiveBoard["Creature"] + inactiveBoard["Artifact"]):
-    if x.house == "Logos":
+  for c in (inactiveBoard["Creature"] + inactiveBoard["Artifact"]):
+    if c.house == "Logos" or "experimental_therapy" in [x.title for x in c.upgrade]:
       count += 1
       if count >= 3:
         stealAmber(game.activePlayer, game.inactivePlayer, 2)
@@ -564,7 +564,7 @@ def wardrummer (game, card):
   pending = game.pendingReloc
   
   for c in activeBoard[::-1]:
-    if c.house == "Brobnar" and c != card:
+    if (c.house == "Brobnar" or "experimental_therapy" in [x.title for x in c.upgrade]) and c != card:
       activeBoard.remove(c)
       pending.append(c)
   
@@ -811,7 +811,7 @@ def hecatomb (game, card):
   pendingDiscard = game.pendingReloc
   count = 0
   for c in active[::-1]:
-    if c.house == "Dis":
+    if c.house == "Dis" or "experimental_therapy" in [x.title for x in c.upgrade]:
       destroy(c, game.activePlayer, game)
       if c.destroyed:
         pendingDiscard.append(c)
@@ -819,7 +819,7 @@ def hecatomb (game, card):
   game.activePlayer.gainAmber(count, game)
   count = 0
   for c in inactive[::-1]:
-    if c.house == "Dis":
+    if c.house == "Dis" or "experimental_therapy" in [x.title for x in c.upgrade]:
       destroy(c, game.inactivePlayer, game)
       if c.destroyed:
         pendingDiscard.append(c)
@@ -1690,14 +1690,14 @@ def emp_blast (game, card):
   inactiveC = game.inactivePlayer.board["Creature"]
   inactiveA = game.inactivePlayer.board["Artifact"]
   
-  for x in [x for x in (activeC + inactiveC) if x.house == "Mars" or "Robot" in x.traits]:
-    x.stun = True
-  for card in activeA[::-1]:
-    destroy(card, game.activePlayer, game)
-    game.pendingReloc.append(card)
-  for card in inactiveA[::-1]:
-    destroy(card, game.inactivePlayer, game)
-    game.pendingReloc.append(card)
+  for c in [x for x in (activeC + inactiveC) if (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) or "Robot" in x.traits]:
+    c.stun = True
+  for c in activeA[::-1]:
+    destroy(c, game.activePlayer, game)
+    game.pendingReloc.append(c)
+  for c in inactiveA[::-1]:
+    destroy(c, game.inactivePlayer, game)
+    game.pendingReloc.append(c)
   game.pending()
 
 def hypnotic_command (game, card):
@@ -1708,7 +1708,7 @@ def hypnotic_command (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
-  count = sum(x.house == "Mars" for x in active)
+  count = sum((x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
   while count > 0:
     choice = game.chooseCards("Creature", "Choose an enemy creature to capture one amber from their own side: ", "enemy")[0][1]
     # looks like they can choose the same minion each time, which is why the loop
@@ -1741,11 +1741,11 @@ def key_abduction (game, card):
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
   for c in active[::-1]:
-    if c.house == "Mars":
+    if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
       active.remove(c)
       pending.append(c)
   for c in inactive[::-1]:
-    if c.house == "Mars":
+    if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
       active.remove(c)
       pending.append(c)
   game.pending('hand')
@@ -1835,16 +1835,16 @@ def mating_season (game, card):
   
   count = 0
   for c in activeC[::-1]:
-    if c.house == "Mars":
+    if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
       game.pendingReloc.append(c)
-      activeC.remove(c)
+      c.returned = True
       count += 1
   game.activePlayer.gainAmber(count, game)
   count = 0
   for c in inactiveC[::-1]:
-    if c.house == "Mars":
+    if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
       game.pendingReloc.append(c)
-      inactiveC.remove(c)
+      c.returned = True
       count += 1
   game.inactivePlayer.gainAmber(count, game)
 
@@ -1862,7 +1862,7 @@ def mothership_support (game, card):
   pending = game.pendingReloc # fine because one target at a time
   friend_damaged = []
   enemy_damaged = []
-  count = sum(x.ready and x.house == "Mars" for x in active)
+  count = sum(x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
   if count == 0:
     pyautogui.alert("You have no Mars creatures, so no damage is dealt. The card is still played.")
     return
@@ -1937,7 +1937,7 @@ def phosphorous_stars (game, card):
   inactive = game.inactivePlayer.board["Creature"]
 
   for x in (active + inactive):
-    if x.house != "Mars":
+    if x.house != "Mars" or "experimental_therapy" not in [y.title for y in x.upgrade]:
       x.stun = True
 
   game.activePlayer.chains += 2
@@ -1948,7 +1948,7 @@ def psychic_network (game, card):
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
-  count = sum(x.ready and x.house == "Mars" for x in active)
+  count = sum(x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
   if count == 0:
     pyautogui.alert("You have no friendly ready Mars creatures, so you don't steal any amber. The card is still played.")
     return
@@ -2006,17 +2006,17 @@ def squawker (game, card):
   if active or inactive:
     side, choice = game.chooseCards("Creature", "Ready a Mars creature or stun a non-Mars creature:")[0]
     if side == "fr":
-      card = active[choice]
-      if card.house == "Mars":
-        card.ready = True
+      c = active[choice]
+      if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
+        c.ready = True
       else:
-        card.stun = True
+        c.stun = True
     else:
-      card = inactive[choice]
-      if card.house == "Mars":
-        card.ready = True
+      c = inactive[choice]
+      if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
+        c.ready = True
       else:
-        card.stun = True
+        c.stun = True
 
 def total_recall (game, card):
   """ Total Recall: For each friendly ready creature, gain 1 amber. Return each friendly creature to your hand.
@@ -2045,14 +2045,12 @@ def yxili_marauder (game, card):
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
-  count = sum(x.ready and x.house == "Mars" for x in active)
+  count = sum(x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
 
   if count == 0:
     pyautogui.alert("You have no friendly ready Mars creatures. " + card.title + " captures no amber.")
     return
-  while count > 0 and game.inactivePlayer.amber > 0:
-    card.capture(game, 1)
-    count -= 1
+  card.capture(game, count)
   pyautogui.alert("Yxili Marauder captured " + str(card.captured) + " amber.")
 
 ## End house Mars
@@ -2072,12 +2070,12 @@ def begone (game, card):
   choice = game.chooseHouse("custom", ("Choose one: Destroy each Dis creature, or gain 1 amber", ["Destroy Dis", "Gain amber"]))[0]
   if choice[0] == "D":
     for c in game.activePlayer.board["Creature"][::-1]:
-      if c.house == "Dis":
+      if c.house == "Dis" or "experimental_therapy" in [x.title for x in c.upgrade]:
         destroy(c, game.activePlayer, game)
         if c.destroyed:
           game.pendingReloc.append(c)
     for c in game.inactivePlayer.board["Creature"][::-1]:
-      if c.house == "Dis":
+      if c.house == "Dis" or "experimental_therapy" in [x.title for x in c.upgrade]:
         destroy(c, game.inactivePlayer, game)
         if c.destroyed:
           game.pendingReloc.append(c)
@@ -2094,7 +2092,7 @@ def blinding_light (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   for x in (active + inactive):
-    if x.house == choice:
+    if x.house == choice or "experimental_therapy" in [y.title for y in x.upgrade]:
       x.stun = True
 
 def charge (game, card):
@@ -2725,7 +2723,7 @@ def one_last_job (game, card):
   
   count = 0
   for c in active[::-1]:
-    if c.house == "Shadows":
+    if c.house == "Shadows" or "experimental_therapy" in [x.title for x in c.upgrade]:
       active.remove(c)
       pending.append(c)
       count += 1
@@ -3284,7 +3282,7 @@ def the_common_cold (game, card):
   game.pending()
   game.cardChanged()
 
-  mars = sum(x.house == "Mars" for x in active + inactive)
+  mars = sum(x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade] for x in active + inactive)
   if not mars:
     pyautogui.alert("No Mars creatures to destroy")
     return
@@ -3292,12 +3290,12 @@ def the_common_cold (game, card):
   destroy = game.chooseHouse("custom", (f"Would you like to destroy all {mars} Mars creatures?", ["Yes", "No"]), highlight = "Mars")[0]
   if destroy == "Yes":
     for c in active[::-1]:
-      if c.house == "Mars":
+      if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
         destroy(c, game.activePlayer, game)
         if c.destroyed:
           pending.append(c)
     for c in inactive[::-1]:
-      if c.house == "Mars":
+      if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
         destroy(c, game.inactivePlayer, game)
         if c.destroyed:
           pending.append(c)
