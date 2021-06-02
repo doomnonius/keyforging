@@ -103,7 +103,28 @@ class Deck:
     def gainAmber(self, count, game):
         """ This function will handle the possiblity of ether spider.
         """
+        active = game.activePlayer.board["Creature"]
+        inactive = game.inactivePlayer.board["Creature"]
         self.amber += count
+        if self == game.activePlayer:
+            count = sum(x.title == "ether_spider" for x in inactive)
+            if count > 1:
+                choice = inactive[game.chooseCards("Creature", "Choose which Ether Spider will capture the amber:", "enemy", condition = lambda x: x.title == "ether_spider", con_message = "That's not an ether spider")[0][1]] # choose which one captures
+                choice.capture(game, count)
+            elif count == 1:
+                for c in inactive:
+                    if c.title == "ether_spider":
+                        c.capture(game, count)
+        if self == game.inactivePlayer:
+            count = sum(x.title == "ether_spider" for x in active)
+            if count > 1:
+                choice = active[game.chooseCards("Creature", "Choose which Ether Spider will capture the amber:", "friend", condition = lambda x: x.title == "ether_spider", con_message = "That's not an ether spider")[0][1]] # choose which one captures
+                choice.capture(game, count)
+            elif count == 1:
+                for c in active:
+                    if c.title == "ether_spider":
+                        c.capture(game, count)
+                
         game.setKeys()
 
     def __iadd__(self, num):

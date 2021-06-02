@@ -256,20 +256,44 @@ class Card(pygame.sprite.Sprite):
         if self.title == "yxili_marauder":
             self.power += self.captured - initial
 
-    def damageCalc(self, game, num):
+    def damageCalc(self, game, num, poison = False, armor = True):
         """ Calculates damage, considering armor only.
         """
         if "shield_of_justice" in game.activePlayer.states and game.activePlayer.states["shield_of_justice"] and self in game.activePlayer.board["Creature"]:
             pyautogui.alert(f"No damage is dealt to {self.title} because of Shield of Justice.")
             return
+        if armor == False:
+            self.damage += num
+        if poison and num > self.armor:
+            self.destroyed = True
         if num >= self.armor:
-            self.damage += (num - self.armor)
+            damage = (num - self.armor)
             self.armor = 0
+            shadows = sum(x.title == "shadow_self" for x in self.neighbors(game))
+            if not shadows or "Specter" in self.traits:
+                self.damage += damage
+            elif shadows == 1:
+                self.damage += 0
+                for c in self.neighbors(game):
+                    if c.title == "shadow_self":
+                        c.damage += damage
+            elif shadows == 2:
+                self.damage += 0
+                if self == game.activePlayer:
+                    active = game.activePlayer.board["Creature"]
+                    choice = active[game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "friend", condition = lambda x: x in self.neighbors(game))[0][1]]
+                else:
+                    inactive = game.inactivePlayer.board["Creature"]
+                    choice = inactive[game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "enemy", condition = lambda x: x in self.neighbors(game))[0][1]]
+                choice.damageCalc(game, damage)
         else:
             self.armor -= num
     
     def fightCard(self, other, game) -> None:
+        active = game.activePlayer.board["Creature"]
+        inactive = game.activePlayer.board["Creature"]
         print(self.title + " is fighting " + other.title + "!")
+        self.ready = False
         # add hazardous and assault in here too
         print(f"Hazard: {other.hazard}")
         if other.hazard:
@@ -281,62 +305,89 @@ class Card(pygame.sprite.Sprite):
             other.damageCalc(game, self.assault)
             print("Damage from assault calced")
             other.updateHealth(game.inactivePlayer)
-        retEarly = False
         if self.destroyed:
-            retEarly = True
             game.pendingReloc.append(self)
         if other.destroyed:
-            retEarly = True
             game.pendingReloc.append(other)
         print("Before fight effects would go here too.")
         if self.before:
             for b in self.before:
-                b(game, self)
+                b(game, self, other)
         else:
-            fight.basicBeforeFight(game, self)
-        if retEarly:
-            print("Exiting fight early b/c attacker or defender died during hazard/assault step.")
+            fight.basicBeforeFight(game, self, other)
+        evasion = False
+        sigil = sum(x.title == "evasion_sigil" for x in game.activePlayer.board["Creature"] + game.activePlayer.board["Creature"])
+        if sigil:
+            for _ in range(sigil):
+                if game.activePlayer.deck:
+                    game.activePlayer.discard.append(game.activePlayer.deck.pop())
+                    if game.activePlayer.discard[-1].house != self.house:
+                        evasion = True
+        if self.destroyed or other.destroyed or other not in inactive or self not in active or evasion:
+            print(f"Exiting fight early b/c attacker or defender died during hazard/assault/before fight step, or evasion sigil triggered: {evasion}.")
             game.pending()
+            basic = False
+            if self.destroyed:
+                survived = False
+                game.pendingReloc.append(self)
+            else:
+                survived = True
+                fight.basicFight(game, self, other)
+                basic = True
+            if not basic:
+                fight.basicFight(game, self, other)
+            if survived:
+                for f in self.fight:
+                    f(game, self, other)
             return
         print("If you're reading this, it's not self.before")
         if self.skirmish or self.temp_skirmish:
             print("The attacker has skirmish, and takes no damage.") # Test line
-        elif other.elusive:
+        elif self.title in ["gabos_longarms", "ether_spider", "shadow_self"]:
+            print("The defender deals no damage while fighting.")
+        elif other.elusive and self.title != "niffle_ape":
             print("The defender has elusive, so no damage is dealt to the attacker.") # Test line
         else:
             print("Damage is dealt as normal to attacker.")
-            self.damageCalc(game, other.power + other.extraPow)
-        if other.elusive:
+            self.damageCalc(game, other.power, poison = other.poison)
+        if other.elusive and self.title != "niffle_ape":
             print("The defender has elusive, so no damage is dealt to the defender.")
             other.elusive = False
+        elif self.title in ["gabos_longarms", "ether_spider", "shadow_self"]:
+            print("The attacker deals no damage while fighting.")
         else:
             damage = self.power + self.extraPow
             if self.title == "valdr" and other.isFlank(game):
                 damage += 2
             print(f"{damage} damage is dealt as normal to defender.")
-            other.damageCalc(game, damage)
-        self.ready = False
+            other.damageCalc(game, damage, self.poison)
         print("After fight effects would go here, if attacker survives.")
         print(f"Damage on attacker: {self.damage}")
         print(f"Damage on defender: {other.damage}")
         self.updateHealth(game.activePlayer)
         print("Updated attacker health.")
+        basic = False
         if self.destroyed:
+            survived = False
             game.pendingReloc.append(self)
         else:
-            if self.fight:
-                for f in self.fight:
-                    f(game, self, other)
-            else:
-                fight.basicFight(game, self, other)
-            print("I know it isn't self.fight that's failing.")
+            survived = True
+            fight.basicFight(game, self, other)
+            basic = True
+        print("I know it isn't self.fight that's failing.")
         other.updateHealth(game.inactivePlayer)
         print("Updated defender health.")
         if other.destroyed:
             game.pendingReloc.append(other)
-        else:
+        elif not basic:
+            fight.basicFight(game, self, other)
+            basic = True
+        if not basic:
             fight.basicFight(game, self, other)
         game.pending()
+        if survived:
+            for f in self.fight:
+                f(game, self, other)
         print("Another comment after pending has completed.")
 
     # def health(self) -> int:
@@ -388,7 +439,7 @@ class Card(pygame.sprite.Sprite):
         self.temp_skirmish = False
         # I can change Gray Monk to match this by giving it a play effect and a leaves play effect.
 
-    def updateHealth(self, player) -> None:
+    def updateHealth(self, player = None) -> None:
         if (self.power + self.extraPow - self.damage) <= 0:
             print(self.title + " is dead.")
             self.destroyed = True

@@ -1091,11 +1091,16 @@ class Board():
   def calculateCost(self):
     """ Calculates the cost of a key considering current board state.
     """
+    active = self.activePlayer.board["Creature"]
+    inactive = self.inactivePlayer.board["Creature"]
+    activeS = self.activePlayer.states
+    inactiveS = self.inactivePlayer.states
     cost = 6
-    for c in self.activePlayer.board["Creature"]:
+    for c in inactive:
       if "jammer_pack" in [x.title for x in c.upgrade]:
         cost += 2
-
+      if c.title == "grabber_jammer":
+        cost += 1
     if True: # check if things that affect cost are even in any decks
       pass # return cost
     
@@ -1223,6 +1228,8 @@ class Board():
     if defender == None:
       if card.title != "niffle_ape":
         defender = self.chooseCards("Creature", "Choose an enemy creature to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors(self)]), con_message = "This minion is protected by taunt.")[0][1]
+      elif card.title == "bigtwig":
+        defender = self.chooseCards("Creature", "Choose an enemy creature to attack:", "enemy", condition = lambda x: (x.taunt or not (True in [y.taunt for y in x.neighbors(self)])) and x.stun, con_message = "This minion is protected by taunt and/or is not stunned.")[0][1]
       else:
         defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0][1]
     if defender == None:
@@ -1309,7 +1316,7 @@ class Board():
         r(self, card)
     else:
       basicReap(self, card)
-    # reaper.ready = False # commented out for testing
+    card.ready = False # commented out for testing
     if card not in self.usedThisTurn:
       self.usedThisTurn.append(card)
     self.cardChanged()
@@ -1558,9 +1565,9 @@ class Board():
       return
     if destination == "purge":
       for c in L[::-1]:
-        if c.deck == self.activePlayer.name:
+        if c.deck == self.activePlayer.name and not c.safe:
           self.activePlayer.purge.append(c)
-        else:
+        elif not c.safe:
           self.inactivePlayer.purge.append(c)
         L.remove(c)
     

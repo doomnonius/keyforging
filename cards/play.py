@@ -2175,19 +2175,24 @@ def inspiration (game, card):
   choice = game.chooseCards("Creature", "Ready and use a friendly creature", "friend")[0][1]
   card = active[choice]
   card.ready = True
-  uses =  ["Reap", "Fight"]
-  if active[choice].action:
-    uses.append("Action")
+  uses =  []
+  if game.canReap(card, r_click = True, cheat = True):
+    uses.append("Reap")
+  if game.canFight(card, r_click = True, cheat = True):
+    uses.append("Fight")
+  if game.canAction(card, r_click = True, cheat = True):
+    uses.append("Action/Omni")
+  
   use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
   if use[0] == "R":
-    if game.canReap(card, cheat = True):
-      game.reapCard(choice, cheat = True)
+    if game.canReap(card, r_click = True, cheat = True):
+      game.reapCard(active.index(choice), cheat = True)
   elif use[0] == "F":
-    if game.canFight(card, cheat = True):
-      game.fightCard(choice, cheat=True)
+    if game.canFight(card, r_click = True, cheat = True):
+      game.fightCard(active.index(choice), cheat=True)
   elif use[0] == "A":
-    if game.canAction(card, cheat = True):
-      game.actionCard(choice, cheat = True)
+    if game.canAction(card, r_click = True, cheat = True):
+      game.actionCard(active.index(choice), cheat = True)
 
 def mighty_lance (game, card):
   """ Mighty Lance: Deal 3 damage to a creature and 3 damage to a neighbor of that creature.

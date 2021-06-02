@@ -27,7 +27,7 @@
  <li>What about having the background color of the active Player's mat match the color of the house they've chosen?</li>
  <li>Display the card that's under Masterplan</li>
  <li>Implement poison</li>
- <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged</li>
+ <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged - related: Correct power + extraPow to just power, and make sure we're regularly recalcing power</li>
  <li>If they try to end the turn early, highlight the things they could still do.</li>
  <li></li>
  <li></li>
