@@ -1336,7 +1336,7 @@ class Board():
       if player == "active":
         self.forgedThisTurn.append(forged)
 
-  def cardChanged(self):
+  def cardChanged(self, checkPower = False):
     """ I don't think this function cares what the played card was. It will be called after a card is played/used, and it will do two things: (1) update self.cardBlits and (2) update what color the endTurn button is (by calling the function that actually checks this). The real question is where to call this from.
     """
     
