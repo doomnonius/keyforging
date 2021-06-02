@@ -1,6 +1,6 @@
 import pyautogui, pygame, random
 from functools import reduce
-from helpers import absa, makeChoice, chooseSide, stealAmber, willEnterReady, destroy
+from helpers import stealAmber, willEnterReady, destroy
 # I think it makes more sense to add these to the cardsAsClass file, which means that the only function here is addToBoard
 
 # This is a list of functions for all the play effects on cards, including creature, upgrades, action cards
@@ -47,6 +47,7 @@ def passFunc(game, card):
       if card.name == "gray_monk":
         extra -= 1 # so it doesn't hit itself
       card.extraArm += extra
+      card.resetArmor(game)
     if "banner_of_battle" in [x.title for x in active["Creature"]]:
       extra = sum(x.title == "banner_of_battle" for x in active["Creature"])
       card.power += extra
@@ -559,13 +560,14 @@ def smaaash (game, card):
 def wardrummer (game, card):
   """Wardrummer: Return each other friendly Brobnar creature to your hand.
   """
+  # ward?
   passFunc(game, card)
   activeBoard = game.activePlayer.board["Creature"]
   pending = game.pendingReloc
   
   for c in activeBoard[::-1]:
     if c.house == "Brobnar" and c != card:
-      activeBoard.remove(c)
+      c.returned = True
       pending.append(c)
   
   game.pending('hand')
@@ -693,7 +695,7 @@ def fear (game, card):
   else:
     choice = inactive[game.chooseCards("Creature", "Choose an enemy creature to return to its owner's hand:", "enemy")[0][1]]
   pending.append(choice)
-  inactive.remove(choice)
+  choice.returned = True
   game.pending('hand')
 
 def gateway_to_dis (game, card):
@@ -876,10 +878,10 @@ def hysteria (game, card):
   
   for c in active[::-1]:
     pending.append(c)
-    active.remove(c)
+    c.returned = True
   for c in inactive[::-1]:
     pending.append(c)
-    inactive.remove(c)
+    c.returned = True
   
   game.pending('hand')
 
@@ -1266,7 +1268,7 @@ def knowledge_is_power (game, card):
       card = game.activePlayer.hand[archive]
       game.pendingReloc.append(card)
       game.activePlayer.hand["Creature"].remove(card)
-      game.pending("archive", game.activePlayer)
+      game.pending("archive", target = game.activePlayer)
     else:
       pyautogui.alert("Your hand is empty, so you can't archive a card.")
   else:
@@ -1282,7 +1284,7 @@ def labwork (game, card):
     card = game.activePlayer.hand[archive]
     game.pendingReloc.append(card)
     game.activePlayer.hand.remove(card)
-    game.pending("archive", game.activePlayer)
+    game.pending("archive", target = game.activePlayer)
 
 def library_access (game, card):
   """ Library Access: Purge this card. For the remainder of the turn, each time you play another card, draw a card.
@@ -1429,7 +1431,7 @@ def random_access_archives (game, card):
     card = game.activePlayer.deck[-1]
     game.pendingReloc.append(card)
     game.activePlayer.deck["Creature"].remove(card)
-    game.pending("archive", game.activePlayer)
+    game.pending("archive", target = game.activePlayer)
     pyautogui.alert("The top card or your deck has been archived.")
     return
   pyautogui.alert("Your deck is empty. Nothing happens.")
@@ -1472,7 +1474,7 @@ def sloppy_labwork (game, card):
     card = hand[choice]
     game.pendingReloc.append(card)
     hand.remove(card)
-    game.pending("archive", game.activePlayer)
+    game.pending("archive", target = game.activePlayer)
     pyautogui.alert("Card archived!")
   if len(hand) > 0:
     choice = game.chooseCards("Hand", "Choose a card to discard:")[0][1]
@@ -1742,11 +1744,11 @@ def key_abduction (game, card):
   pending = game.pendingReloc
   for c in active[::-1]:
     if c.house == "Mars":
-      active.remove(c)
+      c.returned = True
       pending.append(c)
   for c in inactive[::-1]:
     if c.house == "Mars":
-      active.remove(c)
+      c.returned = True
       pending.append(c)
   game.pending('hand')
 
@@ -1822,7 +1824,7 @@ def mass_abduction (game, card):
       game.pendingReloc.append(c)
       inactive.remove(c)
   
-  game.pending("archive", game.activePlayer)
+  game.pending("archive", target = game.activePlayer)
 
 def mating_season (game, card):
   """ Mating Season: Shuffle each Mars creature into its owner's deck. Each player gains 1 amber for each creature shuffled into their deck this way.
@@ -1973,7 +1975,7 @@ def sample_collection (game, card):
   for choice in choices:
     game.pendingReloc.append(inactive[choice])
     inactive.remove(inactive[choice])
-  game.pending("archive", game.activePlayer)
+  game.pending("archive", target = game.activePlayer)
 
 def shatter_storm (game, card):
   """ Shatter Storm: Lose all your amber. Then, your opponent loses triple the amount of amber you lost this way.
@@ -2033,7 +2035,7 @@ def total_recall (game, card):
     print("You have no ready creatures, so you gain no amber.")
   for c in active[::-1]:
     pendingHand.append(c)
-    active.remove(c)
+    c.returned = True
   game.pending('hand')
 
 #############
@@ -2356,11 +2358,19 @@ def epic_quest (game, card):
     if "Knight" in c.traits:
       game.pendingReloc.append(c)
   
-  game.pending("archive", game.activePlayer)
+  game.pending("archive", target = game.activePlayer)
 
 ############
 # Creature #
 ############
+
+def gray_monk (game, card):
+  """ Gray Monk: Each other friendly creature has +1 armor.
+  """
+  for c in game.activePlayer.board["Creature"]:
+    if c != card:
+      c.extraArm += 1
+      c.armor += 1 # because extra armor isn't applied immediately
 
 def horseman_of_death (game, card):
   """ Horseman of Death: Return each Horseman creature from your discard pile to your hand.
@@ -2629,7 +2639,7 @@ def hidden_stash (game, card):
     card = game.activePlayer.hand[archive]
     game.activePlayer.hand.remove(card)
     game.pendingReloc.append(card)
-    game.pending("archive", game.activePlayer)
+    game.pending("archive", target = game.activePlayer)
 
 def imperial_traitor (game, card):
   """ Imperial Traitor: Look at your opponent's hand. You may choose and purge a Sanctum card in it.
@@ -2675,7 +2685,7 @@ def lights_out (game, card):
     for choice in choices:
       card = inactive[choice]
       pending.append(card)
-      inactive.remove(card)
+      choice.returned = True
   game.pending('hand')
 
 def miasma (game, card):
@@ -2757,7 +2767,7 @@ def oubliette (game, card):
   
   game.pending("purge")
   
-def pawn_sacrific (game, card):
+def pawn_sacrifice (game, card):
   """ Pawn Sacrifice: Sacrifice a friendly creature. If you do, deal 3 damage each to 2 creatures.
   """
   passFunc(game, card)
@@ -3132,11 +3142,11 @@ def natures_call (game, card):
   for side, target in choices:
     if side == "fr":
       c = active[target]
-      active.remove(c)
+      c.returned = True
       pending.append(c)
     else:
       c = inactive[target]
-      inactive.remove(c)
+      c.returned = True
       pending.append(c)
   
   game.pending('hand')
@@ -3317,7 +3327,7 @@ def troop_call (game, card):
       pending.append(c)
   for c in active:
     if "Niffle" in c.traits:
-      active.remove(c)
+      c.returned = True
       pending.append(c)
   
   game.pending('hand')

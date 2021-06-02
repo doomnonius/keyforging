@@ -3,12 +3,48 @@ import pyautogui
 def basicFight(game, card, attacked):
   """This checks for things that create before fight effects, if there are any. Like, for example, if something attacks Krump or similar and dies.
   """
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
   if card.temp_skirmish:
     card.temp_skirmish = False
     # this won't happen if a card dies, should be in card.reset() anyway
-  if card.updateHealth():
-    ... # generic stuff?
-  # check if you've died attacking Krump?
+  if attacked.destroyed:
+    game.destInFight.append(attacked) # warchest
+    if not card.destroyed:
+      if card.title == "krump": # one offs for Krump and etc
+        game.inactivePlayer.amber -= min(1, game.inactivePlayer.amber)
+      elif card.title == "mugwump":
+        card.damage = 0
+        card.extraPow += 1
+      elif card.title == "overlord_greking":
+        attacked.greking = card
+      elif card.title == "stealer_of_souls":
+        attacked.stealer = True
+        game.activePlayer.gainAmber(1, game)
+      elif card.title == "brain_eater":
+        game.activePlayer += 1
+      elif card.title == "grommid":
+        game.inactivePlayer.amber -= min(1, game.inactivePlayer.amber)
+      elif card.title == "francus":
+        card.capture(game, 1)
+  if card.destroyed and not attacked.destroyed:
+    if attacked.title == "krump": # one offs for Krump and etc
+      game.activePlayer.amber -= min(1, game.activePlayer.amber)
+    elif attacked.title == "mugwump":
+      attacked.damage = 0
+      attacked.extraPow += 1
+    elif attacked.title == "overlord_greking":
+      card.greking = attacked
+    elif attacked.title == "stealer_of_souls":
+      card.stealer = True
+      game.activePlayer.gainAmber(1, game)
+    elif attacked.title == "brain_eater":
+      game.inactivePlayer += 1
+    elif attacked.title == "grommid":
+      game.activePlayer.amber -= min(1, game.activePlayer.amber)
+    elif attacked.title == "francus":
+      attacked.capture(game, 1)
+    
     
 
 def basicBeforeFight(game, card):

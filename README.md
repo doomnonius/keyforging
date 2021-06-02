@@ -28,7 +28,7 @@
  <li>Display the card that's under Masterplan</li>
  <li>Implement poison</li>
  <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged</li>
- <li></li>
+ <li>If they try to end the turn early, highlight the things they could still do.</li>
  <li></li>
  <li></li>
 <li><s>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</s> - Yes</li>
@@ -127,8 +127,8 @@
 <li>Artifact of active house thinks it can't be used. - b/c actions aren't set up yet</li>
 <li>Bug with keys that I'm pretty sure is because all forged keys are referencing the same image.</li>
 <li>Technically supposed to be able to choose whether library access or a card's play effect triggers first, but that's not how it's implemented in the code.</li>
-<li></li>
-<li></li>
+<li>Drag card overrides the close button.</li>
+<li>Wild wormhole out an upgrade - does it remove upgrade from top of deck?</li>
 <li></li>
 <li></li>
 <li></li>

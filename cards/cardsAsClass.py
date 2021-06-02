@@ -52,6 +52,8 @@ class Card(pygame.sprite.Sprite):
         self.maverick = self.cardInfo['is_maverick']
         self.revealed = False
         self.destroyed = False
+        self.returned = False
+        self.captured = 0
         self.upgrade = [] # needs to be on artifacts b/c using for masterplan
         self.load_image()
         # conditionals to add?
@@ -66,7 +68,7 @@ class Card(pygame.sprite.Sprite):
         if self.title in dir(action):
             self.action = [eval(f"action.{self.title}")]
         else:
-            self.action = False
+            self.action = []
         # omni abilitiestry:
         if f"omni_{self.title}" in dir(action):
             self.omni = eval("action.omni" + self.number)
@@ -79,16 +81,16 @@ class Card(pygame.sprite.Sprite):
         #     self.attached = False
         # creature only abilities
         if self.type == "Creature":
+            self.safe = False
+            self.greking = False
+            self.stealer = False
             self.taunt = False
             self.ward = False
             self.enrage = False
             self.upgrade = []
-            if self.title == "Giant Sloth":
-                self.usable = False
             self.ready = False
             self.stun = False
             self.harland = None
-            self.captured = 0
             # check for skirmish in self.text
             if "Skirmish" in self.text:
                 self.skirmish = True
@@ -109,17 +111,22 @@ class Card(pygame.sprite.Sprite):
             if self.title in dir(reap):
                 self.reap = [eval(f"reap.{self.title}")]
             else:
-                self.reap = [reap.basicReap]
+                self.reap = []
             # check for before fight abilities
             if f"before_{self.title}" in dir(fight):
                 self.before = [eval(f"fight.before_{self.title}")]
             else:
-                self.before = [fight.basicBeforeFight]
+                self.before = []
             # check for after fight abilities
             if self.title in dir(fight):
                 self.fight = [eval(f"fight.{self.title}")]
             else:
-                self.fight = [fight.basicFight]
+                self.fight = []
+            # check for destroyed abilities
+            if self.title in dir(dest):
+                self.dest = [eval(f"dest.{self.title}")]
+            else:
+                self.dest = []
             # check for assault
             if "Assault" in self.text:
                 self.assault = int(self.text[self.text.index("Assault") + 8])
@@ -130,11 +137,6 @@ class Card(pygame.sprite.Sprite):
                 self.hazard = int(self.text[self.text.index("Hazardous") + 10])
             else:
                 self.hazard = 0
-            # check for destroyed abilities
-            if self.title in dir(dest):
-                self.dest = [eval(f"dest.{self.title}")]
-            else:
-                self.dest = []
             if f"lp_{self.title}" in dir(dest):
                 self.leaves = eval(f"dest.lp_{self.title}")
             else:
@@ -151,7 +153,6 @@ class Card(pygame.sprite.Sprite):
             self.sot = False
         # artifacts need to be able to be readied too, and can capture amber
         if self.type == "Artifact":
-            self.captured = False
             self.ready = False
         
 
@@ -287,12 +288,16 @@ class Card(pygame.sprite.Sprite):
         if other.destroyed:
             retEarly = True
             game.pendingReloc.append(other)
+        print("Before fight effects would go here too.")
+        if self.before:
+            for b in self.before:
+                b(game, self)
+        else:
+            fight.basicBeforeFight(game, self)
         if retEarly:
             print("Exiting fight early b/c attacker or defender died during hazard/assault step.")
             game.pending()
             return
-        print("Before fight effects would go here too.")
-        self.before(game, self)
         print("If you're reading this, it's not self.before")
         if self.skirmish or self.temp_skirmish:
             print("The attacker has skirmish, and takes no damage.") # Test line
@@ -319,12 +324,18 @@ class Card(pygame.sprite.Sprite):
         if self.destroyed:
             game.pendingReloc.append(self)
         else:
-            self.fight(game, self, other)
+            if self.fight:
+                for f in self.fight:
+                    f(game, self, other)
+            else:
+                fight.basicFight(game, self, other)
             print("I know it isn't self.fight that's failing.")
         other.updateHealth(game.inactivePlayer)
         print("Updated defender health.")
         if other.destroyed:
             game.pendingReloc.append(other)
+        else:
+            fight.basicFight(game, self, other)
         game.pending()
         print("Another comment after pending has completed.")
 
@@ -370,7 +381,7 @@ class Card(pygame.sprite.Sprite):
         """ Doesn't do anything yet, but this is for the sprite if I use those
         """
     
-    def resetArmor(self):
+    def resetArmor(self, game):
         self.armor = self.base_armor + self.extraArm
         if "Elusive" in self.text:
             self.elusive = True
@@ -381,9 +392,9 @@ class Card(pygame.sprite.Sprite):
         if (self.power + self.extraPow - self.damage) <= 0:
             print(self.title + " is dead.")
             self.destroyed = True
-            if "armageddon_cloak" not in [x.title for x in self.upgrade]:
-                print("Did we at least get here?")
-                player.board["Creature"].remove(self)
+            # if "armageddon_cloak" not in [x.title for x in self.upgrade]:
+            #     print("Did we at least get here?")
+            #     player.board["Creature"].remove(self)
         #     return True
         # return False
 

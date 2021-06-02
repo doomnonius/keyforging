@@ -15,8 +15,8 @@ def destroy(card, player, game):
   """
   if card.type == "Creature":
     card.destroyed = True
-    if "armageddon_cloak" not in [x.title for x in card.upgrade]:
-      player.board["Creature"].remove(card)
+    # if "armageddon_cloak" not in [x.title for x in card.upgrade]:
+    #   player.board["Creature"].remove(card)
   elif card.type == "Artifact":
     player.board["Artifact"].remove(card)
 
@@ -56,7 +56,7 @@ def willEnterReady(game, card, reset: bool = True):
         if reset:
           activeS["blypyp"] = 0
         return True
-    if "speed_sigil" in [x.title for x in game.activePlayer.board["Artifacts"] + game.inactivePlayer.board["Artifacts"]]:
+    if "speed_sigil" in [[x.title for x in game.activePlayer.board["Artifact"]] + [x.title for x in game.inactivePlayer.board["Artifact"]]]:
       c_played = sum(x.type == "Creature" for x in game.playedThisTurn)
       if (not c_played and not reset) or (c_played == 1 and reset):
         return True

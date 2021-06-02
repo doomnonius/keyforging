@@ -3,10 +3,28 @@ from pygame.constants import MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION, SRCALP
 import decks.decks as deck
 import cards.cardsAsClass as card
 import cards.upgrades as upgrade
-import json, random, logging, time, pygame, pyautogui, os
+import json, random, logging, pygame, pyautogui
 from helpers import willEnterReady, destroy
+from cards.destroyed import basicDest, basicLeaves
+from cards.reap import basicReap
 from typing import Dict, List, Set, Tuple
 from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW
+
+logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
+
+def logger(log: str, level: str):
+  """ For consistency in the logging.\nLevels: debug, info, warn, error, crit
+  """
+  if level == "debug":
+    logging.debug(log)
+  elif level == "info":
+    logging.info(log)
+  elif level == "warn":
+    logging.warning(log)
+  elif level == "error":
+    logging.error(log)
+  elif level == "crit":
+    logging.critical(log)
 
 #####################
 # Contains modules: #
@@ -56,6 +74,8 @@ class Board():
     self.destInFight = []
     self.turnStage = None
     self.pendingReloc = []
+    self.pendingRelocA = []
+    self.pendingRelocI = []
     self.extraDraws = []
     self.dataBlits = []
     self.cardBlits = []
@@ -649,9 +669,9 @@ class Board():
         for creature in self.inactivePlayer.board["Creature"]:
           creature.eot(self, creature)
         for creature in self.activePlayer.board["Creature"]:
-          creature.resetArmor(self, creature)
+          creature.resetArmor(self)
         for creature in self.inactivePlayer.board["Creature"]:
-          creature.resetArmor(self, creature)
+          creature.resetArmor(self)
         if self.forgedThisTurn:
           self.forgedLastTurn = self.forgedThisTurn.copy()
         else:
@@ -1102,7 +1122,7 @@ class Board():
     """
     if "miasma" in self.inactivePlayer.states and self.inactivePlayer.states["miasma"]:
       pyautogui.alert("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
-      self.activePlayer.states["miasma"] = 0
+      self.inactivePlayer.states["miasma"] = 0
       return False
     if "the_sting" in [x.title for x in self.activePlayer.board["Artifact"]]:
       pyautogui.alert("You skip your forge a key step this turn because you have 'The Sting' in play.")
@@ -1119,7 +1139,7 @@ class Board():
     """
     card = self.activePlayer.board[loc][cardNum]
     if not self.canAction(card, r_click=True, cheat=cheat):
-      pyautogui.alert(f"{card.title} can't use action right now")
+      pyautogui.alert(f"{card.title} can't use action/omni right now")
       return
     if card.type == "Creature" and card.stun:
       pyautogui.alert("Creature is stunned and unable to act. Unstunning creature instead.")
@@ -1130,12 +1150,15 @@ class Board():
       self.cardChanged()
       return
     # Trigger action
-    if card.action:
-      try:
-        card.action(self, card)
-        # act.action(self, act)
-      except:
-        pyautogui.alert("Action failed.")
+    if card.action or card.omni:
+      if len(card.action) + len(card.omni)> 1:
+        pass # choose which action to do
+      else:
+        try:
+          card.action(self, card)
+          # act.action(self, act)
+        except:
+          card.omni(self, card)
     elif card.omni:
       try:
         card.omni(self, card)
@@ -1281,7 +1304,11 @@ class Board():
         self.usedThisTurn.append(card)
       self.cardChanged()
       return
-    card.reap(self, card)
+    if card.reap:
+      for r in card.reap:
+        r(self, card)
+    else:
+      basicReap(self, card)
     # reaper.ready = False # commented out for testing
     if card not in self.usedThisTurn:
       self.usedThisTurn.append(card)
@@ -1425,6 +1452,8 @@ class Board():
       card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
       self.cardBlits.append((card_image, card_rect))
     
+    self.setKeys()
+    
     if self.activeHouse:
       self.playsRemaining()
     
@@ -1487,33 +1516,53 @@ class Board():
     if not L:
       self.cardChanged()
       return # just in case we feed it an empty list
-    # at this point I would let them order the destroyed triggers - draw the pending destroyed cards and use chooseCards to pick them one at a time, but I won't implement that yet
-    for card in L[::-1]:
-      if card.destroyed:
-        # here will be all the stuff I was going to put in basicDest
-        # loot the bodies
-        # return captured amber if a creature, don't if an artifact
-        # handle upgrades
-        card.dest(self, card) # some card.dests will put the card into a different zone, arma_cloak won't though (I think)
-        card.reset()
-        if "armageddon_cloak" in [x.title for x in card.upgrade]:
-          L.remove(card)
-        destroyed = True
+    for c in L[::-1]:
+      triggers = []
+      if c.destroyed:
+        if c.dest:
+          for d in c.dest:
+            triggers.append((d, c)) # some card.dests will put the card into a different zone, arma_cloak won't put in dif zone, but will remove from destroyed list
       else:
         # so these cards are probably leaving play, so we need to do the basic leaves play stuff (though not always, need to figure out the triggers for that)
         # I could build these things into reset, which means I wouldn't write functions for leaves play, stuff, I'd just catch it in reset
-        card.reset()
+        if c.returned:
+          basicLeaves(self, c) # sure, I might call this on stuff that's in hand going to an archive, but the effects will only trigger it the card's in play
+        c.reset()
+    # at this point I would let them order the destroyed triggers - draw the pending destroyed cards and use chooseCards to pick them one at a time, but I won't implement that yet
+    for d, c in triggers:
+      d(self, c)
+    for c in L[::-1]:
+      if c.destroyed:
+        for x in c.upgrade:
+          if x.title == "armageddon_cloak": # this should be redundant
+            L.remove(c)
+            c.upgrade.remove(x)
+            L.append(x)
+            # I think if there were multiple on a card both would end up destroyed?
+          elif x.title == "phoenix_heart":
+            L.remove(c)
+        if c in L: 
+          basicDest(self, c)
+          if c.stealer:
+            if c.deck == self.activePlayer.name:
+              self.activePlayer.purge.append(c)
+            else:
+              self.inactivePlayer.purge.append(c)
+            L.remove(c)
+        if c.destroyed: # because arma_cloak will remove the destroyed tag
+          c.reset()
+          c.destroyed = True
     if destination not in ['purge', 'discard', 'hand', 'deck', 'archive', 'annihilate']:
       pyautogui.alert("Pending was given an invalid destination.")
       self.cardChanged()
       return
     if destination == "purge":
-      for card in L[::-1]:
-        if card.deck == self.activePlayer.name:
-          self.activePlayer.purge.append(card)
+      for c in L[::-1]:
+        if c.deck == self.activePlayer.name:
+          self.activePlayer.purge.append(c)
         else:
-          self.inactivePlayer.purge.append(card)
-        L.remove(card)
+          self.inactivePlayer.purge.append(c)
+        L.remove(c)
     
     # here is where we'd want to let them make choices about order, b/c choosing order of destroyed triggers and order of things entering discard is different - so they set the order here, and then it goes to resolve
     
@@ -1526,53 +1575,55 @@ class Board():
     # if we do this right, we shouldn't end up in a situation where we have some cards that were destroyed in this list and some that weren't (this is dependent on making sure dest effects only add to pendingReloc if it's empty)
 
     elif destination == "discard":
-      for card in L[::-1]:
-        if card.deck == self.activePlayer.name:
-          if "annihilation_ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Artifact"]]) and card.type == "Creature" and destroyed == True:
-            self.activePlayer.discard.append(card)
+      for c in L[::-1]:
+        if c.deck == self.activePlayer.name:
+          if "annihilation_ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Artifact"]]) and c.type == "Creature" and c.destroyed == True:
+            self.activePlayer.discard.append(c)
           else:
-            self.activePlayer.discard.append(card)
+            self.activePlayer.discard.append(c)
         else:
-          if "annihilation_ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Artifact"]]) and card.type == "Creature" and destroyed == True:
-            self.inactivePlayer.purge.append(card)
+          if "annihilation_ritual" in ([x.title for x in active["Artifact"]] + [x.title for x in inactive["Artifact"]]) and c.type == "Creature" and c.destroyed == True:
+            self.inactivePlayer.purge.append(c)
           else:
-            self.inactivePlayer.discard.append(card)
-        L.remove(card)
+            self.inactivePlayer.discard.append(c)
+        c.destroyed = False
+        L.remove(c)
     elif destination == "hand":
-      for card in L[::-1]:
-        if card.deck == self.activePlayer.name:
-          for up in card.upgrade:
+      for c in L[::-1]:
+        if c.deck == self.activePlayer.name:
+          for up in c.upgrade:
             if up.deck == self.activePlayer.name:
               self.activePlayer.discard.append(up)
             else:
               self.inactivePlayer.discard.append(up)
-          self.activePlayer.hand.append(card)
+          self.activePlayer.hand.append(c)
         else:
-          for up in card.upgrade:
+          for up in c.upgrade:
             if up.deck == self.inactivePlayer.name:
               self.activePlayer.discard.append(up)
             else:
               self.inactivePlayer.discard.append(up)
-          self.inactivePlayer.hand.append(card)
-        card.reveal = True
-        L.remove(card)
+          self.inactivePlayer.hand.append(c)
+        c.reveal = True
+        L.remove(c)
       # I think it would be confusing if I sorted the hand, at this point they will have chosen the order of L so things should be returned to their hand in that order
       # self.activePlayer.hand.sort(key = lambda x: x.house)
       # self.inactivePlayer.hand.sort(key = lambda x: x.house)
     elif destination == "deck":
-      for card in L[::-1]:
-        if card.name == self.activePlayer.name:
-          self.activePlayer.deck.append(card)
+      for c in L[::-1]:
+        if c.name == self.activePlayer.name:
+          self.activePlayer.deck.append(c)
         else:
-          self.inactivePlayer.deck.append(card)
-        card.reveal = reveal
-        L.remove(card)
+          self.inactivePlayer.deck.append(c)
+        c.reveal = reveal
+        L.remove(c)
     elif destination == "archive":
       if target == None:
         raise ValueError("'archive' given as argument to pending() without a target player.")
-      for card in L[::-1]:
+      for c in L[::-1]:
         # this is where we use target
-        target.archive.append(card)
+        target.archive.append(c)
+        L.remove(c)
     # check that the list was emptied
     if L:
       pyautogui.alert("Pending did not properly empty the list.")
@@ -1673,12 +1724,14 @@ class Board():
   def canAction(self, card, reset = True, r_click: bool = False, cheat: bool = False):
     if not card.ready:
       return False
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
+      return False
+    if card.omni:
+      return True
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
       return False
     if card.type == "Creature" and (card.stun and not r_click):
-      return False
-    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
       return False
     if card.type == "Creature":
       if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
@@ -1686,7 +1739,7 @@ class Board():
         return False
     
 
-    if card.action or card.omni:
+    if card.action:
       return True
     else:
       return False
@@ -1710,7 +1763,9 @@ class Board():
     broken = False
     
     if target:
-      self.activePlayer.board["Upgrade"].append(hand.pop(hand.index(card)))
+      self.activePlayer.board["Upgrade"].append(card)
+      if card in hand:
+        hand.remove(card)
       side, choice = target
       if side == "fr":
         active[choice].upgrade.append(card)
