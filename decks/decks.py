@@ -33,9 +33,11 @@ class Deck:
         self.red = False
         self.states = {card.title:0 for card in self.deck}
         # keys
-        self.key_forged = self.load_image("yellow_key_front")
+        self.key_forged_y = self.load_image("yellow_key_front")
         self.key_y = self.load_image("yellow_key_back")
+        self.key_forged_r = self.load_image("yellow_key_front")
         self.key_r = self.load_image("yellow_key_back")
+        self.key_forged_b = self.load_image("yellow_key_front")
         self.key_b = self.load_image("yellow_key_back")
         # houses
         self.house1 = self.load_image(self.houses[0].lower())

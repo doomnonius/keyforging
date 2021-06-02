@@ -1020,21 +1020,21 @@ class Board():
 
     if self.activePlayer.yellow:
       print("Yellow key is forged.")
-      self.key1y, self.key1y_rect = self.activePlayer.key_forged
+      self.key1y, self.key1y_rect = self.activePlayer.key_forged_y
     else:
       self.key1y, self.key1y_rect = self.activePlayer.key_y
     self.key1y_rect.topleft = (2 + self.target_cardw + self.margin, self.divider_rect.top)
 
     if self.activePlayer.red:
       print("Red key is forged.")
-      self.key1r, self.key1r_rect = self.activePlayer.key_forged
+      self.key1r, self.key1r_rect = self.activePlayer.key_forged_r
     else:
       self.key1r, self.key1r_rect = self.activePlayer.key_r
     self.key1r_rect.midleft = (2 + self.target_cardw + self.margin, self.divider_rect.centery)
     
     if self.activePlayer.blue:
       print("Blue key is forged.")
-      self.key1b, self.key1b_rect = self.activePlayer.key_forged
+      self.key1b, self.key1b_rect = self.activePlayer.key_forged_b
     else:
       self.key1b, self.key1b_rect = self.activePlayer.key_b
     self.key1b_rect.bottomleft = (2 + self.target_cardw + self.margin, self.divider_rect.bottom)
