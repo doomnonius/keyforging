@@ -10,6 +10,10 @@ from typing import Dict
 # willEnterReady
 ##################
 
+def return_card(card, game):
+  # here is where we could check for ward
+  card.returned = True
+
 def destroy(card, player, game):
   """ Destroys a card owned by player. Make sure you call pending afterwards
   """
@@ -18,7 +22,8 @@ def destroy(card, player, game):
     # if "armageddon_cloak" not in [x.title for x in card.upgrade]:
     #   player.board["Creature"].remove(card)
   elif card.type == "Artifact":
-    player.board["Artifact"].remove(card)
+    card.destroyed = True
+    # player.board["Artifact"].remove(card)
 
 def stealAmber(thief, victim, num):
   """ Function for stealing amber.

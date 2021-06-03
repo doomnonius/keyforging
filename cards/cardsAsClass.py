@@ -169,7 +169,7 @@ class Card(pygame.sprite.Sprite):
         else:
             s += self.house + ' ' + self.type + '\n'
         if self.type == "Creature":
-            s += "Power: " + str(self.power + self.extraPow) + " (" + str(self.damage) + " damage)" + "; Armor: " + str(self.armor + self.extraArm) + '\n'
+            s += "Power: " + str(self.power) + " (" + str(self.damage) + " damage)" + "; Armor: " + str(self.armor + self.extraArm) + '\n'
         if self.traits != None:
             s += self.traits + '\n' + self.text + '\n'
         else:
@@ -182,7 +182,7 @@ class Card(pygame.sprite.Sprite):
     def __str__(self):
         s = ''
         if self.type == "Creature":
-            s += self.title + " (" + self.house + "): (Power: " + str(self.power + self.extraPow) + " Armor: " + str(self.armor + self.extraArm) + " Damage: " + str(self.damage) + " Captured: " + str(self.captured) + ')'
+            s += self.title + " (" + self.house + "): (Power: " + str(self.power) + " Armor: " + str(self.armor + self.extraArm) + " Damage: " + str(self.damage) + " Captured: " + str(self.captured) + ')'
             if self.elusive:
                 s += " E"
             if self.taunt:
@@ -249,8 +249,7 @@ class Card(pygame.sprite.Sprite):
                     game.activePlayer.amber = 0
             else:
                 pyautogui.alert("This card wasn't in either board.")
-        # else, aka if own == True: (but not needed b/c of earlier return statements)
-        else:
+        else:  # else, aka if own == True
             if inactive > num:
                 self.captured += num
                 game.inactivePlayer.amber -= num
@@ -361,7 +360,7 @@ class Card(pygame.sprite.Sprite):
         elif self.title in ["gabos_longarms", "ether_spider", "shadow_self"]:
             print("The attacker deals no damage while fighting.")
         else:
-            damage = self.power + self.extraPow
+            damage = self.power
             if self.title == "valdr" and other.isFlank(game):
                 damage += 2
             print(f"{damage} damage is dealt as normal to defender.")
@@ -444,8 +443,21 @@ class Card(pygame.sprite.Sprite):
         self.temp_skirmish = False
         # I can change Gray Monk to match this by giving it a play effect and a leaves play effect.
 
+    def calcPower(self, game):
+        self.power = self.base_power + self.extraPow # extraPow is counters
+        if self.title == "staunch_knight":
+            self.power += 2
+        if "shoulder_armor" in [x.title for x in self.upgrade]:
+            self.power += 2
+        if "banner_of_battle" in game.activePlayer.board["Artifact"]:
+            self.power += 1
+        if "blood_of_titans" in [x.title for x in self.upgrade]:
+            self.power += 5
+        if "flame_wreathed" in [x.title for x in self.upgrade]:
+            self.power += 2
+
     def updateHealth(self, player = None) -> None:
-        if (self.power + self.extraPow - self.damage) <= 0:
+        if (self.power - self.damage) <= 0:
             print(self.title + " is dead.")
             self.destroyed = True
             # if "armageddon_cloak" not in [x.title for x in self.upgrade]:

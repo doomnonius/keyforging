@@ -8,7 +8,7 @@
  <li>Code reap, fight, action, abilities with knowledge that there might be more than one</li>
  <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves. Actually, I think I'll have basic dest, but I'll call it from pending, not tied to the card. Potentially the same with basicReap and basicFight</li>
  <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal - everytime a function tries to ref pendingReloc, it needs to check if pendingReloc contains something - if it does, then this is a nested destroy, and secondary needs to be used instead - I think this shouldn't matter for play effects</li>
- <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs</li>
+ <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs, unless it is revealed</li>
  <li>game.pending should be able to handle things going into archives (because of card.reset())</li>
  <li>Code not yet implemented to only display valid options for items, instead of all. - in progress</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
@@ -26,12 +26,16 @@
  <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 15 card in hand or more than 12(?) creatures or artifacts</li>
  <li>What about having the background color of the active Player's mat match the color of the house they've chosen?</li>
  <li>Display the card that's under Masterplan</li>
- <li>Implement poison</li>
- <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged - related: Correct power + extraPow to just power, and make sure we're regularly recalcing power</li>
- <li>If they try to end the turn early, highlight the things they could still do.</li>
+ <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged - <s>related: Correct power + extraPow to just power, and make sure we're regularly recalcing power</s></li>
+ <li>To get shoulder armor working properly (and a recalc armor function), we'll need to start recording card.lostarmor as well - except there are edge cases with shoulder armor where I think even that won't work.</li>
  <li></li>
  <li></li>
-<li><s>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</s> - Yes</li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li><s>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</s> - Yes</li>
  <li><s>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</s></li>
  <li><s>I need a destroy function for handling ward and invulnerable -> or make changes to updateHealth.</s> - both and, and seems to be working</li>
  <li><s>Obsolete the chooseMulligan function by adding a color option to chooseHouse, which is now a misnamed function</s></li>
@@ -113,6 +117,8 @@
 
 <h2>Testing / Rules: </h2>
 <ol>
+<li>If they try to end the turn early, highlight the things they could still do.</li>
+<li>Implement poison</li>
 <li>Get hazardous and assault working - should be easy, but I made it more difficult than it needed to be. Could use more testing.</li>
 <li>Can use wild wormhole to cheat out a card with ember imp in play? Rules-wise it can't, as wildwormhole only gets around the first turn rule b/c that rule applies to playing out of hand.</li>
 <li>Dysania won't work. - now maybe she will</li>

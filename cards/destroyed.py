@@ -1,4 +1,4 @@
-from helpers import stealAmber
+from helpers import stealAmber#, return_card
 
 # This is all the destroyed and leaves play effects
 # Also include things like Krump?
@@ -10,20 +10,49 @@ from helpers import stealAmber
 def basicLeaves(game, card):
     """ Called for when a card (almost only creatures, with a few unusual artifacts) leaves the board from play (not just destroyed, so to archive, hand, purge as well). It will reset the card, deal with upgrades staying behind or going away, deal with amber remaining on the card. All dest functions will call this function as their last step.
     """
-    active = game.activePlayer.board["Creature"]
-    inactive = game.inactivePlayer.board["Creature"]
+    active = game.activePlayer.board
+    inactive = game.inactivePlayer.board
+    t = card.type
     # return captured amber if a creature, don't if an artifact
     if card.captured:
-      if card in inactive:
+      if card in inactive[t]:
         game.activePlayer.gainAmber(card.captured, game)
-      elif card in active:
+      elif card in active[t]:
         game.inactivePlayer.gainAmber(card.captured, game)
     # if Magda the Rat
     if card.title == "magda_the_rat":
-      if card in inactive:
+      if card in inactive[t]:
         stealAmber(game.activePlayer, game.inactivePlayer, 2)
-      elif card in active:
+      elif card in active[t]:
         stealAmber(game.inactivePlayer, game.activePlayer, 2)
+    # if gray_monk
+    if card.title == "gray_monk":
+      if card in active[t]:
+        for c in active[t]:
+          c.extraArm -= 1
+          c.armor -= min(1, c.armor)
+      else:
+        for c in inactive[t]:
+          c.extraArm -= 1
+          c.armor -= min(1, c.armor)
+    # if banner_of_battle
+    if card.title == "banner_of_battle":
+      if card in active[t]:
+        for c in active["Creature"]:
+          c.calcPower(game)
+          c.updateHealth()
+        for c in active["Creature"]:
+          if c.destroyed:
+            game.pendingReloc.append(c)
+        game.pending()
+      if card in inactive[t]:
+        for c in inactive["Creature"]:
+          c.calcPower(game)
+          c.updateHealth()
+        for c in inactive["Creature"]:
+          if c.destroyed:
+            game.pendingReloc.append(c)
+      game.pending()
     # handle upgrades
     for up in card.upgrade:
       if up.deck == game.activePlayer.name:
@@ -33,24 +62,25 @@ def basicLeaves(game, card):
         game.inactivePlayer.discard.append(up)
         game.inactivePlayer.board["Upgrade"].remove(up)
     # remove from board
-    if card in inactive:
-      inactive.remove(card)
-    elif card in active:
-      active.remove(card)
-    if card.greking and card.greking in active and not card.safe:
+    if card in inactive[t]:
+      inactive[t].remove(card)
+    elif card in active[t]:
+      active[t].remove(card)
+    # handle greking's ability
+    if card.greking and card.greking in active[t] and not card.safe:
       flank = game.chooseHouse("custom", ("Put the minion on the your left flank or your right flank?", ["Left", "Right"]))
       if flank == "Left":
         flank = 0
       else:
         flank = len(active)
-      active.insert(flank, card)
-    elif card.greking and card.greking in inactive and not card.safe:
+      active[t].insert(flank, card)
+    elif card.greking and card.greking in inactive[t] and not card.safe:
       flank = game.chooseHouse("custom", ("Put the minion on your opponent's left flank or right flank?", ["Left", "Right"]))
       if flank == "Left":
         flank = 0
       else:
         flank = len(inactive)
-      inactive.insert(flank, card)
+      inactive[t].insert(flank, card)
         
 
 # I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow
@@ -64,30 +94,31 @@ def basicDest(game, card):
     inactiveS = game.inactivePlayer.states
     activeA = game.activePlayer.board["Artifact"]
     inactiveA = game.inactivePlayer.board["Artifact"]
-    # loot the bodies
-    if "loot_the_bodies" in activeS and activeS["loot_the_bodies"] and card in inactive:
-      game.activePlayer.gainAmber(activeS["loot_the_bodies"], game)
-    # looter goblin
-    if "looter_goblin" in activeS and activeS["looter_goblin"] and card in inactive:
-      game.activePlayer.gainAmber(activeS["looter_goblin"], game)
-    # pile of skulls
-    if "pile_of_skulls" in activeA and card in inactive:
-      choice = active[game.chooseCards("Creature", "Pile of Skulls: Choose a friendly creature to capture 1 amber:", "friend")[0][1]]
-      choice.capture(1, game)
-    # soul snatcher
-    if "soul_snatcher" in [x.title for x in activeA + inactiveA]:
-      count = sum(x.title == "soul_snatcher" for x in activeA + inactiveA)
-      if card in active:
-        game.activePlayer.gainAmber(count, game)
-      elif card in inactive:
-        game.inactivePlayer.gainAmber(count, game)
-    # tolas
-    count = sum("tolas" == x.title and not x.destroyed for x in active + inactive)
-    if count:
-      if card in active:
-        game.inactivePlayer.gainAmber(count, game)
-      elif card in inactive:
-        game.activePlayer.gainAmber(count, game)
+    if card.type == "Creature":
+      # loot the bodies
+      if "loot_the_bodies" in activeS and activeS["loot_the_bodies"] and card in inactive:
+        game.activePlayer.gainAmber(activeS["loot_the_bodies"], game)
+      # looter goblin
+      if "looter_goblin" in activeS and activeS["looter_goblin"] and card in inactive:
+        game.activePlayer.gainAmber(activeS["looter_goblin"], game)
+      # pile of skulls
+      if "pile_of_skulls" in activeA and card in inactive:
+        choice = active[game.chooseCards("Creature", "Pile of Skulls: Choose a friendly creature to capture 1 amber:", "friend")[0][1]]
+        choice.capture(1, game)
+      # soul snatcher
+      if "soul_snatcher" in [x.title for x in activeA + inactiveA]:
+        count = sum(x.title == "soul_snatcher" for x in activeA + inactiveA)
+        if card in active:
+          game.activePlayer.gainAmber(count, game)
+        elif card in inactive:
+          game.inactivePlayer.gainAmber(count, game)
+      # tolas
+      count = sum("tolas" == x.title and not x.destroyed for x in active + inactive)
+      if count:
+        if card in active:
+          game.inactivePlayer.gainAmber(count, game)
+        elif card in inactive:
+          game.activePlayer.gainAmber(count, game)
 
     # I think this should be last, because it removes from board and we still need to know what side a card is on above
     basicLeaves(game, card)
@@ -118,6 +149,8 @@ def phoenix_heart (game, card):
     secondary = True
   else:
     pending = game.pendingReloc
+  
+  card.safe = True
   
   if card.deck == game.activePlayer.name:
     game.activePlayer.hand.append(card)
@@ -179,7 +212,6 @@ def truebaru (game, card):
 def dextre (game, card):
   """ Dextre: put Dextre on top of your deck.
   """
-  card.reset()
   card.safe = True
   basicDest(game, card)
   if card.deck == game.activePlayer.name:
@@ -259,14 +291,6 @@ def duma_the_martyr (game, card):
   for c in active:
     c.damage = 0
   game.activePlayer += 2
-
-def gray_monk (game, card):
-  """ Gray Monk: Each friendly creature loses 1 armor
-  """
-  active = game.activePlayer.board["Creature"]
-  for c in active:
-    c.extraArm -= 1
-    c.armor -= min(1, c.armor)
 
 ###########
 # Shadows #

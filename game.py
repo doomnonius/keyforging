@@ -410,7 +410,7 @@ class Board():
           self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
           if pygame.Rect.collidepoint(self.endBackRect, (self.mousex, self.mousey)):
             if self.remaining:
-              answer = self.chooseHouse("custom", ("Are you sure you want to end your turn?", ["Yes", "No"]))[0]
+              answer = self.chooseHouse("custom", ("Are you sure you want to end your turn?", ["Yes", "No"]), highlight = lambda x: x.house in self.activeHouse and (x.ready or x in self.activePlayer.hand))[0]
               if answer == "No":
                 break
             self.drawEnemyDiscard = False
@@ -1371,31 +1371,50 @@ class Board():
         self.forgedThisTurn.append(forged)
 
   def cardChanged(self, checkPower = False):
-    """ I don't think this function cares what the played card was. It will be called after a card is played/used, and it will do two things: (1) update self.cardBlits and (2) update what color the endTurn button is (by calling the function that actually checks this). The real question is where to call this from.
+    """ I don't think this function cares what the played card was. It will be called after a card is played/used, and it will do two things: (1) update self.cardBlits and (2) update what color the endTurn button is (by calling the function that actually checks this).
+    The checkPower variable is so that we don't call the part that recalcs creature power when we call card changed at times when the board hasn't change (ie just a card being moved around)
     """
     
-    # check if tireless_crocag should still be alive
-    active = self.activePlayer.board["Creature"]
-    inactive = self.inactivePlayer.board["Creature"]
-    if len(inactive) == 0 and "tireless_crocag" in [x.title for x in active]:
-      for card in active[::-1]:
-        if card.title == "tireless_crocag":
-          destroy(card, self.activePlayer, self)
-          if card.destroyed:
-            self.pendingReloc.append(card)
-    if len(active) == 0 and "tireless_crocag" in [x.title for x in inactive]:
-      for card in inactive[::-1]:
-        if card.title == "tireless_crocag":
-          destroy(card, self.inactivePlayer, self)
-          if card.destroyed:
-            self.pendingReloc.append(card)
-    if self.pendingReloc:
-      self.pending()
+    if checkPower:
+      # check if tireless_crocag should still be alive
+      active = self.activePlayer.board["Creature"]
+      inactive = self.inactivePlayer.board["Creature"]
+      if not inactive and "tireless_crocag" in [x.title for x in active]:
+        for c in active[::-1]:
+          if c.title == "tireless_crocag":
+            destroy(c, self.activePlayer, self)
+            if c.destroyed:
+              self.pendingReloc.append(c)
+      if not active and "tireless_crocag" in [x.title for x in inactive]:
+        for c in inactive[::-1]:
+          if c.title == "tireless_crocag":
+            destroy(c, self.inactivePlayer, self)
+            if c.destroyed:
+              self.pendingReloc.append(c)
+      # check for things that are affected by being on a flank, shoulder armor and staunch knight
+      for c in active:
+        c.calcPower(self)
+        c.updateHealth()
+        if c.destroyed:
+          self.pendingReloc.append(c)
+      for c in inactive:
+        c.calcPower(self)
+        c.updateHealth()
+        if c.destroyed:
+          self.pendingReloc.append(c)
+      
+      if self.pendingReloc:
+        self.pending()
+      
       
     self.cardBlits = []
     for board,area in [(self.activePlayer.board["Creature"], self.creatures1_rect), (self.inactivePlayer.board["Creature"], self.creatures2_rect), (self.activePlayer.board["Artifact"], self.artifacts1_rect), (self.inactivePlayer.board["Artifact"], self.artifacts2_rect)]:
+      l = len(board)
+      if (l * self.target_cardh) + ((l - 1) * self.margin) > area[2]:
+        # scale everything down
+        pass
       x = 0
-      offset = ((area[0] + area[2]) // 2) - ((len(board) * self.target_cardh) // 2)
+      offset = ((area[0] + area[2]) // 2) - ((l * self.target_cardh) // 2)
       for card in board:
         if card.ready:
           card_image, card_rect = card.image, card.rect
@@ -1411,6 +1430,8 @@ class Board():
         x += 1
         if card.upgrade:
           y = len(card.upgrade)
+          x += 0.25 * y
+          card_rect.left += 0.25 * self.target_cardh * y
           for up in card.upgrade:
             up_image, up_rect = up.image, up.rect
             up.tapped_rect.topleft = (-500, -500)
@@ -1481,8 +1502,8 @@ class Board():
     self.remaining = True
     
 
-  def previewHouse(self, house: str, both: bool = False) -> List[Tuple[pygame.Surface, pygame.Rect]]:
-    """ Highlights the cards in the selected house during the choose house step.
+  def previewHouse(self, condition: function, both: bool = False) -> List[Tuple[pygame.Surface, pygame.Rect]]:
+    """ Highlights the cards that meet the selected conditions.
     """
     retVal = []
 
@@ -1501,7 +1522,7 @@ class Board():
       board += self.inactivePlayer.board["Creature"] + self.inactivePlayer.board["Artifact"]
 
     for c in board:
-      if c.house == house or "experimental_therapy" in [x.title for x in c.upgrade]:
+      if condition or "experimental_therapy" in [x.title for x in c.upgrade]:
         if c.ready:
           retVal.append((selectedSurf, c.rect))
         else:
@@ -1509,7 +1530,7 @@ class Board():
     if both:
       return retVal
     for c in self.activePlayer.hand:
-      if c.house == house or "experimental_therapy" in [x.title for x in c.upgrade]:
+      if condition:
         retVal.append((selectedSurf, c.rect))
     
     return retVal
@@ -2416,7 +2437,7 @@ class Board():
       self.extraDraws = []
 
   
-  def chooseHouse(self, varAsStr: str, custom: Tuple[str, List[str]] = (), colors: List[str] = [], highlight:str = "") -> List[str]:
+  def chooseHouse(self, varAsStr: str, custom: Tuple[str, List[str]] = (), colors: List[str] = [], highlight: function = None) -> List[str]:
     """ Makes the user choose a house to be used for some variable, typically will be active house, but could be cards like control the weak.
     """
     if varAsStr == "activeHouse":
@@ -2496,9 +2517,9 @@ class Board():
       if selected:
         self.extraDraws = [(confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
         if varAsStr == "activeHouse":
-          self.extraDraws += self.previewHouse(self.activePlayer.houses[selected - 1])
+          self.extraDraws += self.previewHouse(lambda x: x.house == self.activePlayer.houses[selected - 1] or "experimental_therapy" in [y.title for y in x.upgrade])
         elif highlight:
-          self.extraDraws += self.previewHouse(highlight, True)
+          self.extraDraws += self.previewHouse(highlight)
       else:
         self.extraDraws = [(messageBackSurf, messageBackRect), (messageSurf, messageRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
       for e in pygame.event.get():

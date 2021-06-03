@@ -450,13 +450,13 @@ def horseman_of_famine (game, card):
   """
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  low = min(x.power + x.extraPow for x in (active + inactive))
+  low = min(x.power for x in (active + inactive))
   pendingD = game.pendingReloc
 
   if not active and not inactive:
     return
 
-  side, choice = game.chooseCards("Creature", "Destroy a creature with the lowest power:", condition = lambda x: x.power + x.extraPow == low, con_message = "That creature does not have the lowest power.")[0]
+  side, choice = game.chooseCards("Creature", "Destroy a creature with the lowest power:", condition = lambda x: x.power == low, con_message = "That creature does not have the lowest power.")[0]
   if side == "fr":
     card = active[choice]
     destroy(card, game.activePlayer, game)
