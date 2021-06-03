@@ -15,7 +15,7 @@
  <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed. - in progress</li>
  <li>Get rid of remaining print statements.</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, house symbols, etc.</li>
- <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor. <s>Operate banner of battle similarly.</s></li>
+ <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor.</li>
  <li>Is captured amber returned, while amber on artifacts lost? - this will be in game.pending</li>
  <li>Picking decks within game window - will be another while loop</li>
  <li>Verify game integrity at ends of turns.</li>

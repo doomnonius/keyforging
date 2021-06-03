@@ -23,6 +23,8 @@ class Card(pygame.sprite.Sprite):
         self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("’", "").replace('“', "").replace(",", "").replace("!", "").replace("”", "").replace("-", "_")
         self.width = width
         self.height = height
+        self.load_image()
+        self.scaled_image, self.scaled_rect = self.image, self.rect
         self.reset()
         
 
@@ -55,7 +57,6 @@ class Card(pygame.sprite.Sprite):
         self.returned = False
         self.captured = 0
         self.upgrade = [] # needs to be on artifacts b/c using for masterplan
-        self.load_image()
         # conditionals to add?
         # status effects
         
@@ -471,12 +472,6 @@ class Card(pygame.sprite.Sprite):
             return
         rotated = pygame.transform.rotate(self.image, -90)
         return rotated, rotated.get_rect()
-
-    def untap(self):
-        if self.image.get_height() > self.image.get_width():
-            return
-        rotated = pygame.transform.rotate(self.image, 90)
-        self.image, self.rect = rotated, rotated.get_rect()
         
     def load_image(self, colorkey=None):
         fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', self.title + '.png')
@@ -495,13 +490,12 @@ class Card(pygame.sprite.Sprite):
                 colorkey = image.get_at((0,0))
             image.set_colorkey(colorkey)
         self.orig_image, self.orig_rect = image, image.get_rect()
-        self.image, self.rect = self.scaled_image(self.width, self.height)
+        self.image, self.rect = self.scale_image(self.width, self.height)
         self.tapped, self.tapped_rect = self.tap()
 
-    def scaled_image(self, width, height):
+    def scale_image(self, width, height):
         scaled = pygame.transform.scale(self.orig_image, (width, height))
-        self.image, self.rect = scaled, scaled.get_rect()
-        return self.image, self.rect
+        return scaled, scaled.get_rect()
             
 
 class Invisicard():

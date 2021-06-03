@@ -1410,36 +1410,81 @@ class Board():
     self.cardBlits = []
     for board,area in [(self.activePlayer.board["Creature"], self.creatures1_rect), (self.inactivePlayer.board["Creature"], self.creatures2_rect), (self.activePlayer.board["Artifact"], self.artifacts1_rect), (self.inactivePlayer.board["Artifact"], self.artifacts2_rect)]:
       l = len(board)
-      if (l * self.target_cardh) + ((l - 1) * self.margin) > area[2]:
-        # scale everything down
-        pass
       x = 0
-      offset = ((area[0] + area[2]) // 2) - ((l * self.target_cardh) // 2)
-      for card in board:
-        if card.ready:
-          card_image, card_rect = card.image, card.rect
-          card.tapped_rect.topleft = (-500, -500)
-        else:
-          card_image, card_rect = card.tapped, card.tapped_rect
-          card.rect.topleft = (-500, -500)
-        card_rect.topleft = (offset + (x * self.target_cardh) + self.margin * (x + 1), area.top)
-        if card in self.activePlayer.board["Creature"] and not card.taunt:
-          card_rect.bottom = area[1] + area[3] - self.margin
-        if card in self.inactivePlayer.board["Creature"] and card.taunt:
-          card_rect.bottom = area[1] + area[3] - self.margin
-        x += 1
-        if card.upgrade:
-          y = len(card.upgrade)
-          x += 0.25 * y
-          card_rect.left += 0.25 * self.target_cardh * y
-          for up in card.upgrade:
-            up_image, up_rect = up.image, up.rect
-            up.tapped_rect.topleft = (-500, -500)
-            up_rect.left = card_rect.left - (3 * y * self.margin)
-            up_rect.bottom = card_rect.bottom
-            self.cardBlits.append((up_image, up_rect))
-            y -= 1
-        self.cardBlits.append((card_image, card_rect))
+      card_h = (area.width - ((l - 1) * self.margin)) // l
+      if card_h >= self.target_cardh:
+        offset = ((area[0] + area[2]) // 2) - ((l * self.target_cardh) // 2)
+        rescale = False
+        use_scaled = False
+      elif board[0].scaled_rect and card_h > board[0].scaled_rect.height * 1.5:
+        offset = ((area[0] + area[2]) // 2) - ((l * card_h) // 2)
+        rescale = True
+        use_scaled = True
+      elif board[0].scaled_rect and board[0].scaled_rect.height * 1.5 >= card_h >= board[0].scaled_rect.height: # too many cards to use usual image, but current scaled image works
+        offset = ((area[0] + area[2]) // 2) - ((l * board[0].scaled_rect.height) // 2)
+        rescale = False
+        use_scaled = True
+      else: # need to scale down
+        offset = ((area[0] + area[2]) // 2) - ((l * card_h) // 2)
+        rescale = True
+        use_scaled = True
+      if rescale:  # scale everything down or up
+        ratio = CARDH / card_h
+        card_w = int(CARDW // ratio)
+        card.scaled_image, card.scaled_rect = card.scale_image(card_w, card_h)
+        card.scaled_tapped_image, card.scaled_tapped_rect = card.tap(card.scaled_image)
+      if use_scaled:
+        for card in board:
+          if card.ready:
+            card_image, card_rect = card.scaled_tapped_image, card.scaled_tapped_rect
+            card.tapped_rect.topleft = (-500, -500)
+          else:
+            card_image, card_rect = card.scaled_tapped_image, card.scaled_tapped_rect
+            card.rect.topleft = (-500, -500)
+          card_rect.topleft = (offset + (x * card_h) + self.margin * (x + 1), area.top)
+          if card in self.activePlayer.board["Creature"] and not card.taunt:
+            card_rect.bottom = area[1] + area[3] - self.margin
+          if card in self.inactivePlayer.board["Creature"] and card.taunt:
+            card_rect.bottom = area[1] + area[3] - self.margin
+          x += 1
+          if card.upgrade:
+            y = len(card.upgrade)
+            x += 0.25 * y
+            card_rect.left += 0.25 * card_h * y
+            for up in card.upgrade:
+              up_image, up_rect = up.image, up.rect
+              up.tapped_rect.topleft = (-500, -500)
+              up_rect.left = card_rect.left - (3 * y * self.margin)
+              up_rect.bottom = card_rect.bottom
+              self.cardBlits.append((up_image, up_rect))
+              y -= 1
+          self.cardBlits.append((card_image, card_rect))
+      else:
+        for card in board:
+          if card.ready:
+            card_image, card_rect = card.image, card.rect
+            card.tapped_rect.topleft = (-500, -500)
+          else:
+            card_image, card_rect = card.tapped, card.tapped_rect
+            card.rect.topleft = (-500, -500)
+          card_rect.topleft = (offset + (x * self.target_cardh) + self.margin * (x + 1), area.top)
+          if card in self.activePlayer.board["Creature"] and not card.taunt:
+            card_rect.bottom = area[1] + area[3] - self.margin
+          if card in self.inactivePlayer.board["Creature"] and card.taunt:
+            card_rect.bottom = area[1] + area[3] - self.margin
+          x += 1
+          if card.upgrade:
+            y = len(card.upgrade)
+            x += 0.25 * y
+            card_rect.left += 0.25 * self.target_cardh * y
+            for up in card.upgrade:
+              up_image, up_rect = up.image, up.rect
+              up.tapped_rect.topleft = (-500, -500)
+              up_rect.left = card_rect.left - (3 * y * self.margin)
+              up_rect.bottom = card_rect.bottom
+              self.cardBlits.append((up_image, up_rect))
+              y -= 1
+          self.cardBlits.append((card_image, card_rect))
     # card areas
     for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
       x = 0
