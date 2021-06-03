@@ -1416,7 +1416,7 @@ class Board():
         offset = ((area[0] + area[2]) // 2) - ((l * self.target_cardh) // 2)
         rescale = False
         use_scaled = False
-      elif board[0].scaled_rect and card_h > board[0].scaled_rect.height * 1.5:
+      elif board[0].scaled_rect and card_h > board[0].scaled_rect.height * 1.5: # can't use usual image, but can also afford to scale up the image
         offset = ((area[0] + area[2]) // 2) - ((l * card_h) // 2)
         rescale = True
         use_scaled = True
