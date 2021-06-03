@@ -1695,6 +1695,8 @@ class Board():
     return True
   
   def canFight(self, card, reset = True, cheat: bool = False, r_click: bool = False):
+    if card.type != "Creature":
+      return False
     if not card.ready or (card.stun and not r_click):
       return False
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
@@ -1719,8 +1721,10 @@ class Board():
 
   def canReap(self, card, reset = True, r_click: bool = False, cheat: bool = False):
     if card.type != "Creature" or not card.ready or (card.stun and not r_click):
+      print(f"Type: {card.type}, ready: {card.ready}, stun: {card.stun}")
       return False
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
+      print(f"House: {card.house}, cheat: {cheat}")
       if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
         pass
       else:
@@ -2444,6 +2448,8 @@ class Board():
     elif varAsStr == "custom":
       message = custom[0]
       houses = custom[1]
+    if not houses:
+      houses == ["OK"]
     houses_rects = []
     # message
     messageSurf = self.BASICFONT.render(message, 1, COLORS["WHITE"])

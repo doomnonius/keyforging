@@ -137,7 +137,7 @@ class Deck:
                 self.shuffleDiscard()
             self.hand.append(self.deck.pop())
             num -= 1
-        self.hand.sort(key = lambda x: x.house)
+        # self.hand.sort(key = lambda x: x.house)
         return self
 
     def load_image(self, title): # this loads keys and house symbols

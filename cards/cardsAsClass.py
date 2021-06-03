@@ -141,6 +141,10 @@ class Card(pygame.sprite.Sprite):
                 self.leaves = eval(f"dest.lp_{self.title}")
             else:
                 self.leaves = []
+            if "Poison" in self.text:
+                self.poison = True
+            else:
+                self.poison = False
         # start of turn effects
         if f"eot_{self.title}" in dir(turnEffects):
             self.eot = eval(f"turnEffects.eot_{self.title}")
@@ -291,7 +295,7 @@ class Card(pygame.sprite.Sprite):
     
     def fightCard(self, other, game) -> None:
         active = game.activePlayer.board["Creature"]
-        inactive = game.activePlayer.board["Creature"]
+        inactive = game.inactivePlayer.board["Creature"]
         print(self.title + " is fighting " + other.title + "!")
         self.ready = False
         # add hazardous and assault in here too
@@ -312,19 +316,20 @@ class Card(pygame.sprite.Sprite):
         print("Before fight effects would go here too.")
         if self.before:
             for b in self.before:
+                print("Trying to run before fight.")
                 b(game, self, other)
         else:
             fight.basicBeforeFight(game, self, other)
         evasion = False
-        sigil = sum(x.title == "evasion_sigil" for x in game.activePlayer.board["Creature"] + game.activePlayer.board["Creature"])
+        sigil = sum(x.title == "evasion_sigil" for x in game.activePlayer.board["Artifact"] + game.activePlayer.board["Artifact"])
         if sigil:
             for _ in range(sigil):
                 if game.activePlayer.deck:
                     game.activePlayer.discard.append(game.activePlayer.deck.pop())
-                    if game.activePlayer.discard[-1].house != self.house:
+                    if game.activePlayer.discard[-1].house in game.activeHouse:
                         evasion = True
         if self.destroyed or other.destroyed or other not in inactive or self not in active or evasion:
-            print(f"Exiting fight early b/c attacker or defender died during hazard/assault/before fight step, or evasion sigil triggered: {evasion}.")
+            print(f"Exiting fight early b/c attacker {self.destroyed} or defender {other.destroyed} died during hazard/assault/before fight step, or is otherwise off the board (attacker: {other not in inactive}, defender: {self not in active}), or evasion sigil triggered: {evasion}.")
             game.pending()
             basic = False
             if self.destroyed:

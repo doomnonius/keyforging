@@ -75,7 +75,7 @@ def basicBeforeFight(game, card, attacked):
 def before_firespitter (game, card, attacked):
   """ Firespitter: Deal 1 damage to each enemy creature:
   """
-  basicBeforeFight(game, card)
+  basicBeforeFight(game, card, attacked)
   
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
@@ -222,14 +222,14 @@ def snudge (game, card, attacked):
   pendingDisc = game.pendingReloc
 
   targetType = game.chooseHouse("custom", ("Would you like to target an artifact or a flank creature?", ["Artifact", "Creature"]))[0]
-  side, choice = game.chooseCards(targetType, f"Return a {targetType.lower} to its owner's hand:", condition = lambda x: x.type == "Artifact" or x.isFlank(game))[0]
+  side, choice = game.chooseCards(targetType, f"Return a {targetType.lower()} to its owner's hand:", condition = lambda x: x.type == "Artifact" or x.isFlank(game))[0]
   if side == "fr":
     c = active[targetType][choice]
   else:
     c = inactive[targetType][choice]
   c.returned = True
   pendingDisc.append(c)
-  game.pending()
+  game.pending("hand")
 
 #########
 # Logos #
@@ -280,7 +280,7 @@ def ozmo_martianologist (game, card, attacker):
   """
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  side, choice = game.chooseCards("Creature", "Choose a Mars creature to heal or stun:", condition = lambda x: x.house == "Mars", con_message = "That creature is not from house Mars.")[0]
+  side, choice = game.chooseCards("Creature", "Choose a Mars creature to heal or stun:", condition = lambda x: x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade], con_message = "That creature is not from house Mars.")[0]
   if side == "fr":
     c = active[choice]
   else:
@@ -330,8 +330,8 @@ def john_smyth (game, card, attacked):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
-  if sum(x.house == "Mars" and "Agent" not in x.traits for x in active + inactive):
-    side, choice = game.chooseCards("Creature", "Ready a non-agent Mars creature:", condition = lambda x: x.house == "Mars" and "Agent" not in x.traits, con_message = "That creature is either an agent or isn't from house Mars.")[0]
+  if sum((x.house == "Mars"or "experimental_therapy" in [y.title for y in x.upgrade]) and "Agent" not in x.traits for x in active + inactive):
+    side, choice = game.chooseCards("Creature", "Ready a non-agent Mars creature:", condition = lambda x: (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) and "Agent" not in x.traits, con_message = "That creature is either an agent or isn't from house Mars.")[0]
     if side == "fr":
       c = active[choice]
     else:
@@ -365,11 +365,11 @@ def ulyq_megamouth (game, card, attacked):
   """
   active = game.activePlayer.board["Creature"]
 
-  if not sum(x.house != "Mars" for x in active):
+  if not sum(x.house != "Mars" and "experimental_therapy" not in [y.title for y in x.upgrade] for x in active):
     pyautogui.alert("No valid targets.")
     return
 
-  choice = active[game.chooseCards("Creature", "Use a friendly non-Mars creature:", "friend", condition = lambda x: x.house != "Mars", con_message = "You must pick a creature that doesn't belong to house Mars.")[0][1]]
+  choice = active[game.chooseCards("Creature", "Use a friendly non-Mars creature:", "friend", condition = lambda x: x.house != "Mars" and "experimental_therapy" not in [y.title for y in x.upgrade], con_message = "You must pick a creature that doesn't belong to house Mars.")[0][1]]
   
   if not choice.ready:
     pyautogui.alert("Card isn't ready, so can't be used.")
@@ -385,14 +385,11 @@ def ulyq_megamouth (game, card, attacked):
   
   use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
   if use[0] == "R":
-    if game.canReap(card, r_click = True, cheat = True):
-      game.reapCard(active.index(choice), cheat = True)
+    game.reapCard(active.index(choice), cheat = True)
   elif use[0] == "F":
-    if game.canFight(card, r_click = True, cheat = True):
-      game.fightCard(active.index(choice), cheat=True)
+    game.fightCard(active.index(choice), cheat=True)
   elif use[0] == "A":
-    if game.canAction(card, r_click = True, cheat = True):
-      game.actionCard(active.index(choice), cheat = True)
+    game.actionCard(active.index(choice), cheat = True)
 
 def yxilo_bolter (game, card, attacked):
   """ Yxilo Bolter: Deal 2 damage to a creaure. If this damage destroys that creature, purge it.
