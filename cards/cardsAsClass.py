@@ -30,6 +30,8 @@ class Card(pygame.sprite.Sprite):
         self.maverick = self.cardInfo['is_maverick']
         self.load_image()
         self.scaled_image, self.scaled_rect = self.image, self.rect
+        self.scaled_tapped_image, self.scaled_tapped_rect = self.tapped, self.tapped_rect
+        self.scaled = False
         self.reset()
         
 

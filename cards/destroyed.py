@@ -14,7 +14,7 @@ def basicLeaves(game, card):
     inactive = game.inactivePlayer.board
     t = card.type
     # return captured amber if a creature, don't if an artifact
-    if card.captured:
+    if card.captured and card.type == "Creature":
       if card in inactive[t]:
         game.activePlayer.gainAmber(card.captured, game)
       elif card in active[t]:
