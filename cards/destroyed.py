@@ -67,14 +67,14 @@ def basicLeaves(game, card):
     elif card in active[t]:
       active[t].remove(card)
     # handle greking's ability
-    if card.greking and card.greking in active[t] and not card.safe:
+    if card.type == "Creature" and card.greking and card.greking in active[t] and not card.safe:
       flank = game.chooseHouse("custom", ("Put the minion on the your left flank or your right flank?", ["Left", "Right"]))
       if flank == "Left":
         flank = 0
       else:
         flank = len(active)
       active[t].insert(flank, card)
-    elif card.greking and card.greking in inactive[t] and not card.safe:
+    elif card.type == "Creature" and card.greking and card.greking in inactive[t] and not card.safe:
       flank = game.chooseHouse("custom", ("Put the minion on your opponent's left flank or right flank?", ["Left", "Right"]))
       if flank == "Left":
         flank = 0
@@ -265,6 +265,8 @@ def biomatrix_backup (game, card):
       game.activePlayer.archive.append(card)
     else:
       game.inactivePlayer.archive.append(card)
+
+  game.pending()
   
 
 ###########

@@ -128,11 +128,9 @@ def barehanded(game, card):
   inactive = game.inactivePlayer.board["Artifact"]
   for c in active[::-1]:
     game.pendingReloc.append(c)
-    active.remove(c)
   # run it all again w/ inactive player
   for c in inactive[::-1]:
     game.pendingReloc.append(c)
-    active.remove(c)
   # deal with all artifacts
   game.pending("deck", reveal = True)
 
@@ -1758,7 +1756,7 @@ def key_abduction (game, card):
         pending.append(c)
   game.pending('hand')
 
-  temp_cost = game.calculateCost() + 9 - len(game.activePlayer.hand)
+  temp_cost = max(game.calculateCost() + 9 - len(game.activePlayer.hand), 0)
   if game.canForge() and game.activePlayer.amber >= temp_cost:
     forge = game.chooseHouse("custom", (f"You may now forge a key for {temp_cost} amber. Would you like to do so?", ["Yes", "No"]))[0]
     if forge == "No":
@@ -1803,7 +1801,7 @@ def martians_make_bad_allies (game, card):
     c.revealed = True
     if c.type == "Creature" and c.house != "Mars":
       count += 1
-      game.activePlayer.purge.append(c)
+      game.activePlayer.purged.append(c)
       active.remove(c)
   if count > 0:
     game.activePlayer.gainAmber(count, game)
@@ -1941,8 +1939,8 @@ def orbital_bombardment (game, card):
       pending.append(c)
   game.pending()
   
-def phosphorous_stars (game, card):
-  """ Phosphorous Stars: Stun each non-Mars creature. Gain 2 chains.
+def phosphorus_stars (game, card):
+  """ Phosphorus Stars: Stun each non-Mars creature. Gain 2 chains.
   """
   passFunc(game, card)
   active = game.activePlayer.board["Creature"]
@@ -2128,7 +2126,7 @@ def cleansing_wave (game, card):
     if x.damage > 0:
       x.damage -= 1
       count += 1
-  game.activePlayer.gainamber(count, game)
+  game.activePlayer.gainAmber(count, game)
   pyautogui.alert("You healed " + str(count) + " damage. You gain that much amber.")
 
 def clear_mind (game, card):
@@ -2197,13 +2195,13 @@ def inspiration (game, card):
   use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
   if use[0] == "R":
     if game.canReap(card, r_click = True, cheat = True):
-      game.reapCard(active.index(choice), cheat = True)
+      game.reapCard(choice, cheat = True)
   elif use[0] == "F":
     if game.canFight(card, r_click = True, cheat = True):
-      game.fightCard(active.index(choice), cheat=True)
+      game.fightCard(choice, cheat=True)
   elif use[0] == "A":
     if game.canAction(card, r_click = True, cheat = True):
-      game.actionCard(active.index(choice), cheat = True)
+      game.actionCard(choice, cheat = True)
 
 def mighty_lance (game, card):
   """ Mighty Lance: Deal 3 damage to a creature and 3 damage to a neighbor of that creature.
@@ -2260,6 +2258,7 @@ def oath_of_poverty (game, card):
     for a in active:
       destroy(a, game.activePlayer, game)
       pending.append(a)
+    game.activePlayer.gainAmber(count * 2, game)
   
   game.pending()
 
@@ -3115,15 +3114,15 @@ def lost_in_the_woods (game, card):
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
 
-  f_choices = [x[1] for x in game.chooseCards("Creature", "Choose two friendly creatures to shuffle into their owner's deck:", condition = lambda x: x in active)].sort()
-  e_choices = [x[1] for x in game.chooseCards("Creature", "Choose two enemy creatures to shuffle into their owner's deck:", condition = lambda x: x in inactive)].sort()
+  if active:
+    f_choices = [x[1] for x in game.chooseCards("Creature", "Choose two friendly creatures to shuffle into their owner's deck:", count = min(2, len(active)), condition = lambda x: x in active)].sort()
+  if inactive:
+    e_choices = [x[1] for x in game.chooseCards("Creature", "Choose two enemy creatures to shuffle into their owner's deck:", count = min(2, len(inactive)), condition = lambda x: x in inactive)].sort()
   for choice in f_choices[::-1]:
     c = active[choice]
-    active.remove(c)
     pending.append(c)
   for choice in e_choices[::-1]:
     c = inactive[choice]
-    inactive.remove(c)
     pending.append(c)
   game.pending("deck")
   

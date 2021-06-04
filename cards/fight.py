@@ -385,11 +385,11 @@ def ulyq_megamouth (game, card, attacked):
   
   use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
   if use[0] == "R":
-    game.reapCard(active.index(choice), cheat = True)
+    game.reapCard(choice, cheat = True)
   elif use[0] == "F":
-    game.fightCard(active.index(choice), cheat=True)
+    game.fightCard(choice, cheat=True)
   elif use[0] == "A":
-    game.actionCard(active.index(choice), cheat = True)
+    game.actionCard(choice, cheat = True)
 
 def yxilo_bolter (game, card, attacked):
   """ Yxilo Bolter: Deal 2 damage to a creaure. If this damage destroys that creature, purge it.

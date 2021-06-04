@@ -35,13 +35,13 @@ def stealAmber(thief, victim, num):
   if victim.amber >= num:
     victim.amber -= num
     thief.amber += num
-    print(thief.name + " stole " + str(num) + " amber from " + victim.name + ".")
+    print(f"{thief.name} stole {num} amber from {victim.name}.")
   else:
     thief.amber += victim.amber
     if victim.amber == 0:
-      print("Your opponent had no amber to steal. The card is stil played.")
+      print("Your opponent had no amber to steal.")
       return
-    print("Your opponent only had " + victim.amber + " amber for you to steal.")
+    print(f"Your opponent only had {victim.amber} amber for you to steal.")
     victim.amber = 0
 
 
@@ -61,7 +61,7 @@ def willEnterReady(game, card, reset: bool = True):
         if reset:
           activeS["blypyp"] = 0
         return True
-    if "speed_sigil" in [[x.title for x in game.activePlayer.board["Artifact"]] + [x.title for x in game.inactivePlayer.board["Artifact"]]]:
+    if "speed_sigil" in [x.title for x in game.activePlayer.board["Artifact"] + game.inactivePlayer.board["Artifact"]]:
       c_played = sum(x.type == "Creature" for x in game.playedThisTurn)
       if (not c_played and not reset) or (c_played == 1 and reset):
         return True

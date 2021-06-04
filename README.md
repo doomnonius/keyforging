@@ -28,8 +28,8 @@
  <li>Display the card that's under Masterplan</li>
  <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged - <s>related: Correct power + extraPow to just power, and make sure we're regularly recalcing power</s></li>
  <li>To get shoulder armor working properly (and a recalc armor function), we'll need to start recording card.lostarmor as well - except there are edge cases with shoulder armor where I think even that won't work.</li>
- <li></li>
- <li></li>
+ <li>Something that makes collision detection different if scaled - going to have to go in a lot of different places.</li>
+ <li>The dragging in chooseFlank is also tied going to need to know about scaled.</li>
  <li></li>
  <li></li>
  <li></li>

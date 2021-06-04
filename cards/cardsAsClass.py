@@ -23,6 +23,11 @@ class Card(pygame.sprite.Sprite):
         self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("’", "").replace('“', "").replace(",", "").replace("!", "").replace("”", "").replace("-", "_")
         self.width = width
         self.height = height
+        self.rarity = self.cardInfo["rarity"]
+        self.flavor = self.cardInfo["flavor_text"]
+        self.number = self.cardInfo['card_number']
+        self.exp = self.cardInfo["expansion"]
+        self.maverick = self.cardInfo['is_maverick']
         self.load_image()
         self.scaled_image, self.scaled_rect = self.image, self.rect
         self.reset()
@@ -46,12 +51,8 @@ class Card(pygame.sprite.Sprite):
             self.traits = self.cardInfo['traits']
         else:
             self.traits = ''
+        self.stun = False
         self.amber = self.cardInfo['amber']
-        self.rarity = self.cardInfo["rarity"]
-        self.flavor = self.cardInfo["flavor_text"]
-        self.number = self.cardInfo['card_number']
-        self.exp = self.cardInfo["expansion"]
-        self.maverick = self.cardInfo['is_maverick']
         self.revealed = False
         self.destroyed = False
         self.returned = False
@@ -90,7 +91,6 @@ class Card(pygame.sprite.Sprite):
             self.enrage = False
             self.upgrade = []
             self.ready = False
-            self.stun = False
             self.harland = None
             # check for skirmish in self.text
             if "Skirmish" in self.text:
@@ -159,6 +159,7 @@ class Card(pygame.sprite.Sprite):
         # artifacts need to be able to be readied too, and can capture amber
         if self.type == "Artifact":
             self.ready = False
+            self.dest = []
         
 
     def __repr__(self):
@@ -320,8 +321,9 @@ class Card(pygame.sprite.Sprite):
                 b(game, self, other)
         else:
             fight.basicBeforeFight(game, self, other)
+        print("Up next, evasion sigil.")
         evasion = False
-        sigil = sum(x.title == "evasion_sigil" for x in game.activePlayer.board["Artifact"] + game.activePlayer.board["Artifact"])
+        sigil = sum(x.title == "evasion_sigil" for x in game.activePlayer.board["Artifact"] + game.inactivePlayer.board["Artifact"])
         if sigil:
             for _ in range(sigil):
                 if game.activePlayer.deck:
@@ -467,10 +469,10 @@ class Card(pygame.sprite.Sprite):
         #     return True
         # return False
 
-    def tap(self):
-        if self.image.get_width() > self.image.get_height():
+    def tap(self, image):
+        if image.get_width() > image.get_height():
             return
-        rotated = pygame.transform.rotate(self.image, -90)
+        rotated = pygame.transform.rotate(image, -90)
         return rotated, rotated.get_rect()
         
     def load_image(self, colorkey=None):
@@ -491,7 +493,7 @@ class Card(pygame.sprite.Sprite):
             image.set_colorkey(colorkey)
         self.orig_image, self.orig_rect = image, image.get_rect()
         self.image, self.rect = self.scale_image(self.width, self.height)
-        self.tapped, self.tapped_rect = self.tap()
+        self.tapped, self.tapped_rect = self.tap(self.image)
 
     def scale_image(self, width, height):
         scaled = pygame.transform.scale(self.orig_image, (width, height))
