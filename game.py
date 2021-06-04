@@ -126,7 +126,7 @@ class Board():
     # start pygame
     pygame.init()
     pygame.font.init()
-    self.FPS = 30
+    self.FPS = 40
     self.WIN = pygame.display.set_mode((WIDTH, HEIGHT), flags=SRCALPHA) #, flags = pygame.FULLSCREEN)
     self.SMALLFONT = pygame.font.SysFont("Corbel", max(HEIGHT // 45, 14))
     self.BASICFONT = pygame.font.SysFont("Corbel", HEIGHT // 27)
@@ -1197,7 +1197,7 @@ class Board():
     card.ready = False
     if card not in self.usedThisTurn:
       self.usedThisTurn.append(card)
-    self.cardChanged()
+    self.cardChanged(True)
   
   def discardCard(self, cardNum: int, cheat: bool = False):
     """ Discard a card from hand, within the turn. Doesn't need to use pending for discards, but does use it for Rock-Hurling Giant.
@@ -1228,7 +1228,7 @@ class Board():
       self.discardedThisTurn.append(card)
     else:
       pyautogui.alert("You can only discard cards of the active house.")
-    self.cardChanged()
+    self.cardChanged(True)
 
 
   def fightCard(self, attacker: int, cheat: bool = True, defender = None):
@@ -1266,7 +1266,7 @@ class Board():
     except: print("Fight failed.")
     if card not in self.usedThisTurn:
       self.usedThisTurn.append(card)
-    self.cardChanged()
+    self.cardChanged(True)
 
   def playCard(self, chosen: int, cheat: str = "Hand", flank = "Right", ask = True):
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
@@ -1307,7 +1307,7 @@ class Board():
       return
     #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
     self.playedThisTurn.append(card)
-    self.cardChanged()
+    self.cardChanged(True) # definitely need to recalc power here, in case we play something next to a staunch knight so now it is dead
     self.draw()
     pygame.display.update()
     card.play(self, card)
@@ -1318,7 +1318,7 @@ class Board():
         self.activePlayer.purged.append(self.activePlayer.board["Action"].pop())
       else:
         self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
-    self.cardChanged()
+    self.cardChanged(True)
 
   def reapCard(self, cardNum: int, cheat:bool = False):
     """ Triggers a card's reap effect from within the turn.
@@ -1344,7 +1344,7 @@ class Board():
     card.ready = False # commented out for testing
     if card not in self.usedThisTurn:
       self.usedThisTurn.append(card)
-    self.cardChanged()
+    self.cardChanged(True)
 
   def forgeKey(self, player: str, cost: int):
     if cost < 0:
@@ -1639,7 +1639,7 @@ class Board():
       L = self.pendingReloc
 
     if not L:
-      self.cardChanged()
+      self.cardChanged(True)
       return # just in case we feed it an empty list
     for c in L[::-1]:
       triggers = []
@@ -1679,7 +1679,7 @@ class Board():
           c.destroyed = True
     if destination not in ['purge', 'discard', 'hand', 'deck', 'archive', 'annihilate']:
       pyautogui.alert("Pending was given an invalid destination.")
-      self.cardChanged()
+      self.cardChanged(True)
       return
     if destination == "purge":
       for c in L[::-1]:
@@ -1751,8 +1751,8 @@ class Board():
         L.remove(c)
     # check that the list was emptied
     if L:
-      pyautogui.alert("Pending did not properly empty the list.")
-    self.cardChanged()
+      pyautogui.alert(f"Pending did not properly empty the list. {L}")
+    self.cardChanged(True)
 
 
   def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
@@ -1911,7 +1911,7 @@ class Board():
       else:
         inactive[choice].upgrade.append(card)
       eval(f"upgrade.{card.title}(self, card, side, choice)")
-      self.cardChanged()
+      self.cardChanged(True) # this would actually make the play abilities I put on blood of titans, a bit redundant, but redundancy is ok
       return
     
     drawMe = []
@@ -2051,7 +2051,7 @@ class Board():
       self.activePlayer.gainAmber(card.amber, self)
       pyautogui.alert(f"{card.title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
     self.playedThisTurn.append(card)
-    self.cardChanged()
+    self.cardChanged(True)
     return
 
   def dragCard(self) -> None:
@@ -2781,7 +2781,7 @@ class Board():
         If a condition is set, only cards that match the condition can be picked\n
         If condition isn't met, the con_message is displayed
     """
-    self.cardChanged()
+    self.cardChanged(True)
     active = self.activePlayer.board
     inactive = self.inactivePlayer.board
 
