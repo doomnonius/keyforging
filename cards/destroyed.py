@@ -22,11 +22,11 @@ def basicLeaves(game, card):
     # if Magda the Rat
     if card.title == "magda_the_rat":
       if card in inactive[t]:
-        stealAmber(game.activePlayer, game.inactivePlayer, 2)
+        stealAmber(game.activePlayer, game.inactivePlayer, 2, game)
       elif card in active[t]:
-        stealAmber(game.inactivePlayer, game.activePlayer, 2)
-    # if gray_monk
-    if card.title == "gray_monk":
+        stealAmber(game.inactivePlayer, game.activePlayer, 2, game)
+    # if grey_monk
+    if card.title == "grey_monk":
       if card in active[t]:
         for c in active[t]:
           c.extraArm -= 1

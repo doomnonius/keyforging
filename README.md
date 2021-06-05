@@ -28,8 +28,14 @@
  <li>Display the card that's under Masterplan</li>
  <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged - <s>related: Correct power + extraPow to just power, and make sure we're regularly recalcing power</s></li>
  <li>To get shoulder armor working properly (and a recalc armor function), we'll need to start recording card.lostarmor as well - except there are edge cases with shoulder armor where I think even that won't work.</li>
- <li></li>
- <li></li>
+ <li>Update the lambda for "Are you sure you want to end your turn to highlight all usable things.</li>
+ <li>Scale the selected surf?</li>
+ <li>Make some selection windows not ask for confirmation (particularly the end turn one)</li>
+ <li>Small versions of cards with turn effects drawn in the center area, hoverable.</li>
+ <li>End turn button off to the right of the neutral area.</li>
+ <li>Scale cards in hand too.</li>
+ <li>Handle if chooseHouse or chooseCards get called with no valid options.</li>
+ <li>While resolving the effect of an action card, have it displaying in the top left corner, but also allow it to be minimized and maximized.</li>
  <li></li>
  <li></li>
  <li><s>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</s></li>
@@ -120,11 +126,12 @@
 <li>need to implement hazardous and assault and poison in fights</li>
 <li>Get hazardous and assault working - should be easy, but I made it more difficult than it needed to be. Could use more testing.</li>
 <li>Can use wild wormhole to cheat out a card with ember imp in play? Rules-wise it can't, as wildwormhole only gets around the first turn rule b/c that rule applies to playing out of hand.</li>
-<li>Dysania won't work. - now maybe she will</li>
 </ol>
 
 <h2>Bugs: </h2>
 <ol>
+<li>Dysania won't work. - now maybe she will</li>
+<li>Picking up archive didn't work.</li>
 <li>extra armor is always applied, even if it's been broken. Potential Solution: a calcExtraArmor() function, which needs to remember if a card has been hit yet this turn.</li>
 <li>if Sneklifter steals an artifact and it doesn't belong to one of the active player's houses, it gets changed to house Shadows. This is good. The bug is that if the artifact leaves play it doesn't get changed back.</li>
 <li>If scout gives a minion skirmish for a turn, it keeps skirmish until death. Might be fixed.</li>
@@ -134,9 +141,19 @@
 <li>Technically supposed to be able to choose whether library access or a card's play effect triggers first, but that's not how it's implemented in the code.</li>
 <li>Drag card overrides the close button.</li>
 <li>Wild wormhole out an upgrade - does it remove upgrade from top of deck?</li>
+<li>Bad Penny didn't work, nor biomatrix backup, probably will have similar issues with similar cards.</li>
+<li>Francus didn't work, I though Krump did work once but he doesn't always.</li>
+<li>I don't think amber is returned properly by cards leaving play - or it might just be ether spider</li>
+<li>Replicator won't currently interact with sequis properly</li>
 <li></li>
 <li></li>
 <li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li></li>
+<li><s>Ether spider doesn't work for stealing amber.</s> - updated stealAmber to use gainAmber</li>
 <li><s>Experienced a glitch where extra cards I couldn't hover ended up in my hand. This was on turn one in a game. Haven't seen it replicated yet.</s> - wasn't resetting cardBlits.</li>
 <li><s>add things that enter ready and/or stunned to the play list.</s></li>
 <li><s>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</s></li>

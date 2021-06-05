@@ -80,7 +80,7 @@ class Board():
     self.dataBlits = []
     self.cardBlits = []
     self.highlight = []
-    self.resetHouse = []
+    self.resetCard = []
     self.resetStates = []
     self.resetStatesNext = []
     # draw bools
@@ -700,8 +700,11 @@ class Board():
               self.activePlayer.states[key[1]] = 0
             if key[0] == "i":
               self.inactivePlayer.states[key[1]] = 0
-        for card in self.resetHouse:
-          card.house = card.cardInfo["house"]
+        for c, toReset in self.resetCard:
+          if toReset == "house":
+            c.house = c.cardInfo["house"]
+          if toReset == "damagable":
+            c.damagable = True
         self.resetStates = self.resetStatesNext.copy()
         self.resetStatesNext = []
         # print(f"States: {self.resetStates}")
@@ -741,20 +744,12 @@ class Board():
       hoverable += self.inactivePlayer.discard
 
     for card in hoverable:
-      if card.scaled:
-        if Rect.collidepoint(card.scaled_rect, (self.mousex, self.mousey)):
-          self.hovercard = [card]
-          return
-        if Rect.collidepoint(card.scaled_tapped_rect, (self.mousex, self.mousey)):
-          self.hovercard = [card]
-          return
-      else:
-        if Rect.collidepoint(card.rect, (self.mousex, self.mousey)):
-          self.hovercard = [card]
-          return
-        if Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)):
-          self.hovercard = [card]
-          return
+      if Rect.collidepoint(card.rect, (self.mousex, self.mousey)):
+        self.hovercard = [card]
+        return
+      if Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)):
+        self.hovercard = [card]
+        return
 
     for loc in hoverable2:
       if Rect.collidepoint(loc, (self.mousex, self.mousey)):
@@ -921,8 +916,8 @@ class Board():
     loc = 0
     while True:
       in_hand = [Rect.collidepoint(x.rect, pos) for x in self.activePlayer.hand]
-      in_creature = [(Rect.collidepoint(x.rect, pos) or Rect.collidepoint(x.tapped_rect, pos) or Rect.collidepoint(x.scaled_tapped_rect, pos) or Rect.collidepoint(x.scaled_rect, pos)) for x in self.activePlayer.board["Creature"]]
-      in_artifact = [(Rect.collidepoint(x.rect, pos) or Rect.collidepoint(x.tapped_rect, pos) or Rect.collidepoint(x.scaled_tapped_rect, pos) or Rect.collidepoint(x.scaled_rect, pos)) for x in self.activePlayer.board["Artifact"]]
+      in_creature = [(Rect.collidepoint(x.rect, pos) or Rect.collidepoint(x.tapped_rect, pos)) for x in self.activePlayer.board["Creature"]]
+      in_artifact = [(Rect.collidepoint(x.rect, pos) or Rect.collidepoint(x.tapped_rect, pos)) for x in self.activePlayer.board["Artifact"]]
       if True in in_hand: # check for collisions with a card: action options from clicking on a card
         card_pos = in_hand.index(True)
         opt = self.handOptions(card_pos)
@@ -1117,12 +1112,16 @@ class Board():
     inactiveS = self.inactivePlayer.states
     cost = 6
     if side == "active":
+      if "lash_of_broken_dreams" in inactiveS:
+        cost += 3 * activeS["lash_of_broken_dreams"]
       for c in inactive:
         if "jammer_pack" in [x.title for x in c.upgrade]:
           cost += 2
         if c.title == "grabber_jammer":
           cost += 1
     else:
+      if "lash_of_broken_dreams" in activeS:
+        cost += 3 * activeS["lash_of_broken_dreams"]
       for c in active:
         if "jammer_pack" in [x.title for x in c.upgrade]:
           cost += 2
@@ -1336,11 +1335,11 @@ class Board():
         self.usedThisTurn.append(card)
       self.cardChanged()
       return
+    basicReap(self, card)
     if card.reap:
+      # they'll need to choose the order multiples resolve in
       for r in card.reap:
         r(self, card)
-    else:
-      basicReap(self, card)
     card.ready = False # commented out for testing
     if card not in self.usedThisTurn:
       self.usedThisTurn.append(card)
@@ -1444,95 +1443,56 @@ class Board():
         card_h = self.target_cardh
       if card_h >= self.target_cardh:
         offset = ((area[0] + area[2]) // 2) - ((l * self.target_cardh) // 2)
-        rescale = False
-        use_scaled = False
-      elif card_h > board[0].scaled_rect.height * 1.5: # can't use usual image, but can also afford to scale up the image
+        card_h = self.target_cardh
+        if l and board[0].rect.height < self.target_cardh:
+          rescale = True
+        else:
+          rescale = False
+      elif card_h > board[0].rect.height * 1.5: # can't use usual image, but can also afford to scale up the image
         offset = ((area[0] + area[2]) // 2) - ((l * card_h) // 2)
         rescale = True
-        use_scaled = True
-      elif board[0].scaled_rect.height * 1.5 >= card_h >= board[0].scaled_rect.height: # too many cards to use usual image, but current scaled image works
-        offset = ((area[0] + area[2]) // 2) - ((l * board[0].scaled_rect.height) // 2)
+      elif board[0].rect.height * 1.5 >= card_h >= board[0].rect.height: # too many cards to use usual image, but current image scale works
+        offset = ((area[0] + area[2]) // 2) - ((l * board[0].rect.height) // 2)
         rescale = False
-        use_scaled = True
       else: # need to scale down
         offset = ((area[0] + area[2]) // 2) - ((l * card_h) // 2)
         rescale = True
-        use_scaled = True
-      if use_scaled:
-        for card in board:
-          if rescale:  # scale everything down or up
-            ratio = CARDH / card_h
-            card_w = int(CARDW // ratio)
-            card.scaled_image, card.scaled_rect = card.scale_image(card_w, card_h)
-            card.scaled_tapped_image, card.scaled_tapped_rect = card.tap(card.scaled_image)
-            card.scaled = True
-          if card.ready:
-            card_image, card_rect = card.scaled_image, card.scaled_rect
-            card.tapped_rect.topleft = OB
-            card.rect.topleft = OB
-            card.scaled_tapped_rect.topleft = OB
-          else:
-            card_image, card_rect = card.scaled_tapped_image, card.scaled_tapped_rect
-            card.rect.topleft = OB
-            card.tapped_rect.topleft = OB
-            card.scaled_rect.topleft = OB
-          card_rect.topleft = (offset + (x * card_h) + self.margin * (x + 1), area.top)
-          if card in self.activePlayer.board["Creature"] and not card.taunt:
-            card_rect.bottom = area[1] + area[3] - self.margin
-          if card in self.inactivePlayer.board["Creature"] and card.taunt:
-            card_rect.bottom = area[1] + area[3] - self.margin
-          x += 1
-          if card.upgrade:
-            y = len(card.upgrade)
-            x += 0.25 * y
-            card_rect.left += 0.25 * card_h * y
-            for up in card.upgrade:
-              # deliberately not scaling upgrades at this point
-              up_image, up_rect = up.image, up.rect
-              up.tapped_rect.topleft = OB
-              up_rect.left = card_rect.left - (3 * y * self.margin)
-              if card.taunt:
-                up_rect.top = card_rect.top
-              else:
-                up_rect.bottom = card_rect.bottom
-              self.cardBlits.append((up_image, up_rect))
-              y -= 1
-          self.cardBlits.append((card_image, card_rect))
-      else:
-        for card in board:
-          card.scaled = False
-          if card.ready:
-            card_image, card_rect = card.image, card.rect
-            card.tapped_rect.topleft = OB
-            card.scaled_rect.topleft = OB
-            card.scaled_tapped_rect.topleft = OB
-          else:
-            card_image, card_rect = card.tapped, card.tapped_rect
-            card.rect.topleft = OB
-            card.scaled_rect.topleft = OB
-            card.scaled_tapped_rect.topleft = OB
-          card_rect.topleft = (offset + (x * self.target_cardh) + self.margin * (x + 1), area.top)
-          if card in self.activePlayer.board["Creature"] and not card.taunt:
-            card_rect.bottom = area[1] + area[3] - self.margin
-          if card in self.inactivePlayer.board["Creature"] and card.taunt:
-            card_rect.bottom = area[1] + area[3] - self.margin
-          x += 1
-          if card.upgrade:
-            # deliberately not scaling upgrades at this point
-            y = len(card.upgrade)
-            x += 0.25 * y
-            card_rect.left += 0.25 * self.target_cardh * y
-            for up in card.upgrade:
-              up_image, up_rect = up.image, up.rect
-              up.tapped_rect.topleft = OB
-              up_rect.left = card_rect.left - (3 * y * self.margin)
-              if card.taunt:
-                up_rect.top = card_rect.top
-              else:
-                up_rect.bottom = card_rect.bottom
-              self.cardBlits.append((up_image, up_rect))
-              y -= 1
-          self.cardBlits.append((card_image, card_rect))
+      for card in board:
+        if rescale:  # scale everything down or up
+          ratio = CARDH / card_h
+          card_w = int(CARDW // ratio)
+          card.image, card.rect = card.scale_image(card_w, card_h)
+          card.tapped, card.tapped_rect = card.tap(card.image)
+        if card.ready:
+          card_image, card_rect = card.image, card.rect
+          card.tapped_rect.topleft = OB
+        else:
+          card_image, card_rect = card.tapped, card.tapped_rect
+          card.rect.topleft = OB
+        card_rect.topleft = (offset + (x * min(card_h, self.target_cardh)) + self.margin * (x + 1), area.top)
+        if card in self.activePlayer.board["Creature"] and not card.taunt:
+          card_rect.bottom = area[1] + area[3] - self.margin
+        if card in self.inactivePlayer.board["Creature"] and card.taunt:
+          card_rect.bottom = area[1] + area[3] - self.margin
+        x += 1
+        if card.upgrade:
+          # deliberately not scaling upgrades at this point
+          y = len(card.upgrade)
+          x += 0.25 * y
+          card_rect.left += 0.25 * self.target_cardh * y
+          for up in card.upgrade:
+            if rescale:  # scale everything down or up
+              up.image, up.rect = up.scale_image(card_w, card_h)
+            up_image, up_rect = up.image, up.rect
+            up.tapped_rect.topleft = OB
+            up_rect.left = card_rect.left - (3 * y * self.margin)
+            if card.taunt:
+              up_rect.top = card_rect.top
+            else:
+              up_rect.bottom = card_rect.bottom
+            self.cardBlits.append((up_image, up_rect))
+            y -= 1
+        self.cardBlits.append((card_image, card_rect))
     # card areas
     for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
       x = 0
@@ -1736,7 +1696,7 @@ class Board():
       # self.inactivePlayer.hand.sort(key = lambda x: x.house)
     elif destination == "deck":
       for c in L[::-1]:
-        if c.name == self.activePlayer.name:
+        if c.deck == self.activePlayer.name:
           self.activePlayer.deck.append(c)
         else:
           self.inactivePlayer.deck.append(c)
@@ -1954,8 +1914,8 @@ class Board():
           pygame.quit()
 
         if e.type == MOUSEBUTTONUP and e.button == 1:
-          activeHit = [(Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(x.scaled_tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(x.scaled_rect, (self.mousex, self.mousey))) for x in active]
-          inactiveHit = [(Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(x.scaled_tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(x.scaled_rect, (self.mousex, self.mousey))) for x in inactive]
+          activeHit = [(Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in active]
+          inactiveHit = [(Rect.collidepoint(x.rect, (self.mousex, self.mousey)) or Rect.collidepoint(x.tapped_rect, (self.mousex, self.mousey))) for x in inactive]
           if Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
             l = len(hand)
             for x in range(len(hand)):
@@ -2216,82 +2176,46 @@ class Board():
         self.flankRectRightTapped.topleft = OB
         if c.ready: # both ready
           if c.taunt and not card.taunt: # in play taunt, played not
-            if c.scaled:
-              self.flankRectRight.topleft = (c.scaled_rect.topright)
-            else:
-              self.flankRectRight.topleft = (c.rect.topright)
+            self.flankRectRight.topleft = (c.rect.topright)
             self.flankRectRight.top += self.margin * 3
           elif not c.taunt and card.taunt: # played taunt, in play not
-            if c.scaled:
-              self.flankRectRight.topleft = (c.scaled_rect.topright)
-            else:
-              self.flankRectRight.topleft = (c.rect.topright)
+            self.flankRectRight.topleft = (c.rect.topright)
             self.flankRectRight.top -= self.margin * 3
           else: # both taunt or both not
-            if c.scaled:
-              self.flankRectRight.topleft = (c.scaled_rect.topright)
-            else:
-              self.flankRectRight.topleft = (c.rect.topright)
+            self.flankRectRight.topleft = (c.rect.topright)
           self.flankRectRight.right += self.margin
         else: # played ready, in play not
           if c.taunt and not card.taunt: # in play taunt, played not
-            if c.scaled:
-              self.flankRectRight.bottomleft = (c.scaled_tapped_rect.bottomright)
-            else:
-              self.flankRectRight.bottomleft = (c.tapped_rect.bottomright)
+            self.flankRectRight.bottomleft = (c.tapped_rect.bottomright)
             self.flankRectRight.top += self.margin * 3
           elif not c.taunt and card.taunt: # played taunt, in play not
-            if c.scaled:
-              self.flankRectRight.bottomleft = (c.scaled_tapped_rect.bottomright)
-            else:
-              self.flankRectRight.bottomleft = (c.tapped_rect.bottomright)
+            self.flankRectRight.bottomleft = (c.tapped_rect.bottomright)
             self.flankRectRight.top -= self.margin * 3
           else: # both taunt or both not
-            if c.scaled:
-              self.flankRectRight.bottomleft = (c.scaled_tapped_rect.bottomright)
-            else:
-              self.flankRectRight.bottomleft = (c.tapped_rect.bottomright)
+            self.flankRectRight.bottomleft = (c.tapped_rect.bottomright)
           self.flankRectRight.right += self.margin
         drawMe.append((self.flankSurf, self.flankRectRight))
       else:
         self.flankRectRight.topleft = OB
         if c.ready: # played not ready, in play ready
           if c.taunt and not card.taunt: # in play taunt, played not
-            if c.scaled:
-              self.flankRectRightTapped.bottomleft = (c.scaled_rect.bottomright)
-            else:
-              self.flankRectRightTapped.bottomleft = (c.rect.bottomright)
+            self.flankRectRightTapped.bottomleft = (c.rect.bottomright)
             self.flankRectRightTapped.top += self.margin * 3
           elif not c.taunt and card.taunt: # played taunt, in play not
-            if c.scaled:
-              self.flankRectRightTapped.topleft = (c.scaled_rect.topright)
-            else:
-              self.flankRectRightTapped.topleft = (c.rect.topright)
+            self.flankRectRightTapped.topleft = (c.rect.topright)
             self.flankRectRightTapped.top -= self.margin * 3
           else: # both taunt or both not
-            if c.scaled:
-              self.flankRectRightTapped.bottomleft = (c.scaled_rect.bottomright)
-            else:
-              self.flankRectRightTapped.bottomleft = (c.rect.bottomright)
+            self.flankRectRightTapped.bottomleft = (c.rect.bottomright)
           self.flankRectRightTapped.right += self.margin
         else: # played not ready, in play not ready
           if c.taunt and not card.taunt: # in play taunt, played not
-            if c.scaled:
-              self.flankRectRightTapped.topleft = (c.scaled_tapped_rect.topright)
-            else:
-              self.flankRectRightTapped.topleft = (c.tapped_rect.topright)
+            self.flankRectRightTapped.topleft = (c.tapped_rect.topright)
             self.flankRectRightTapped.top += self.margin * 3
           elif not c.taunt and card.taunt: # played taunt, in play not
-            if c.scaled:
-              self.flankRectRightTapped.topleft = (c.scaled_tapped_rect.topright)
-            else:
-              self.flankRectRightTapped.topleft = (c.tapped_rect.topright)
+            self.flankRectRightTapped.topleft = (c.tapped_rect.topright)
             self.flankRectRightTapped.top -= self.margin * 3
           else: # both taunt or both not
-            if c.scaled:
-              self.flankRectRightTapped.topleft = (c.scaled_tapped_rect.topright)
-            else:
-              self.flankRectRightTapped.topleft = (c.tapped_rect.topright)
+            self.flankRectRightTapped.topleft = (c.tapped_rect.topright)
           self.flankRectRightTapped.right += self.margin
         drawMe.append((self.flankSurfTapped, self.flankRectRightTapped))
       # left
@@ -2300,82 +2224,46 @@ class Board():
         self.flankRectLeftTapped.topright = OB
         if c.ready: # both ready
           if c.taunt and not card.taunt: # in play taunt, played not
-            if c.scaled:
-              self.flankRectLeft.topright = (c.scaled_rect.topleft)
-            else:
-              self.flankRectLeft.topright = (c.rect.topleft)
+            self.flankRectLeft.topright = (c.rect.topleft)
             self.flankRectLeft.top += self.margin * 3
           elif not c.taunt and card.taunt: # played taunt, in play not
-            if c.scaled:
-              self.flankRectLeft.topright = (c.scaled_rect.topleft)
-            else:
-              self.flankRectLeft.topright = (c.rect.topleft)
+            self.flankRectLeft.topright = (c.rect.topleft)
             self.flankRectLeft.top -= self.margin * 3
           else: # both same
-            if c.scaled:
-              self.flankRectLeft.topright = (c.scaled_rect.topleft)
-            else:
-              self.flankRectLeft.topright = (c.rect.topleft)
+            self.flankRectLeft.topright = (c.rect.topleft)
           self.flankRectLeft.left -= self.margin
         else: # played ready, in play not
           if c.taunt and not card.taunt: # in play taunt, played not
-            if c.scaled:
-              self.flankRectLeft.bottomright = (c.scaled_tapped_rect.bottomleft)
-            else:
-              self.flankRectLeft.bottomright = (c.tapped_rect.bottomleft)
+            self.flankRectLeft.bottomright = (c.tapped_rect.bottomleft)
             self.flankRectLeft.top += self.margin * 3
           elif not c.taunt and card.taunt: # played taunt, in play not
-            if c.scaled:
-              self.flankRectLeft.bottomright = (c.scaled_tapped_rect.bottomleft)
-            else:
-              self.flankRectLeft.bottomright = (c.tapped_rect.bottomleft)
+            self.flankRectLeft.bottomright = (c.tapped_rect.bottomleft)
             self.flankRectLeft.top -= self.margin * 3
           else: # both same
-            if c.scaled:
-              self.flankRectLeft.bottomright = (c.scaled_tapped_rect.bottomleft)
-            else:
-              self.flankRectLeft.bottomright = (c.tapped_rect.bottomleft)
+            self.flankRectLeft.bottomright = (c.tapped_rect.bottomleft)
           self.flankRectLeft.left -= self.margin * (len(c.upgrade) + 1)
         drawMe.append((self.flankSurf, self.flankRectLeft))
       else:
         self.flankRectLeft.topright = OB
         if c.ready: # in play ready, played not
           if c.taunt and not card.taunt: # in play taunt, played not
-            if c.scaled:
-              self.flankRectLeftTapped.bottomright = (c.scaled_rect.bottomleft)
-            else:
-              self.flankRectLeftTapped.bottomright = (c.rect.bottomleft)
+            self.flankRectLeftTapped.bottomright = (c.rect.bottomleft)
             self.flankRectLeftTapped.top += self.margin * 3
           elif not c.taunt and card.taunt: # played taunt, in play not
-            if c.scaled:
-              self.flankRectLeftTapped.topright = (c.scaled_rect.topleft)
-            else:
-              self.flankRectLeftTapped.topright = (c.rect.topleft)
+            self.flankRectLeftTapped.topright = (c.rect.topleft)
             self.flankRectLeftTapped.top -= self.margin * 3
           else: # both same
-            if c.scaled:
-              self.flankRectLeftTapped.bottomright = (c.scaled_rect.bottomleft)
-            else:
-              self.flankRectLeftTapped.bottomright = (c.rect.bottomleft)
+            self.flankRectLeftTapped.bottomright = (c.rect.bottomleft)
           self.flankRectLeftTapped.left -= self.margin * (len(c.upgrade) + 1)
         else: # neither ready
           if c.taunt and not card.taunt: # in play taunt, played not
-            if c.scaled:
-              self.flankRectLeftTapped.topright = (c.scaled_tapped_rect.topleft)
-            else:
-              self.flankRectLeftTapped.topright = (c.tapped_rect.topleft)
+            self.flankRectLeftTapped.topright = (c.tapped_rect.topleft)
             self.flankRectLeftTapped.top += self.margin * 3
           elif not c.taunt and card.taunt: # played taunt, in play not
-            if c.scaled:
-              self.flankRectLeftTapped.topright = (c.scaled_tapped_rect.topleft)
-            else:
-              self.flankRectLeftTapped.topright = (c.tapped_rect.topleft)
+            self.flankRectLeftTapped.topright = (c.tapped_rect.topleft)
             self.flankRectLeftTapped.top -= self.margin * 3
           else: # both same
-            if c.scaled:
-              self.flankRectLeftTapped.topright = (c.scaled_tapped_rect.topleft)
-            else:
-              self.flankRectLeftTapped.topright = (c.tapped_rect.topleft)
+            self.flankRectLeftTapped.topright = (c.tapped_rect.topleft)
           self.flankRectLeftTapped.left -= self.margin * (len(c.upgrade) + 1)
         drawMe.append((self.flankSurfTapped, self.flankRectLeftTapped))
     else: # empty board
@@ -2398,15 +2286,9 @@ class Board():
         self.flankRectRight.center = self.artifacts1_rect.center
         if artifact:
           if artifact[-1].ready:
-            if artifact[-1].scaled:
-              self.flankRectRight.left = artifact[-1].scaled_rect.right + self.margin
-            else:
-              self.flankRectRight.left = artifact[-1].rect.right + self.margin
+            self.flankRectRight.left = artifact[-1].rect.right + self.margin
           else:
-            if artifact[-1].scaled:
-              self.flankRectRight.left = artifact[-1].scaled_tapped_rect.right + self.margin
-            else:
-              self.flankRectRight.left = artifact[-1].tapped_rect.right + self.margin
+            self.flankRectRight.left = artifact[-1].tapped_rect.right + self.margin
         self.flankRectLeft.topright = OB
         self.flankRectLeftTapped.topright = OB
         self.flankRectRightTapped.topright = OB
@@ -2415,15 +2297,9 @@ class Board():
         self.flankRectRightTapped.center = self.artifacts1_rect.center
         if artifact:
           if artifact[-1].ready:
-            if artifact[-1].scaled:
-              self.flankRectRightTapped.left = artifact[-1].scaled_rect.right + self.margin
-            else:
-              self.flankRectRightTapped.left = artifact[-1].rect.right + self.margin
+            self.flankRectRightTapped.left = artifact[-1].rect.right + self.margin
           else:
-            if artifact[-1].scaled:
-              self.flankRectRightTapped.left = artifact[-1].scaled_tapped_rect.right + self.margin
-            else:
-              self.flankRectRightTapped.left = artifact[-1].tapped_rect.right + self.margin
+            self.flankRectRightTapped.left = artifact[-1].tapped_rect.right + self.margin
         self.flankRectLeftTapped.topright = OB
         self.flankRectLeft.topright = OB
         self.flankRectRight.topright = OB
@@ -3042,7 +2918,7 @@ class Board():
                     break
             else: # Creature or Artifact
               if canHit == "both": # this means I can select from both boards at the same time, eg natures call
-                friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
+                friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
                 if True in friend:
                   index = friend.index(True)
                   card = active[targetPool][index]
@@ -3064,7 +2940,7 @@ class Board():
                     pyautogui.alert(con_message)
                     self.cardChanged()
                     break
-                foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
+                foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
                 if True in foe:
                   index = foe.index(True)
                   card = inactive[targetPool][index]
@@ -3087,7 +2963,7 @@ class Board():
                     self.cardChanged()
                     break
               elif canHit == "either": # this means I can select multiples, but only all from same side
-                friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
+                friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
                 if True in friend and (not retVal or retVal[0][0] == "fr"):
                   index = friend.index(True)
                   card = active[targetPool][index]
@@ -3109,7 +2985,7 @@ class Board():
                     pyautogui.alert(con_message)
                     self.cardChanged()
                     break
-                foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
+                foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
                 if True in foe and (not retVal or retVal[0][0] == "fo"):
                   index = foe.index(True)
                   card = inactive[targetPool][index]
@@ -3132,7 +3008,7 @@ class Board():
                     self.cardChanged()
                     break
               elif canHit == "enemy": # this means I can only target unfriendlies
-                foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
+                foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
                 if True in foe:
                   index = foe.index(True)
                   card = inactive[targetPool][index]
@@ -3155,7 +3031,7 @@ class Board():
                     self.cardChanged()
                     break
               elif canHit == "friend": # this means I can only target friendlies
-                friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_tapped_rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.scaled_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
+                friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
                 if True in friend:
                   index = friend.index(True)
                   card = active[targetPool][index]

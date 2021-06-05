@@ -42,16 +42,16 @@ def passFunc(game, card):
         game.pending()
         count -= 1
     # stuff that gives armor
-    if "gray_monk" in [x.title for x in active["Creature"]]:
-      extra = sum(x.title == "gray_monk" for x in active["Creature"])
-      if card.name == "gray_monk":
+    if "grey_monk" in [x.title for x in active["Creature"]]:
+      extra = sum(x.title == "grey_monk" for x in active["Creature"])
+      if card.name == "grey_monk":
         extra -= 1 # so it doesn't hit itself
       card.extraArm += extra
       card.resetArmor(game)
     if "banner_of_battle" in [x.title for x in active["Creature"]]:
       extra = sum(x.title == "banner_of_battle" for x in active["Creature"])
       card.power += extra
-    # this is deliberately after gray_monk
+    # this is deliberately after grey_monk
     if "autocannon" in inactive["Artifact"] + active["Artifact"]:
       count = sum(x.title == "autocannon" for x in inactive["Artifact"] + active["Artifact"])
       while count > 0:
@@ -78,14 +78,14 @@ def passFunc(game, card):
         if "brain_stem_antenna" in [x.title for x in c.upgrade]:
           c.ready = True
           c.house = "Mars"
-          game.resetHouse.append(c)
+          game.resetCard.append((c, "house"))
           game.cardChanged()
   if willEnterReady(game, card):
     card.ready = True
     pyautogui.alert(card.title + " enters play ready!")
   if card.type == "Artifact":
     if "carlo_phantom" in [x.title for x in active["Creature"]]:
-      stealAmber(game.activePlayer, game.inactivePlayer, sum(x.title == "carlo_phantom" for x in active["Creature"]))
+      stealAmber(game.activePlayer, game.inactivePlayer, sum(x.title == "carlo_phantom" for x in active["Creature"]), game)
       pyautogui.alert("'Carlo Phantom' stole 1 amber for you. You now have " + str(game.activePlayer.amber) + " amber.")
     if "hayyel_the_merchant" in [x.title for x in active["Creature"]]:
       game.activePlayer.gainAmber(1, game)
@@ -290,7 +290,7 @@ def take_that_smartypants (game, card):
     if c.house == "Logos" or "experimental_therapy" in [x.title for x in c.upgrade]:
       count += 1
       if count >= 3:
-        stealAmber(game.activePlayer, game.inactivePlayer, 2)
+        stealAmber(game.activePlayer, game.inactivePlayer, 2, game)
         pyautogui.alert("You stole 2 amber from your opponent!")
         break
   else:
@@ -645,7 +645,8 @@ def creeping_oblivion (game, card):
   inactiveDisc = game.inactivePlayer.discard
   game.drawFriendDiscard = True
   game.drawEnemyDiscard = True
-  toPurge = game.chooseCards("Discard", "Choose up to two cards to purge:", "either", 2, False).sort(key = lambda x: x[1], reverse = True)
+  toPurge = game.chooseCards("Discard", "Choose up to two cards to purge:", "either", 2, False)
+  toPurge.sort(key = lambda x: x[1], reverse = True)
   for side, choice in toPurge:
     if side == "fr":
       c = activeDisc[choice]
@@ -1136,7 +1137,7 @@ def shooler (game, card):
   """
   passFunc(game, card)
   if game.inactivePlayer.amber >= 4:
-    stealAmber(game.activePlayer, game.inactivePlayer, 1)
+    stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   
 def the_terror (game, card):
   """ The Terror: If your opponent has no amber, gain 2.
@@ -1300,7 +1301,7 @@ def neuro_syphon (game, card):
   """
   passFunc(game, card)
   if game.inactivePlayer.amber > game.activePlayer.amber:
-    stealAmber(game.activePlayer, game.inactivePlayer, 1)
+    stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
     pyautogui.alert("Your opponent has more amber than you, so the effect triggers. You now have " + str(game.activePlayer.amber) + " amber. Drawing a card.")
     game.activePlayer += 1
     return
@@ -1821,7 +1822,8 @@ def mass_abduction (game, card):
     pyautogui.alert("There are no damaged enemy creatures. The card is still played.")
     return
 
-  choices = [x[1] for x in game.chooseCards("Creature", "Choose up to 3 damaged enemy creatures to put into your archives:", "enemy", 3, False, lambda x: x.damage > 0)].sort(reverse=True)
+  choices = [x[1] for x in game.chooseCards("Creature", "Choose up to 3 damaged enemy creatures to put into your archives:", "enemy", 3, False, lambda x: x.damage > 0)]
+  choices.sort(reverse=True)
 
   if choices:
     for choice in choices:
@@ -1962,7 +1964,7 @@ def psychic_network (game, card):
   if count == 0:
     pyautogui.alert("You have no friendly ready Mars creatures, so you don't steal any amber. The card is still played.")
     return
-  stealAmber(game.activePlayer, game.inactivePlayer, count)
+  stealAmber(game.activePlayer, game.inactivePlayer, count, game)
 
 def sample_collection (game, card):
   """ Sample Collection: Put an enemy creature into your archives for each key your opponent has forged. If any of these creatures leave your archives, they are put into their owner's hand instead.
@@ -2005,7 +2007,7 @@ def soft_landing (game, card):
   """
   passFunc(game, card)
   game.activePlayer.states[card.title] = 1
-  # this one doesn't go in reset states, is controlled by basicPlay, but still needs to be in reset states in case that isn't triggered
+  # this one still needs to be in reset states in case it isn't triggered
   game.resetStates.append(("a", card.title))
 
 def squawker (game, card):
@@ -2192,6 +2194,9 @@ def inspiration (game, card):
   if game.canAction(card, r_click = True, cheat = True):
     uses.append("Action/Omni")
   
+  if not uses:
+    return ("No valid uses for this card.")
+
   use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
   if use[0] == "R":
     if game.canReap(card, r_click = True, cheat = True):
@@ -2381,7 +2386,7 @@ def epic_quest (game, card):
 # Creature #
 ############
 
-def gray_monk (game, card):
+def grey_monk (game, card):
   """ Gray Monk: Each other friendly creature has +1 armor.
   """
   for c in game.activePlayer.board["Creature"]:
@@ -2561,7 +2566,7 @@ def bait_and_switch (game, card):
   count = 2
   while count > 0:
     if game.inactivePlayer.amber > game.activePlayer.amber:
-      stealAmber(game.activePlayer, game.inactivePlayer, 1)
+      stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
       pyautogui.alert("You steal 1 amber. You now have " + str(game.activePlayer.amber) + " amber.")
       count -= 1
     else:
@@ -2626,13 +2631,13 @@ def finishing_blow (game, card):
     card = active[choice]
     destroy(card, game.activePlayer, game)
     if card.destroyed:
-      stealAmber(game.activePlayer, game.inactivePlayer, 1)
+      stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
       pending.append(card)
   else:
     card = inactive[choice]
     destroy(card, game.inactivePlayer, game)
     if card.destroyed:
-      stealAmber(game.activePlayer, game.inactivePlayer, 1)
+      stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
       pending.append(card)
 
   game.pending()
@@ -2642,7 +2647,7 @@ def ghostly_hand (game, card):
   """
   passFunc(game, card)
   if game.inactivePlayer.amber == 1:
-    stealAmber(game.activePlayer, game.inactivePlayer, 1)
+    stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
     pyautogui.alert("You stole your opponent's only amber, you jerk. You now have " + str(game.activePlayer.amber) + " amber.")
     return
   pyautogui.alert("Your opponent has " + str(game.inactivePlayer.amber) + "amber. You steal nothing.")
@@ -2722,7 +2727,7 @@ def nerve_blast (game, card):
   pending = game.pendingReloc
   orig = game.activePlayer.amber
 
-  stealAmber(game.activePlayer, game.inactivePlayer, 1)
+  stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   if game.activePlayer.amber > orig:
     pyautogui.alert("You now have " + game.activePlayer.amber + " amber. Now, deal 2 damage to a creature.")
     side, choice = game.chooseCards("Creature", "Deal 2 damage to a creature:")[0]
@@ -2757,7 +2762,7 @@ def one_last_job (game, card):
       active.remove(c)
       pending.append(c)
       count += 1
-      stealAmber(game.activePlayer, game.inactivePlayer, 1)
+      stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
     game.pending("purge")
 
   pyautogui.alert("You may have stolen some amber.")
@@ -2807,7 +2812,7 @@ def pawn_sacrifice (game, card):
     return
 
   count = min(2, len(inactive) + len(active))
-  targets = game.chooseCards("Creature", f"Choose {count} minions to deal 3 damage to:")
+  targets = game.chooseCards("Creature", f"Choose {count} minions to deal 3 damage to:", count = count)
   for side, target in targets:
     if side == "fr":
       card = active[target]
@@ -2866,14 +2871,14 @@ def relentless_whispers (game, card):
     card.updateHealth(game.activePlayer)
     if card.destroyed:
       pending.append(card)
-      stealAmber(game.activePlayer, game.inactivePlayer, 1)
+      stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   else:
     card = inactive[choice]
     card.damageCalc(game, 2)
     card.updateHealth(game.inactivePlayer)
     if card.destroyed:
       pending.append(card)
-      stealAmber(game.activePlayer, game.inactivePlayer, 1)
+      stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
   game.pending()
 
@@ -2881,11 +2886,11 @@ def routine_job (game, card):
   """ Routine Job: Steal 1 amber. Then, steal 1 amber for each copy of Routine Job in your discard pile.
   """
   passFunc(game, card)
-  stealAmber(game.activePlayer, game.inactivePlayer, 1)
+  stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   
   for c in game.activePlayer.discard:
     if c.title == card.title:
-      stealAmber(game.activePlayer, game.inactivePlayer, 1)
+      stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 def too_much_to_protect (game, card):
   """ Too Much to Protect: Steal all but 6 of your opponent's amber.
@@ -2894,7 +2899,7 @@ def too_much_to_protect (game, card):
   diff = 0
   if game.inactivePlayer.amber > 6:
     diff = game.inactivePlayer.amber - 6
-    stealAmber(game.activePlayer, game.inactivePlayer, diff)
+    stealAmber(game.activePlayer, game.inactivePlayer, diff, game)
 
 def treasure_map (game, card):
   """ Treasure Map: If you have not played any other cards this turn, gain 3 amber. For the remainder of the turn, you cannot play cards.
@@ -2925,7 +2930,7 @@ def magda_the_rat (game, card):
   """ Magda the Rat: Steal 2 amber.
   """
   passFunc(game, card)
-  stealAmber(game.activePlayer, game.inactivePlayer, 2)
+  stealAmber(game.activePlayer, game.inactivePlayer, 2, game)
 
 def old_bruno (game, card):
   """ Old Bruno: Capture 3 amber.
@@ -2954,7 +2959,7 @@ def urchin (game, card):
   """ Urchin: Steal 1 amber.
   """
   passFunc(game, card)
-  stealAmber(game.activePlayer, game.inactivePlayer, 1)
+  stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 ## End house Shadows
 
@@ -3101,7 +3106,7 @@ def lifeweb (game, card):
   # implement tracking how many creatures opponent played last turn
   # if a deck has lifeweb in it, it will set Lifeweb in states to [True, 0]. Whenever the opponent plays a creature, it will be incremented.
   if sum(x.type == "Creature" for x in game.playedLastTurn) > 2:
-    stealAmber(game.activePlayer, game.inactivePlayer, 2)
+    stealAmber(game.activePlayer, game.inactivePlayer, 2, game)
     pyautogui.alert("Your opponent played enough creatures last turn, so you stole 2 amber.")
     return
   pyautogui.alert("Your opponent did not play enough creatures last turn, so you steal no amber.")
@@ -3115,9 +3120,11 @@ def lost_in_the_woods (game, card):
   pending = game.pendingReloc
 
   if active:
-    f_choices = [x[1] for x in game.chooseCards("Creature", "Choose two friendly creatures to shuffle into their owner's deck:", count = min(2, len(active)), condition = lambda x: x in active)].sort()
+    f_choices = [x[1] for x in game.chooseCards("Creature", "Choose two friendly creatures to shuffle into their owner's deck:", count = min(2, len(active)), condition = lambda x: x in active)]
+    f_choices.sort()
   if inactive:
-    e_choices = [x[1] for x in game.chooseCards("Creature", "Choose two enemy creatures to shuffle into their owner's deck:", count = min(2, len(inactive)), condition = lambda x: x in inactive)].sort()
+    e_choices = [x[1] for x in game.chooseCards("Creature", "Choose two enemy creatures to shuffle into their owner's deck:", count = min(2, len(inactive)), condition = lambda x: x in inactive)]
+    e_choices.sort()
   for choice in f_choices[::-1]:
     c = active[choice]
     pending.append(c)
@@ -3132,7 +3139,7 @@ def lost_in_the_woods (game, card):
 def mimicry (game, card):
   """ Mimicry: When you play this card, treat it as a copy of an action card in your opponent's discard pile.
   """
-  passFunc(game, card)
+  # passFunc(game, card) # because Mimicry will trigger the passFunc of the card it copies
   inactive = game.inactivePlayer.discard
   options = sum(x.type == "Action" for x in inactive)
   if not options:
@@ -3156,7 +3163,8 @@ def natures_call (game, card):
     pyautogui.alert("No valid targets.")
     return
 
-  choices = game.chooseCards("Creature", "Return up to 3 creatures to their owner's hands:", count = 3, full = False).sort(key = lambda x: x[1], reverse = True)
+  choices = game.chooseCards("Creature", "Return up to 3 creatures to their owner's hands:", count = 3, full = False)
+  choices.sort(key = lambda x: x[1], reverse = True)
   for side, target in choices:
     if side == "fr":
       c = active[target]
@@ -3182,7 +3190,8 @@ def nocturnal_maneuver (game, card):
     pyautogui.alert("No valid targets.")
     return
   
-  choices = game.activePlayer("Creature", "Exhaust up to 3 creatures:", count = 3, full = False).sort(key = lambda x: x[1], reverse = True)
+  choices = game.chooseCards("Creature", "Exhaust up to 3 creatures:", count = 3, full = False)
+  choices.sort(key = lambda x: x[1], reverse = True)
   for side, target in choices:
     if side == "fr":
       c = active[target]
@@ -3222,6 +3231,7 @@ def regrowth (game, card):
     pyautogui.alert("No creatures in your discard.")
     return
 
+  game.drawFriendDiscard = True
   choice = game.chooseCard("Discard", "Return a creature from your discard pile to your hand:", "friend", condition = lambda x: x.type == "Creature", con_message = "That's not a creature.")[0][1]
   # I can skip pending b/c this card is guaranteed to belong to the active player
   c = active[choice]
@@ -3240,13 +3250,11 @@ def save_the_pack (game, card):
     if c.damage > 0:
       destroy(c, game.activePlayer, game)
       if c.destroyed:
-        active.remove(c)
         pending.append(c)
   for c in inactive[::-1]:
     if c.damage > 0:
-      destroy(c, game.activePlayer, game)
+      destroy(c, game.inactivePlayer, game)
       if c.destroyed:
-        active.remove(c)
         pending.append(c)
     
   game.pending()
@@ -3287,7 +3295,7 @@ def stampede (game, card):
   passFunc(game, card)
   if sum(x.type == "Creature" for x in game.usedThisTurn) > 2:
     pyautogui.alert("You have used at least 3 creatures this turn, so you steal 2 amber.")
-    stealAmber(game.activePlayer, game.inactivePlayer, 2)
+    stealAmber(game.activePlayer, game.inactivePlayer, 2, game)
     return
   pyautogui.alert("You have used less than 3 creatures this turn, so you steal no amber. The card is still played.")
 

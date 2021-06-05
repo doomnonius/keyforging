@@ -122,6 +122,7 @@ def kelifi_dragon (game, card, attacked):
   c.updateHealth()
   if c.destroyed:
     pending.append(c)
+  game.pending()
 
 
 #######
@@ -238,14 +239,14 @@ def snudge (game, card, attacked):
 def batdrone (game, card, attacked):
   """ Batdrone: Steal 1 amber
   """
-  stealAmber(game.activePlayer, game.inactivePlayer, 1)
+  stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 def quixo_the_adventurer (game, card, attacked):
   """ Quixo the Adventurer: Draw a card
   """
   game.activePlayer += 1
 
-def neutron_shark (game, card):
+def neutron_shark (game, card, attacked):
   """ Neutron Shark: Destroy an enemy creature or artifact and a friendly creature or artifact. Discard the top card of your deck. If that card is not a Logos card, trigger this effect again.
   """
   active = game.activePlayer.board
@@ -383,6 +384,9 @@ def ulyq_megamouth (game, card, attacked):
   if game.canAction(card, r_click = True, cheat = True):
     uses.append("Action/Omni")
   
+  if not uses:
+    return ("No valid uses for this card.")
+  
   use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
   if use[0] == "R":
     game.reapCard(choice, cheat = True)
@@ -445,7 +449,7 @@ def champion_tabris (game, card, attacked):
   """
   card.capture(game, 1)
 
-def horseman_of_famine (game, card):
+def horseman_of_famine (game, card, attacked):
   """ Horseman of Famine: Destroy the least powerful creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -458,18 +462,18 @@ def horseman_of_famine (game, card):
 
   side, choice = game.chooseCards("Creature", "Destroy a creature with the lowest power:", condition = lambda x: x.power == low, con_message = "That creature does not have the lowest power.")[0]
   if side == "fr":
-    card = active[choice]
-    destroy(card, game.activePlayer, game)
-    if card.destroyed:
-      pendingD.append(card)
+    c = active[choice]
+    destroy(c, game.activePlayer, game)
+    if c.destroyed:
+      pendingD.append(c)
   else:
-    card = inactive[choice]
-    destroy(card, game.inactivePlayer, game)
-    if card.destroyed:
-      pendingD.append(card)
+    c = inactive[choice]
+    destroy(c, game.inactivePlayer, game)
+    if c.destroyed:
+      pendingD.append(c)
   game.pending()
 
-def horseman_of_pestilence (game, card):
+def horseman_of_pestilence (game, card, attacked):
   """ Horseman of Pestilence: Deal 1 damage to each non-Horseman creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -528,12 +532,12 @@ def sanctum_guardian (game, card, attacked):
 def mooncurser (game, card, attacked):
   """ Mooncurser: Steal 1 amber
   """
-  stealAmber(game.activePlayer, game.inactivePlayer, 1)
+  stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 def dodger (game, card, attacked):
   """ Dodger: Steal 1 amber.
   """
-  stealAmber(game.activePlayer, game.inactivePlayer, 1)
+  stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 def selwyn_the_fence (game, card, attacked):
   """ Selwyn the Fence: move 1 amber from one of your cards to your pool.
@@ -559,10 +563,10 @@ def selwyn_the_fence (game, card, attacked):
   c.captured -= 1
   game.activePlayer.gainAmber(1, game)
 
-def umbra (game, self, card):
+def umbra (game, card, attacked):
   """ Umbra: steal 1 amber
   """
-  stealAmber(game.activePlayer, game.inactivePlayer, 1)
+  stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 ###########
 # Untamed #

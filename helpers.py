@@ -25,7 +25,7 @@ def destroy(card, player, game):
     card.destroyed = True
     # player.board["Artifact"].remove(card)
 
-def stealAmber(thief, victim, num):
+def stealAmber(thief, victim, num, game):
   """ Function for stealing amber.
   """
   # this will account for edge cases that allow the inactive player to steal amber (namely, Magda leaving play)
@@ -34,10 +34,10 @@ def stealAmber(thief, victim, num):
     return
   if victim.amber >= num:
     victim.amber -= num
-    thief.amber += num
+    thief.gainAmber(num, game)
     print(f"{thief.name} stole {num} amber from {victim.name}.")
   else:
-    thief.amber += victim.amber
+    thief.gainAmber(victim.amber, game)
     if victim.amber == 0:
       print("Your opponent had no amber to steal.")
       return

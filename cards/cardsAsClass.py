@@ -28,16 +28,13 @@ class Card(pygame.sprite.Sprite):
         self.number = self.cardInfo['card_number']
         self.exp = self.cardInfo["expansion"]
         self.maverick = self.cardInfo['is_maverick']
-        self.load_image()
-        self.scaled_image, self.scaled_rect = self.image, self.rect
-        self.scaled_tapped_image, self.scaled_tapped_rect = self.tapped, self.tapped_rect
-        self.scaled = False
         self.reset()
         
 
     def reset(self):
         """ Resets a card after it leaves the board.
         """
+        self.load_image()
         self.damage = 0
         self.base_power = int(self.cardInfo['power'])
         self.power = self.base_power
@@ -94,6 +91,7 @@ class Card(pygame.sprite.Sprite):
             self.upgrade = []
             self.ready = False
             self.harland = None
+            self.damagable = True
             # check for skirmish in self.text
             if "Skirmish" in self.text:
                 self.skirmish = True
@@ -269,6 +267,9 @@ class Card(pygame.sprite.Sprite):
         if "shield_of_justice" in game.activePlayer.states and game.activePlayer.states["shield_of_justice"] and self in game.activePlayer.board["Creature"]:
             pyautogui.alert(f"No damage is dealt to {self.title} because of Shield of Justice.")
             return
+        if not self.damagable:
+            pyautogui.alert(f"No damage is dealt to {self.title} because it cannot take damage this turn.")
+            return
         if armor == False:
             self.damage += num
         if poison and num > self.armor:
@@ -432,6 +433,11 @@ class Card(pygame.sprite.Sprite):
             pyautogui.alert("This unit is not on the board, so it has no neighbors.")
 
     def isFlank(self, game):
+        # also a logos artifact that makes something temporarily flank, will probably set it up so that the state points to a card
+        for player in [game.activePlayer, game.inactivePlayer]:
+            if "spectral_tunneler" in player.states and player.states["spectral_tunneler"]:
+                if self in player.states["spectral_tunneler"]:
+                    return True
         if len(self.neighbors(game)) < 2:
             return True
         return False
