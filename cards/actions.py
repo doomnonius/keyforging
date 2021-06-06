@@ -325,7 +325,17 @@ def mobius_scroll (game, card):
 def pocket_universe (game, card):
   """ Pocket Universe: Move 1 amber from your pool to Pocket Universe.
   """
-  # don't forget to account for pocket universe in canForge and forgeKey
+  # don't forget to account for pocket universe in canForge and forgeKey - I think we have previously ruled in our games that you only need to call check based on the contents of your pool, not based on whatever amber could be spent on artifacts or creatures
+  if game.activePlayer.amber:
+    card.captured += 1
+    game.activePlayer.amber -= 1
+
+def spangler_box (game, card):
+  """ Spangler Box: Purge a creature in play. If you do, your opponent gains control of Spangler Box. If Spangler Box leaves play, return to play all cards purged by Spangler Box.
+  """
+  # card.spangler will exist
+  
+
 
 def transposition_sandals (game, card):
   """ Transposition Sandals: Swap this creature with another friendly creature in the battleline. You may use that creature this turn.

@@ -710,7 +710,7 @@ class Board():
         # print(f"States: {self.resetStates}")
         # print(f"Next states: {self.resetStatesNext}")
         self.endBack.fill(COLORS["GREEN"])
-        if self.activePlayer.amber >= self.calculateCost():
+        if self.activePlayer.amber >= self.calculateCost(): # I'm ruling that this is the rule for declaring check - extra amber on Pocket Universe, etc doesn't count here
           pyautogui.alert(f"Check for key {self.activePlayer.keys + 1}!")
         self.highlight = []
         self.switch()
@@ -1149,6 +1149,7 @@ class Board():
   def canForge(self):
     """ Checks if there is anything in Deck.states["Forge"]. This isn't checking if you have enough amber.
     """
+    activeA = self.activePlayer.board["Artifact"]
     if "miasma" in self.inactivePlayer.states and self.inactivePlayer.states["miasma"]:
       pyautogui.alert("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
       self.inactivePlayer.states["miasma"] = 0
@@ -1156,6 +1157,11 @@ class Board():
     if "the_sting" in [x.title for x in self.activePlayer.board["Artifact"]]:
       pyautogui.alert("You skip your forge a key step this turn because you have 'The Sting' in play.")
       return False
+    if "pocket_universe" in activeA:
+      initial = self.activePlayer.amber
+      initial += sum(x.captured for x in activeA if x.title == "pocket_universe")
+      if initial < self.calculateCost():
+        return False
     return True
     
 
@@ -1366,6 +1372,40 @@ class Board():
       if not forger.red:
         keys.append("Red")
         colors.append("RED")
+      full_mando = False
+      if (diff := -(forger.amber - cost)) > 0:
+        optional = False
+        mando = True
+        collect = sum(x.capture for x in self.activePlayer.board["Artifact"] if x.title == "pocket_universe" or x.title == "safe_place")
+        if collect > diff:
+          full_mando = True
+      else:
+        spend = self.chooseHouse("custom", ("Would you like to spend amber from your artifacts?", ["Yes", "No"]))[0]
+        if spend == "Yes":
+          optional = True
+          mando = False
+        else:
+          optional = False
+          mando = False
+      if mando:
+        while diff > 0:
+          for c in self.activePlayer.board["Artifact"]:
+            if c.title == "pocket_universe" or c.title == "safe_place" and c.captured > 0:
+              reduced = int(self.chooseHouse("custom", (f"How much amber from {c.title.replace('_', ' ').title()} would you like to spend? ({diff} needed)", list(range(c.captured + 1))))[0])
+              c.captured -= reduced
+              cost -= reduced
+              diff -= reduced
+      elif full_mando:
+        for c in self.activePlayer.board["Artifact"]:
+          reduced = c.captured
+          c.captured -= reduced
+          cost -= reduced
+      elif optional:
+        for c in self.activePlayer.board["Artifact"]:
+          if c.title == "pocket_universe" or c.title == "safe_place" and c.captured > 0:
+            reduced = int(self.chooseHouse("custom", (f"How much amber from {c.title.replace('_', ' ').title()} would you like to spend? ({cost} will currently be taken from your pool)", list(range(c.captured + 1))))[0])
+            c.captured -= reduced
+            cost -= reduced
       forged = self.chooseHouse("custom", ("Which key would you like to forge?", keys), colors)[0]
       forger.amber -= cost
       forger.keys += 1

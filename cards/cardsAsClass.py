@@ -160,6 +160,8 @@ class Card(pygame.sprite.Sprite):
         if self.type == "Artifact":
             self.ready = False
             self.dest = []
+            if self.title == "spangler_box":
+                self.spangler = []
         
 
     def __repr__(self):
@@ -229,7 +231,7 @@ class Card(pygame.sprite.Sprite):
         return s
 
     def capture(self, game, num, own = False):
-        """ Num is number of amber to capture. Own is for if the amber is captured from its own side (a mars exclusive ability)
+        """ Num is number of amber to capture. Own is for if the amber is captured from its own side (pretty much a mars exclusive ability)
         """
         active = game.activePlayer.amber
         inactive = game.inactivePlayer.amber
@@ -456,9 +458,11 @@ class Card(pygame.sprite.Sprite):
 
     def calcPower(self, game):
         self.power = self.base_power + self.extraPow # extraPow is counters
-        if self.title == "staunch_knight":
+        if self.title == "staunch_knight" and self.isFlank(game):
             self.power += 2
-        if "shoulder_armor" in [x.title for x in self.upgrade]:
+        elif self.title == "yxili_marauder":
+            self.power += self.captured
+        if "shoulder_armor" in [x.title for x in self.upgrade] and self.isFlank(game):
             self.power += 2
         if "banner_of_battle" in game.activePlayer.board["Artifact"]:
             self.power += 1

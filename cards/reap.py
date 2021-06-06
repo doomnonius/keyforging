@@ -3,7 +3,7 @@ import random
 import pyautogui
 from helpers import stealAmber, destroy, return_card
 
-def basicReap(game, card):
+def basicReap(game, card, replicated: bool = False):
   if "dimension_door" in game.activePlayer.states and game.activePlayer.states["dimension_door"]:
     stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   else:
@@ -15,7 +15,7 @@ def basicReap(game, card):
 # Brobnar #
 ###########
 
-def kelifi_dragon (game, card):
+def kelifi_dragon (game, card, replicated: bool = False):
   """ Kelifi Dragon: Gain 1 amber. Deal 5 damage to a creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -38,13 +38,13 @@ def kelifi_dragon (game, card):
     pending.append(c)
   game.pending()
 
-def looter_goblin (game, card):
+def looter_goblin (game, card, replicated: bool = False):
   """ Looter Goblin: for the remainder of the turn, gain 1 amber each time an enemy creature is destroyed.
   """
   game.activePlayer.states[card.title] += 1
   game.resetStates.append(("a", card.title))
 
-def troll (game, card):
+def troll (game, card, replicated: bool = False):
   """ Troll: Troll heals 3 damage.
   """
   card.damage -= min(3, card.damage)
@@ -54,7 +54,7 @@ def troll (game, card):
 # Dis #
 #######
 
-def eater_of_the_dead (game, card):
+def eater_of_the_dead (game, card, replicated: bool = False):
   """ Purge a creature from a discard pile. If you do, put a +1 power counter on Eater of the Dead.
   """
   active = game.activePlayer.discard
@@ -82,7 +82,7 @@ def eater_of_the_dead (game, card):
   card.extraPow += 1
   card.power += 1
 
-def guardian_demon (game, card):
+def guardian_demon (game, card, replicated: bool = False):
   """ Guardian Demon: Heal up to 2 damage from a creature. Deal that amount of damage to another creature
   """
   active = game.activePlayer.board["Creature"]
@@ -123,7 +123,7 @@ def guardian_demon (game, card):
         pendingDisc.append(card2)
     game.pending()
 
-def master_of_1 (game, card):
+def master_of_1 (game, card, replicated: bool = False):
   """ Master of 1: You may destroy a creature with 1 power.
   """
   active = game.activePlayer.board["Creature"]
@@ -150,7 +150,7 @@ def master_of_1 (game, card):
   game.pending()
 
 
-def master_of_2 (game, card):
+def master_of_2 (game, card, replicated: bool = False):
   """ Master of 2: You may destroy a creature with 2 power.
   """
   active = game.activePlayer.board["Creature"]
@@ -176,7 +176,7 @@ def master_of_2 (game, card):
   
   game.pending()
 
-def master_of_3 (game, card):
+def master_of_3 (game, card, replicated: bool = False):
   """ Master of 3: You may destroy a creature with 3 power.
   """
   active = game.activePlayer.board["Creature"]
@@ -202,7 +202,7 @@ def master_of_3 (game, card):
   
   game.pending()
 
-def snudge (game, card):
+def snudge (game, card, replicated: bool = False):
   """ Snudge: Return an artifact or flank creature to its owner's hand.
   """
   active = game.activePlayer.board
@@ -219,7 +219,7 @@ def snudge (game, card):
   pendingDisc.append(c)
   game.pending("hand")
 
-def tocsin (game, card):
+def tocsin (game, card, replicated: bool = False):
   """ Tocsin: your opponent discards a random card from their hand.
   """
   inactive = game.inactivePlayer.hand
@@ -231,17 +231,17 @@ def tocsin (game, card):
 # Logos #
 #########
 
-def spectral_tunneler (game, card):
+def spectral_tunneler (game, card, replicated: bool = False):
   """ Spectral Tunneler: Draw a card
   """
   game.activePlayer += 1
 
-def doc_bookton (game, card):
+def doc_bookton (game, card, replicated: bool = False):
   """ Doc Bookton: Draw a card
   """
   game.activePlayer += 1
 
-def ganymede_archivist (game, card):
+def ganymede_archivist (game, card, replicated: bool = False):
   """ Ganymede Archivist: archive a card
   """
   if game.activePlayer.hand:
@@ -251,7 +251,7 @@ def ganymede_archivist (game, card):
     game.activePlayer.hand.remove(card)
     game.pending("archive", target = game.activePlayer)
 
-def neutron_shark (game, card):
+def neutron_shark (game, card, replicated: bool = False):
   """ Neutron Shark: Destroy an enemy creature or artifact and a friendly creature or artifact. Discard the top card of your deck. If that card is not a Logos card, trigger this effect again.
   """
   active = game.activePlayer.board
@@ -281,7 +281,7 @@ def neutron_shark (game, card):
     else:
       break
 
-def ozmo_martianologist (game, card):
+def ozmo_martianologist (game, card, replicated: bool = False):
   """ Ozmo, Martianologist: Heal 3 damage from a Mars creature or stun a Mars creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -297,13 +297,13 @@ def ozmo_martianologist (game, card):
   else:
     c.stun = True
 
-def psychic_bug (game, card):
+def psychic_bug (game, card, replicated: bool = False):
   """ Psychic Bug: Look at your opponent's hand.
   """
   for card in game.inactivePlayer.hand:
     card.revealed = True
 
-def replicator (game, card):
+def replicator (game, card, replicated: bool = False):
   """ Replicator: Trigger the reap effect of another creature in play as if you controlled that creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -320,11 +320,11 @@ def replicator (game, card):
   else:
     c = inactive[choice]
   if len(c.reap) > 1:
-    pass # make them choose one
+    pass # make them choose one, need a function for this kind of thing
   else:
-    c.reap[0](game, c)
+    c.reap[0](game, c, True)
 
-def vespilon_theorist (game, card):
+def vespilon_theorist (game, card, replicated: bool = False):
   """ Vespilon Theorist: Choose a house. Reveal the top card of your deck. If it is of that house, archive it and gain 1. Otherwise, discard it.
   """
   deck = game.activePlayer.deck
@@ -345,14 +345,14 @@ def vespilon_theorist (game, card):
 # Mars #
 ########
 
-def blypyp (game, card):
+def blypyp (game, card, replicated: bool = False):
   """ Blypyp: The next mars creature you play this turn enters play ready.
   """
   game.activePlayer.states[card.title] = 1
   # this one still needs to be in reset states in case it isn't triggered
   game.resetStates.append(("a", card.title))
     
-def chuff_ape (game, card):
+def chuff_ape (game, card, replicated: bool = False):
   """ Chuff Ape: You may sacrifice another friendly creature. If you do, fully heal Chuff Ape.
   """
   active = game.activePlayer.board["Creature"]
@@ -369,12 +369,12 @@ def chuff_ape (game, card):
     card.damage = 0
   game.pending()
 
-def grabber_jammer (game, card):
+def grabber_jammer (game, card, replicated: bool = False):
   """ Grabber Jammer: Capture 1 amber.
   """
-  card.capture(game, 1)
+  card.capture(game, 1, replicated)
 
-def john_smyth (game, card):
+def john_smyth (game, card, replicated: bool = False):
   """ John Smyth: Ready a non-agent Mars creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -388,7 +388,7 @@ def john_smyth (game, card):
       c = inactive[choice]
     c.ready = True
 
-def qyxxlyx_plague_master (game, card):
+def qyxxlyx_plague_master (game, card, replicated: bool = False):
   """ Qyxxlyx Plague Master: Deal 3 damage to each human creature. This damage cannot be prevented by armor.
   """
   active = game.activePlayer.board["Creature"]
@@ -410,7 +410,7 @@ def qyxxlyx_plague_master (game, card):
   
   game.pending()
 
-def ulyq_megamouth (game, card):
+def ulyq_megamouth (game, card, replicated: bool = False):
   """ Ulyq Megamouth: Use a friendly non-Mars creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -444,7 +444,7 @@ def ulyq_megamouth (game, card):
   elif use[0] == "A":
     game.actionCard(choice, cheat = True)
 
-def uxlyx_the_zookeeper (game, card):
+def uxlyx_the_zookeeper (game, card, replicated: bool = False):
   """ Reap: Put an enemy creature into your archives.
   """
   inactive = game.inactivePlayer.board["Creature"]
@@ -459,7 +459,7 @@ def uxlyx_the_zookeeper (game, card):
     game.pendingReloc.append(c)
   game.pending("archive", target = game.activePlayer)
 
-def vezyma_thinkdrone (game, card):
+def vezyma_thinkdrone (game, card, replicated: bool = False):
   """ Reap: You may archive a friendly creature or artifact from play.
   """
   active = game.activePlayer.board["Creature"]
@@ -480,7 +480,7 @@ def vezyma_thinkdrone (game, card):
     game.pendingReloc.append(c)
   game.pending("archive", target = game.activePlayer)
 
-def yxilo_bolter (game, card):
+def yxilo_bolter (game, card, replicated: bool = False):
   """ Yxilo Bolter: Deal 2 damage to a creaure. If this damage destroys that creature, purge it.
   """
   active = game.activePlayer.board["Creature"]
@@ -502,7 +502,7 @@ def yxilo_bolter (game, card):
     pending.append(c)
     game.pending('purge')
 
-def zyzzix_the_many (game, card):
+def zyzzix_the_many (game, card, replicated: bool = False):
   """ Zyzzix the Many: You may reveal a creature from your hand. If you do, archive it and Zyzzix the many gets three +1 power counters.
   """
   hand = game.activePlayer.hand
@@ -517,7 +517,7 @@ def zyzzix_the_many (game, card):
   card.extraPow += 3
   card.power += 3
 
-def red_planet_ray_gun (game, card):
+def red_planet_ray_gun (game, card, replicated: bool = False):
   """ Red Planet Ray Gun: Choose a creature. Deal 1 damage to that creature for each Mars creature in play.
   """
   active = game.activePlayer.board["Creature"]
@@ -538,7 +538,7 @@ def red_planet_ray_gun (game, card):
 # Sanctum #
 ###########
 
-def commander_remiel (game, card):
+def commander_remiel (game, card, replicated: bool = False):
   """ Commander Remiel: Use a friendly non-Sanctum creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -572,7 +572,7 @@ def commander_remiel (game, card):
   elif use[0] == "A":
     game.actionCard(choice, cheat = True)
 
-def grey_monk (game, card):
+def grey_monk (game, card, replicated: bool = False):
   """ Grey Monk: Heal 2 damage from a creature
   """
   active = game.activePlayer.board["Creature"]
@@ -589,7 +589,7 @@ def grey_monk (game, card):
     c = inactive[choice]
   c.damage -= min(c.damage, 2)
 
-def horseman_of_famine (game, card):
+def horseman_of_famine (game, card, replicated: bool = False):
   """ Horseman of Famine: Destroy the least powerful creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -613,7 +613,7 @@ def horseman_of_famine (game, card):
       pendingD.append(c)
   game.pending()
 
-def horseman_of_pestilence (game, card):
+def horseman_of_pestilence (game, card, replicated: bool = False):
   """ Horseman of Pestilence: Deal 1 damage to each non-Horseman creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -637,7 +637,7 @@ def horseman_of_pestilence (game, card):
 
   game.pending()
 
-def protectrix (game, card):
+def protectrix (game, card, replicated: bool = False):
   """ Protectrix: You may fully heal a creature. If you do, that creature cannot be dealt damage for the remainder of the turn.
   """
   active = game.activePlayer.board["Creature"]
@@ -656,7 +656,7 @@ def protectrix (game, card):
   c.damagable = False
   game.resetCard.append((c, "damagable"))
 
-def sanctum_guardian (game, card):
+def sanctum_guardian (game, card, replicated: bool = False):
   """ Sanctum Guardian: Swap SG with another friendly creature in your battleline.
   """
   active = game.activePlayer.board["Creature"]
@@ -670,16 +670,16 @@ def sanctum_guardian (game, card):
   other_i = active.index(choice)
   active[sg_i], active[other_i] = active[other_i], active[sg_i]
 
-def sequis (game, card):
+def sequis (game, card, replicated: bool = False):
   """ Sequis: Capture 1 amber.
   """
-  card.capture(game, 1)
+  card.capture(game, 1, replicated)
 
 ###########
 # Shadows #
 ###########
 
-def bulleteye (game, card):
+def bulleteye (game, card, replicated: bool = False):
   """ Bulleteye: Destroy a flank creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -699,7 +699,7 @@ def bulleteye (game, card):
     game.pendingReloc.append(c)
   game.pending()
 
-def faygin (game, card):
+def faygin (game, card, replicated: bool = False):
   """ Faygin: Return an Urchin from play or from your discard pile to your hand.
   """
   discard = game.activePlayer.discard
@@ -737,7 +737,7 @@ def faygin (game, card):
     game.pendingReloc.append(c)
   game.pending("hand")
 
-def nexus (game, card):
+def nexus (game, card, replicated: bool = False):
   """ Nexus: Use an enemy artifact as if it were yours.
   """
   inactive = game.inactivePlayer.board["Artifact"]
@@ -773,7 +773,7 @@ def selwyn_the_fence (game, card, attacked):
   c.captured -= 1
   game.activePlayer.gainAmber(1, game)
 
-def smiling_ruth (game, card):
+def smiling_ruth (game, card, replicated: bool = False):
   """ Smiling Ruth: If you forged a key this turn, take control of an enemy flank creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -794,12 +794,12 @@ def smiling_ruth (game, card):
     active.insert(flank, choice)
     inactive.remove(choice)
 
-def duskrunner (game, card):
+def duskrunner (game, card, replicated: bool = False):
   """ Duskrunner: Steal 1 amber.
   """
   stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
-def silent_dagger (game, card):
+def silent_dagger (game, card, replicated: bool = False):
   """ Silent Dagger: Deal 4 damage to a flank creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -825,7 +825,7 @@ def silent_dagger (game, card):
 # Untamed #
 ###########
 
-def bigtwig (game, card):
+def bigtwig (game, card, replicated: bool = False):
   """ Bigtwig: Stun and exhaust a creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -839,12 +839,12 @@ def bigtwig (game, card):
   c.ready = False
   c.stun = True
 
-def dew_faerie (game, card):
+def dew_faerie (game, card, replicated: bool = False):
   """ Dew Faerie: Gain 1 amber.
   """
   game.activePlayer.gainAmber(1, game)
 
-def inka_the_spider (game, card):
+def inka_the_spider (game, card, replicated: bool = False):
   """ Inka the Spider: Stun a creature.
   """
   activeBoard = game.activePlayer.board["Creature"]
@@ -861,7 +861,7 @@ def inka_the_spider (game, card):
   else:
     inactiveBoard[choice].stun = True
   
-def kindrith_longshot (game, card):
+def kindrith_longshot (game, card, replicated: bool = False):
   """ Kindrith Longshot: Deal 2 damage to a creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -883,7 +883,7 @@ def kindrith_longshot (game, card):
     pending.append(c)
   game.pending()
 
-def piranha_monkeys (game, card):
+def piranha_monkeys (game, card, replicated: bool = False):
   """ Piranha Monkeys: Deal 2 damage to each other creature.
   """
   active = game.activePlayer.board["Creature"]
@@ -906,7 +906,7 @@ def piranha_monkeys (game, card):
   
   game.pending()
 
-def witch_of_the_eye (game, card):
+def witch_of_the_eye (game, card, replicated: bool = False):
   """ Witch of the Eye: Return a card from your discard pile to your hand.
   """
   active = game.activePlayer.discard
