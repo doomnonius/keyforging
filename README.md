@@ -125,6 +125,7 @@
 <li>The dragging in chooseFlank is also tied going to need to know about scaled.</li>
 <li>need to implement hazardous and assault and poison in fights</li>
 <li>Get hazardous and assault working - should be easy, but I made it more difficult than it needed to be. Could use more testing.</li>
+<li>Replicator won't currently interact with sequis properly</li>
 <li>Can use wild wormhole to cheat out a card with ember imp in play? Rules-wise it can't, as wildwormhole only gets around the first turn rule b/c that rule applies to playing out of hand.</li>
 </ol>
 
@@ -144,7 +145,6 @@
 <li>Bad Penny didn't work, nor biomatrix backup, probably will have similar issues with similar cards.</li>
 <li>Francus didn't work, I though Krump did work once but he doesn't always.</li>
 <li>I don't think amber is returned properly by cards leaving play - or it might just be ether spider</li>
-<li>Replicator won't currently interact with sequis properly</li>
 <li></li>
 <li></li>
 <li></li>

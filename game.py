@@ -8,7 +8,7 @@ import cards.upgrades as upgrade # pylinter thinks this isn't used, but it is, j
 import json, random, logging, pygame, pyautogui
 from helpers import willEnterReady, destroy
 from cards.destroyed import basicDest, basicLeaves
-from cards.reap import basicReap
+from cards.reap import basicReap, spectral_tunneler as st
 from typing import Dict, List, Set, Tuple
 from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW, OB
 
@@ -703,8 +703,10 @@ class Board():
         for c, toReset in self.resetCard:
           if toReset == "house":
             c.house = c.cardInfo["house"]
-          if toReset == "damagable":
+          elif toReset == "damagable":
             c.damagable = True
+          elif toReset == "st":
+            c.reap.remove(st)
         self.resetStates = self.resetStatesNext.copy()
         self.resetStatesNext = []
         # print(f"States: {self.resetStates}")

@@ -66,6 +66,15 @@ def basicLeaves(game, card):
       inactive[t].remove(card)
     elif card in active[t]:
       active[t].remove(card)
+    # handle spangler_box
+    if card.title == "spangler_box":
+      for c in card.spangler:
+        # TODO: choose which order to put them in
+        if c.deck == game.activePlayer.name:
+          game.chooseFlank(card)
+        else:
+          # TODO: update choose flank to allow putting a minion on the opponent's flank
+          ...
     # handle greking's ability
     if card.type == "Creature" and card.greking and card.greking in active[t] and not card.safe:
       flank = game.chooseHouse("custom", ("Put the minion on the your left flank or your right flank?", ["Left", "Right"]))
@@ -226,13 +235,15 @@ def harland_mindlock (game, card):
   inactive = game.inactivePlayer.board["Creature"]
   if card in active and card.harland in active and not card.harland.destroyed:
     flank = game.chooseHouse("custom", ("Put the minion on the left flank or right flank?", ["Left", "Right"]))
+    # TODO: add putting a card on enemy side
     if flank == "Left":
       flank = 0
     else:
       flank = len(inactive)
     inactive.insert(flank, card)
   elif card in inactive and card.harland in inactive and not card.harland.destroyed:
-    flank = game.chooseHouse("custom", ("Put the minion on the your left flank or your right flank?", ["Left", "Right"]))
+    flank = game.chooseFlank(card)
+    # game.chooseHouse("custom", ("Put the minion on the your left flank or your right flank?", ["Left", "Right"]))
     if flank == "Left":
       flank = 0
     else:

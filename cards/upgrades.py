@@ -45,7 +45,8 @@ def collar_of_subordination(game, card, side:str, choice:int):
     pyautogui.alert("Dude, what are you doing?")
   else:
     c = inactive[choice]
-    flank = game.chooseHouse("custom", ("Put the minion on your left flank or your right flank?", ["Left", "Right"]))
+    flank = game.chooseFlank(c)
+    # game.chooseHouse("custom", ("Put the minion on your left flank or your right flank?", ["Left", "Right"]))
     if flank == "Left":
       flank = 0
     else:

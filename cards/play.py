@@ -1566,7 +1566,8 @@ def harland_mindlock (game, card):
     return
 
   choice = inactive[game.chooseCards("Creature", "Choose an enemy flank creature to steal:", "enemy", condition = lambda x: x.isFlank(game), con_message = "You didn't choose a flank creature. Please try again.")[0][1]]
-  flank = game.chooseHouse("custom", ("Put the minion on your left flank or your right flank?", ["Left", "Right"]))
+  flank = game.chooseFlank(choice)
+  # game.chooseHouse("custom", ("Put the minion on your left flank or your right flank?", ["Left", "Right"]))
   card.harland = choice
   if flank == "Left":
     flank = 0

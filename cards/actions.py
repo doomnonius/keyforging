@@ -1,6 +1,7 @@
 import random
 import pyautogui
 from helpers import stealAmber, destroy, return_card
+from cards.reap import spectral_tunneler as st
 
 ###########
 # Brobnar #
@@ -325,7 +326,7 @@ def mobius_scroll (game, card):
 def pocket_universe (game, card):
   """ Pocket Universe: Move 1 amber from your pool to Pocket Universe.
   """
-  # don't forget to account for pocket universe in canForge and forgeKey - I think we have previously ruled in our games that you only need to call check based on the contents of your pool, not based on whatever amber could be spent on artifacts or creatures
+  # don't forget to account for pocket universe in canForge and forgeKey (should be done now) - I think we have previously ruled in our games that you only need to call check based on the contents of your pool, not based on whatever amber could be spent on artifacts or creatures
   if game.activePlayer.amber:
     card.captured += 1
     game.activePlayer.amber -= 1
@@ -334,7 +335,41 @@ def spangler_box (game, card):
   """ Spangler Box: Purge a creature in play. If you do, your opponent gains control of Spangler Box. If Spangler Box leaves play, return to play all cards purged by Spangler Box.
   """
   # card.spangler will exist
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
   
+  if not active + inactive:
+    pyautogui.alert("No valid targets.")
+    return
+
+  side, choice = game.chooseCards("Creature", "Purge a creature in play:")[0]
+  if side == "fr":
+    c = active[choice]
+  else:
+    c = inactive[choice]
+  return_card(c, game)
+  if c.returned:
+    game.pendingReloc.append(c)
+    card.spangler.append(c)
+  game.pending("purge")
+  
+def spectral_tunneler (game, card):
+  """ Spectral Tunneler: Choose a creature. For the remainder of the turn, that creature is considered a flank creature and gains, “Reap: Draw a card.”
+  """
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+
+  side, choice = game.chooseCards("Creature", "Purge a creature in play:")[0]
+  if side == "fr":
+    c = active[choice]
+  else:
+    c = inactive[choice]
+  if not game.activePlayer.states[card.title]:
+    game.activePlayer.states[card.title] = [c]
+  else:
+    game.activePlayer.states[card.title].append(c)
+  c.reap.append(st)
+  game.resetCard.append((c, "st"))
 
 
 def transposition_sandals (game, card):
