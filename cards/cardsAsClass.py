@@ -23,12 +23,18 @@ class Card(pygame.sprite.Sprite):
         self.title = cardInfo['card_title'].lower().replace(" ", "_").replace("’", "").replace('“', "").replace(",", "").replace("!", "").replace("”", "").replace("-", "_")
         self.width = width
         self.height = height
+        self.rarity = self.cardInfo["rarity"]
+        self.flavor = self.cardInfo["flavor_text"]
+        self.number = self.cardInfo['card_number']
+        self.exp = self.cardInfo["expansion"]
+        self.maverick = self.cardInfo['is_maverick']
         self.reset()
         
 
     def reset(self):
         """ Resets a card after it leaves the board.
         """
+        self.load_image()
         self.damage = 0
         self.base_power = int(self.cardInfo['power'])
         self.power = self.base_power
@@ -44,16 +50,13 @@ class Card(pygame.sprite.Sprite):
             self.traits = self.cardInfo['traits']
         else:
             self.traits = ''
+        self.stun = False
         self.amber = self.cardInfo['amber']
-        self.rarity = self.cardInfo["rarity"]
-        self.flavor = self.cardInfo["flavor_text"]
-        self.number = self.cardInfo['card_number']
-        self.exp = self.cardInfo["expansion"]
-        self.maverick = self.cardInfo['is_maverick']
         self.revealed = False
         self.destroyed = False
+        self.returned = False
+        self.captured = 0
         self.upgrade = [] # needs to be on artifacts b/c using for masterplan
-        self.load_image()
         # conditionals to add?
         # status effects
         
@@ -66,7 +69,7 @@ class Card(pygame.sprite.Sprite):
         if self.title in dir(action):
             self.action = [eval(f"action.{self.title}")]
         else:
-            self.action = False
+            self.action = []
         # omni abilitiestry:
         if f"omni_{self.title}" in dir(action):
             self.omni = eval("action.omni" + self.number)
@@ -79,16 +82,16 @@ class Card(pygame.sprite.Sprite):
         #     self.attached = False
         # creature only abilities
         if self.type == "Creature":
+            self.safe = False
+            self.greking = False
+            self.stealer = False
             self.taunt = False
             self.ward = False
             self.enrage = False
             self.upgrade = []
-            if self.title == "Giant Sloth":
-                self.usable = False
             self.ready = False
-            self.stun = False
             self.harland = None
-            self.captured = 0
+            self.damagable = True
             # check for skirmish in self.text
             if "Skirmish" in self.text:
                 self.skirmish = True
@@ -109,17 +112,22 @@ class Card(pygame.sprite.Sprite):
             if self.title in dir(reap):
                 self.reap = [eval(f"reap.{self.title}")]
             else:
-                self.reap = [reap.basicReap]
+                self.reap = []
             # check for before fight abilities
             if f"before_{self.title}" in dir(fight):
                 self.before = [eval(f"fight.before_{self.title}")]
             else:
-                self.before = [fight.basicBeforeFight]
+                self.before = []
             # check for after fight abilities
             if self.title in dir(fight):
                 self.fight = [eval(f"fight.{self.title}")]
             else:
-                self.fight = [fight.basicFight]
+                self.fight = []
+            # check for destroyed abilities
+            if self.title in dir(dest):
+                self.dest = [eval(f"dest.{self.title}")]
+            else:
+                self.dest = []
             # check for assault
             if "Assault" in self.text:
                 self.assault = int(self.text[self.text.index("Assault") + 8])
@@ -130,15 +138,14 @@ class Card(pygame.sprite.Sprite):
                 self.hazard = int(self.text[self.text.index("Hazardous") + 10])
             else:
                 self.hazard = 0
-            # check for destroyed abilities
-            if self.title in dir(dest):
-                self.dest = [eval(f"dest.{self.title}")]
-            else:
-                self.dest = []
             if f"lp_{self.title}" in dir(dest):
                 self.leaves = eval(f"dest.lp_{self.title}")
             else:
                 self.leaves = []
+            if "Poison" in self.text:
+                self.poison = True
+            else:
+                self.poison = False
         # start of turn effects
         if f"eot_{self.title}" in dir(turnEffects):
             self.eot = eval(f"turnEffects.eot_{self.title}")
@@ -151,8 +158,10 @@ class Card(pygame.sprite.Sprite):
             self.sot = False
         # artifacts need to be able to be readied too, and can capture amber
         if self.type == "Artifact":
-            self.captured = False
             self.ready = False
+            self.dest = []
+            if self.title == "spangler_box":
+                self.spangler = []
         
 
     def __repr__(self):
@@ -164,7 +173,7 @@ class Card(pygame.sprite.Sprite):
         else:
             s += self.house + ' ' + self.type + '\n'
         if self.type == "Creature":
-            s += "Power: " + str(self.power + self.extraPow) + " (" + str(self.damage) + " damage)" + "; Armor: " + str(self.armor + self.extraArm) + '\n'
+            s += "Power: " + str(self.power) + " (" + str(self.damage) + " damage)" + "; Armor: " + str(self.armor + self.extraArm) + '\n'
         if self.traits != None:
             s += self.traits + '\n' + self.text + '\n'
         else:
@@ -177,7 +186,7 @@ class Card(pygame.sprite.Sprite):
     def __str__(self):
         s = ''
         if self.type == "Creature":
-            s += self.title + " (" + self.house + "): (Power: " + str(self.power + self.extraPow) + " Armor: " + str(self.armor + self.extraArm) + " Damage: " + str(self.damage) + " Captured: " + str(self.captured) + ')'
+            s += self.title + " (" + self.house + "): (Power: " + str(self.power) + " Armor: " + str(self.armor + self.extraArm) + " Damage: " + str(self.damage) + " Captured: " + str(self.captured) + ')'
             if self.elusive:
                 s += " E"
             if self.taunt:
@@ -222,7 +231,7 @@ class Card(pygame.sprite.Sprite):
         return s
 
     def capture(self, game, num, own = False):
-        """ Num is number of amber to capture. Own is for if the amber is captured from its own side (a mars exclusive ability)
+        """ Num is number of amber to capture. Own is for if the amber is captured from its own side (pretty much a mars exclusive ability)
         """
         active = game.activePlayer.amber
         inactive = game.inactivePlayer.amber
@@ -244,8 +253,7 @@ class Card(pygame.sprite.Sprite):
                     game.activePlayer.amber = 0
             else:
                 pyautogui.alert("This card wasn't in either board.")
-        # else, aka if own == True: (but not needed b/c of earlier return statements)
-        else:
+        else:  # else, aka if own == True
             if inactive > num:
                 self.captured += num
                 game.inactivePlayer.amber -= num
@@ -255,20 +263,47 @@ class Card(pygame.sprite.Sprite):
         if self.title == "yxili_marauder":
             self.power += self.captured - initial
 
-    def damageCalc(self, game, num):
+    def damageCalc(self, game, num, poison = False, armor = True):
         """ Calculates damage, considering armor only.
         """
         if "shield_of_justice" in game.activePlayer.states and game.activePlayer.states["shield_of_justice"] and self in game.activePlayer.board["Creature"]:
             pyautogui.alert(f"No damage is dealt to {self.title} because of Shield of Justice.")
             return
+        if not self.damagable:
+            pyautogui.alert(f"No damage is dealt to {self.title} because it cannot take damage this turn.")
+            return
+        if armor == False:
+            self.damage += num
+        if poison and num > self.armor:
+            self.destroyed = True
         if num >= self.armor:
-            self.damage += (num - self.armor)
+            damage = (num - self.armor)
             self.armor = 0
+            shadows = sum(x.title == "shadow_self" for x in self.neighbors(game))
+            if not shadows or "Specter" in self.traits:
+                self.damage += damage
+            elif shadows == 1:
+                self.damage += 0
+                for c in self.neighbors(game):
+                    if c.title == "shadow_self":
+                        c.damage += damage
+            elif shadows == 2:
+                self.damage += 0
+                if self == game.activePlayer:
+                    active = game.activePlayer.board["Creature"]
+                    choice = active[game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "friend", condition = lambda x: x in self.neighbors(game))[0][1]]
+                else:
+                    inactive = game.inactivePlayer.board["Creature"]
+                    choice = inactive[game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "enemy", condition = lambda x: x in self.neighbors(game))[0][1]]
+                choice.damageCalc(game, damage)
         else:
             self.armor -= num
     
     def fightCard(self, other, game) -> None:
+        active = game.activePlayer.board["Creature"]
+        inactive = game.inactivePlayer.board["Creature"]
         print(self.title + " is fighting " + other.title + "!")
+        self.ready = False
         # add hazardous and assault in here too
         print(f"Hazard: {other.hazard}")
         if other.hazard:
@@ -280,52 +315,91 @@ class Card(pygame.sprite.Sprite):
             other.damageCalc(game, self.assault)
             print("Damage from assault calced")
             other.updateHealth(game.inactivePlayer)
-        retEarly = False
         if self.destroyed:
-            retEarly = True
             game.pendingReloc.append(self)
         if other.destroyed:
-            retEarly = True
             game.pendingReloc.append(other)
-        if retEarly:
-            print("Exiting fight early b/c attacker or defender died during hazard/assault step.")
-            game.pending()
-            return
         print("Before fight effects would go here too.")
-        self.before(game, self)
+        if self.before:
+            for b in self.before:
+                print("Trying to run before fight.")
+                b(game, self, other)
+        else:
+            fight.basicBeforeFight(game, self, other)
+        print("Up next, evasion sigil.")
+        evasion = False
+        sigil = sum(x.title == "evasion_sigil" for x in game.activePlayer.board["Artifact"] + game.inactivePlayer.board["Artifact"])
+        if sigil:
+            for _ in range(sigil):
+                if game.activePlayer.deck:
+                    game.activePlayer.discard.append(game.activePlayer.deck.pop())
+                    if game.activePlayer.discard[-1].house in game.activeHouse:
+                        evasion = True
+        if self.destroyed or other.destroyed or other not in inactive or self not in active or evasion:
+            print(f"Exiting fight early b/c attacker {self.destroyed} or defender {other.destroyed} died during hazard/assault/before fight step, or is otherwise off the board (attacker: {other not in inactive}, defender: {self not in active}), or evasion sigil triggered: {evasion}.")
+            game.pending()
+            basic = False
+            if self.destroyed:
+                survived = False
+                game.pendingReloc.append(self)
+            else:
+                survived = True
+                fight.basicFight(game, self, other)
+                basic = True
+            if not basic:
+                fight.basicFight(game, self, other)
+            if survived:
+                for f in self.fight:
+                    f(game, self, other)
+            return
         print("If you're reading this, it's not self.before")
         if self.skirmish or self.temp_skirmish:
             print("The attacker has skirmish, and takes no damage.") # Test line
-        elif other.elusive:
+        elif self.title in ["gabos_longarms", "ether_spider", "shadow_self"]:
+            print("The defender deals no damage while fighting.")
+        elif other.elusive and self.title != "niffle_ape":
             print("The defender has elusive, so no damage is dealt to the attacker.") # Test line
         else:
             print("Damage is dealt as normal to attacker.")
-            self.damageCalc(game, other.power + other.extraPow)
-        if other.elusive:
+            self.damageCalc(game, other.power, poison = other.poison)
+        if other.elusive and self.title != "niffle_ape":
             print("The defender has elusive, so no damage is dealt to the defender.")
             other.elusive = False
+        elif self.title in ["gabos_longarms", "ether_spider", "shadow_self"]:
+            print("The attacker deals no damage while fighting.")
         else:
-            damage = self.power + self.extraPow
+            damage = self.power
             if self.title == "valdr" and other.isFlank(game):
                 damage += 2
             print(f"{damage} damage is dealt as normal to defender.")
-            other.damageCalc(game, damage)
-        self.ready = False
+            other.damageCalc(game, damage, self.poison)
         print("After fight effects would go here, if attacker survives.")
         print(f"Damage on attacker: {self.damage}")
         print(f"Damage on defender: {other.damage}")
         self.updateHealth(game.activePlayer)
         print("Updated attacker health.")
+        basic = False
         if self.destroyed:
+            survived = False
             game.pendingReloc.append(self)
         else:
-            self.fight(game, self, other)
-            print("I know it isn't self.fight that's failing.")
+            survived = True
+            fight.basicFight(game, self, other)
+            basic = True
+        print("I know it isn't self.fight that's failing.")
         other.updateHealth(game.inactivePlayer)
         print("Updated defender health.")
         if other.destroyed:
             game.pendingReloc.append(other)
+        elif not basic:
+            fight.basicFight(game, self, other)
+            basic = True
+        if not basic:
+            fight.basicFight(game, self, other)
         game.pending()
+        if survived:
+            for f in self.fight:
+                f(game, self, other)
         print("Another comment after pending has completed.")
 
     # def health(self) -> int:
@@ -361,6 +435,11 @@ class Card(pygame.sprite.Sprite):
             pyautogui.alert("This unit is not on the board, so it has no neighbors.")
 
     def isFlank(self, game):
+        # also a logos artifact that makes something temporarily flank, will probably set it up so that the state points to a card
+        for player in [game.activePlayer, game.inactivePlayer]:
+            if "spectral_tunneler" in player.states and player.states["spectral_tunneler"]:
+                if self in player.states["spectral_tunneler"]:
+                    return True
         if len(self.neighbors(game)) < 2:
             return True
         return False
@@ -370,34 +449,43 @@ class Card(pygame.sprite.Sprite):
         """ Doesn't do anything yet, but this is for the sprite if I use those
         """
     
-    def resetArmor(self):
+    def resetArmor(self, game):
         self.armor = self.base_armor + self.extraArm
         if "Elusive" in self.text:
             self.elusive = True
         self.temp_skirmish = False
         # I can change Gray Monk to match this by giving it a play effect and a leaves play effect.
 
-    def updateHealth(self, player) -> None:
-        if (self.power + self.extraPow - self.damage) <= 0:
+    def calcPower(self, game):
+        self.power = self.base_power + self.extraPow # extraPow is counters
+        if self.title == "staunch_knight" and self.isFlank(game):
+            self.power += 2
+        elif self.title == "yxili_marauder":
+            self.power += self.captured
+        if "shoulder_armor" in [x.title for x in self.upgrade] and self.isFlank(game):
+            self.power += 2
+        if "banner_of_battle" in game.activePlayer.board["Artifact"]:
+            self.power += 1
+        if "blood_of_titans" in [x.title for x in self.upgrade]:
+            self.power += 5
+        if "flame_wreathed" in [x.title for x in self.upgrade]:
+            self.power += 2
+
+    def updateHealth(self, player = None) -> None:
+        if (self.power - self.damage) <= 0:
             print(self.title + " is dead.")
             self.destroyed = True
-            if "armageddon_cloak" not in [x.title for x in self.upgrade]:
-                print("Did we at least get here?")
-                player.board["Creature"].remove(self)
+            # if "armageddon_cloak" not in [x.title for x in self.upgrade]:
+            #     print("Did we at least get here?")
+            #     player.board["Creature"].remove(self)
         #     return True
         # return False
 
-    def tap(self):
-        if self.image.get_width() > self.image.get_height():
+    def tap(self, image):
+        if image.get_width() > image.get_height():
             return
-        rotated = pygame.transform.rotate(self.image, -90)
+        rotated = pygame.transform.rotate(image, -90)
         return rotated, rotated.get_rect()
-
-    def untap(self):
-        if self.image.get_height() > self.image.get_width():
-            return
-        rotated = pygame.transform.rotate(self.image, 90)
-        self.image, self.rect = rotated, rotated.get_rect()
         
     def load_image(self, colorkey=None):
         fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', self.title + '.png')
@@ -416,13 +504,12 @@ class Card(pygame.sprite.Sprite):
                 colorkey = image.get_at((0,0))
             image.set_colorkey(colorkey)
         self.orig_image, self.orig_rect = image, image.get_rect()
-        self.image, self.rect = self.scaled_image(self.width, self.height)
-        self.tapped, self.tapped_rect = self.tap()
+        self.image, self.rect = self.scale_image(self.width, self.height)
+        self.tapped, self.tapped_rect = self.tap(self.image)
 
-    def scaled_image(self, width, height):
+    def scale_image(self, width, height):
         scaled = pygame.transform.scale(self.orig_image, (width, height))
-        self.image, self.rect = scaled, scaled.get_rect()
-        return self.image, self.rect
+        return scaled, scaled.get_rect()
             
 
 class Invisicard():

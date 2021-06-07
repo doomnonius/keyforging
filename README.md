@@ -4,34 +4,42 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
- <li>Mantle of Zealot and Experimental Therapy in canReap, canFight, canAction: note that these actually do work differently, and Experimental Therapy is going to be a b to implement properly.</li>
+ <li>implement the rule of six: change playedThisTurn, etc into dictionaries?</li>
  <li>Code reap, fight, action, abilities with knowledge that there might be more than one</li>
  <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves. Actually, I think I'll have basic dest, but I'll call it from pending, not tied to the card. Potentially the same with basicReap and basicFight</li>
  <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal - everytime a function tries to ref pendingReloc, it needs to check if pendingReloc contains something - if it does, then this is a nested destroy, and secondary needs to be used instead - I think this shouldn't matter for play effects</li>
- <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs</li>
+ <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs, unless it is revealed</li>
  <li>game.pending should be able to handle things going into archives (because of card.reset())</li>
- <li>Code not yet implemented to only display valid options for items, instead of all. - in progress</li>
+ <li>Code not yet implemented to only display valid options for items, instead of all. - in progress, don't think all effects are taken into account</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
- <li>The game usually doesn't currently tell you if an attempt to play a card failed, or why it failed. - in progress</li>
- <li>Get rid of remaining print statements.</li>
+ <li>The game usually doesn't tell you if an attempt to play a card failed, or why it failed. - in progress</li>
+ <li>Get rid of remaining print statements/turn into log statements.</li>
+ <li>I really need to throw in a whole bunch of logging all over the place.</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, house symbols, etc.</li>
- <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor. <s>Operate banner of battle similarly.</s></li>
- <li>Is captured amber returned, while amber on artifacts lost? - this will be in game.pending</li>
+ <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor.</li>
  <li>Picking decks within game window - will be another while loop</li>
  <li>Verify game integrity at ends of turns.</li>
  <li>Drag a friendly minion onto an enemy minion to fight? - I don't like this one</li>
  <li>Make a tiny purged image.</li>
  <li>Ready creature entering next to tapped taunt looks like it has taunt in chooseFlank</li>
  <li>things in later sets that give other cards abilities</li>
- <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 15 card in hand or more than 12(?) creatures or artifacts</li>
+ <li>Write all the functions for all the cards.</li>
  <li>What about having the background color of the active Player's mat match the color of the house they've chosen?</li>
  <li>Display the card that's under Masterplan</li>
- <li>Implement poison</li>
- <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged</li>
+ <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged - <s>related: Correct power + extraPow to just power, and make sure we're regularly recalcing power</s></li>
+ <li>To get shoulder armor working properly (and a recalc armor function), we'll need to start recording card.lostarmor as well - except there are edge cases with shoulder armor where I think even that won't work.</li>
+ <li>Update the lambda for "Are you sure you want to end your turn to highlight all usable things.</li>
+ <li>Scale the selected surf?</li>
+ <li>Make some selection windows not ask for confirmation (particularly the end turn one)</li>
+ <li>Small versions of cards with turn effects drawn in the center area, hoverable.</li>
+ <li>End turn button off to the right of the neutral area.</li>
+ <li>Scale cards in hand too.</li>
+ <li>Handle if chooseHouse or chooseCards get called with no valid options.</li>
+ <li>While resolving the effect of an action card, have it displaying in the top left corner, but also allow it to be minimized and maximized.</li>
  <li></li>
  <li></li>
- <li></li>
-<li><s>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</s> - Yes</li>
+ <li><s>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</s></li>
+ <li><s>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</s> - Yes</li>
  <li><s>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</s></li>
  <li><s>I need a destroy function for handling ward and invulnerable -> or make changes to updateHealth.</s> - both and, and seems to be working</li>
  <li><s>Obsolete the chooseMulligan function by adding a color option to chooseHouse, which is now a misnamed function</s></li>
@@ -73,6 +81,7 @@
  <li><s>Choosing which decks to play</s> - <b>Done</b></li>
  <li><s>Deciding who goes first</s> - <b>Done</b></li>
  <li><s>Drawing up to a full hand</s> - <b>Done</b></li>
+ <li><s>>when do I check for taunt?</s></li>
  <li><s>Playing the first turn (because it has its own special requirements)</s> - <b>Done</b></li>
  <li>Create the turn, including:
     <ol>
@@ -88,38 +97,42 @@
       </li>
       <li><s>Ready Cards</s> - <b>Done</b></li>
       <li><s>Draw Cards</s> - <b>Done</b></li>
-      <li>EOT effects, and declare "Check!" - Also making more obvious that opponent is about to forge</li>
+      <li>EOT effects,<s> and declare "Check!" - Also making more obvious that opponent is about to forge</s></li>
    </ol>
  </li>
  <li><s>Build a state dict that only has the relevant information</s></li>
- <li>Logger wil be in main, and imported into everything else and called there.</li>
+ <li>Logger wil be in game (built in to Board?), and imported into everything else and called there.</li>
  <li><s>Sort hand by house</s></li>
- <li>Write all the functions for all the cards.</li>
  <li><s>Rewrite the base code to reflect the implementation of the cards (ie in responses())</s></li>
  <li><s>update the play card function to tell the player how much amber they got for playing the card.</s></li>
- <li>Also, update it to make it more succinct (hint: use return statements?). - I think its good enough as is for now</li>
- <li>need to implement hazardous and assault and poison in fights</li>
- <li>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</li>
- <li>figure out where destroyed abilities get called from <b>Answer: from pending, if destroyed = True</b></li>
- <li>write after fights for Krump and creatures of his ilk - this means after fight will need to fed three variables</li>
- <li>the pending function will need to call card.dest, and definitely will need to call card.leaves</li>
- <li>when do I check for taunt?</li>
- <li>implement the rule of six: change playedThisTurn, etc into dictionaries?</li>
+ <li><s>Also, update playCard to make it more succinct</s></li>
+ <li><s>figure out where destroyed abilities get called from <b>Answer: from pending, if destroyed = True</b></s></li>
  <li><s>https://stackoverflow.com/questions/20264403/how-to-make-a-popup-radial-menu-in-pygame</s></li>
- <li>Reset cards back to default state after leaving the board (the function needs to written in cardsAsClass, and then called in game.pending)</li>
  <li></li>
  <li></li>
 </ul>
 
 <h2>Testing / Rules: </h2>
 <ol>
+<li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 15 card in hand or more than 12(?) creatures or artifacts</li>
+<li>Is captured amber returned, while amber on artifacts lost? - this will be in game.pending</li>
+<li>Mantle of Zealot and Experimental Therapy in canReap, canFight, canAction: note that these actually do work differently, and Experimental Therapy is going to be a b to implement properly.</li>
+<li>Reset cards back to default state after leaving the board (the function needs to written in cardsAsClass, and then called in game.pending)</li>
+<li>the pending function will need to call card.dest, and definitely will need to call card.leaves</li>
+<li>write after fights for Krump and creatures of his ilk - this means after fight will need to fed three variables</li>
+<li>If they try to end the turn early, highlight the things they could still do.</li>
+<li>Something that makes collision detection different if scaled - going to have to go in a lot of different places.</li>
+<li>The dragging in chooseFlank is also tied going to need to know about scaled.</li>
+<li>need to implement hazardous and assault and poison in fights</li>
 <li>Get hazardous and assault working - should be easy, but I made it more difficult than it needed to be. Could use more testing.</li>
+<li>Replicator won't currently interact with sequis properly</li>
 <li>Can use wild wormhole to cheat out a card with ember imp in play? Rules-wise it can't, as wildwormhole only gets around the first turn rule b/c that rule applies to playing out of hand.</li>
-<li>Dysania won't work. - now maybe she will</li>
 </ol>
 
 <h2>Bugs: </h2>
 <ol>
+<li>Dysania won't work. - now maybe she will</li>
+<li>Picking up archive didn't work.</li>
 <li>extra armor is always applied, even if it's been broken. Potential Solution: a calcExtraArmor() function, which needs to remember if a card has been hit yet this turn.</li>
 <li>if Sneklifter steals an artifact and it doesn't belong to one of the active player's houses, it gets changed to house Shadows. This is good. The bug is that if the artifact leaves play it doesn't get changed back.</li>
 <li>If scout gives a minion skirmish for a turn, it keeps skirmish until death. Might be fixed.</li>
@@ -127,11 +140,20 @@
 <li>Artifact of active house thinks it can't be used. - b/c actions aren't set up yet</li>
 <li>Bug with keys that I'm pretty sure is because all forged keys are referencing the same image.</li>
 <li>Technically supposed to be able to choose whether library access or a card's play effect triggers first, but that's not how it's implemented in the code.</li>
+<li>Drag card overrides the close button.</li>
+<li>Wild wormhole out an upgrade - does it remove upgrade from top of deck?</li>
+<li>Bad Penny didn't work, nor biomatrix backup, probably will have similar issues with similar cards.</li>
+<li>Francus didn't work, I though Krump did work once but he doesn't always.</li>
+<li>I don't think amber is returned properly by cards leaving play - or it might just be ether spider</li>
 <li></li>
 <li></li>
 <li></li>
 <li></li>
 <li></li>
+<li></li>
+<li></li>
+<li></li>
+<li><s>Ether spider doesn't work for stealing amber.</s> - updated stealAmber to use gainAmber</li>
 <li><s>Experienced a glitch where extra cards I couldn't hover ended up in my hand. This was on turn one in a game. Haven't seen it replicated yet.</s> - wasn't resetting cardBlits.</li>
 <li><s>add things that enter ready and/or stunned to the play list.</s></li>
 <li><s>Implement self.played/discarded/used this/last turn; this includes removing self.numPlays, self.numDiscards, self.creaturesPlayed</s></li>

@@ -105,7 +105,28 @@ class Deck:
     def gainAmber(self, count, game):
         """ This function will handle the possiblity of ether spider.
         """
+        active = game.activePlayer.board["Creature"]
+        inactive = game.inactivePlayer.board["Creature"]
         self.amber += count
+        if self == game.activePlayer:
+            count = sum(x.title == "ether_spider" and not x.destroyed and not x.returned for x in inactive)
+            if count > 1:
+                choice = inactive[game.chooseCards("Creature", "Choose which Ether Spider will capture the amber:", "enemy", condition = lambda x: x.title == "ether_spider", con_message = "That's not an ether spider")[0][1]] # choose which one captures
+                choice.capture(game, count)
+            elif count == 1:
+                for c in inactive:
+                    if c.title == "ether_spider" and not c.destroyed and not c.returned:
+                        c.capture(game, count)
+        if self == game.inactivePlayer:
+            count = sum(x.title == "ether_spider" and not x.destroyed and not x.returned for x in active)
+            if count > 1:
+                choice = active[game.chooseCards("Creature", "Choose which Ether Spider will capture the amber:", "friend", condition = lambda x: x.title == "ether_spider", con_message = "That's not an ether spider")[0][1]] # choose which one captures
+                choice.capture(game, count)
+            elif count == 1:
+                for c in active:
+                    if c.title == "ether_spider" and not c.destroyed and not c.returned:
+                        c.capture(game, count)
+                
         game.setKeys()
 
     def __iadd__(self, num):
@@ -116,7 +137,7 @@ class Deck:
                 self.shuffleDiscard()
             self.hand.append(self.deck.pop())
             num -= 1
-        self.hand.sort(key = lambda x: x.house)
+        # self.hand.sort(key = lambda x: x.house)
         return self
 
     def load_image(self, title): # this loads keys and house symbols

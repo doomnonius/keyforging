@@ -10,17 +10,22 @@ from typing import Dict
 # willEnterReady
 ##################
 
+def return_card(card, game):
+  # here is where we could check for ward
+  card.returned = True
+
 def destroy(card, player, game):
   """ Destroys a card owned by player. Make sure you call pending afterwards
   """
   if card.type == "Creature":
     card.destroyed = True
-    if "armageddon_cloak" not in [x.title for x in card.upgrade]:
-      player.board["Creature"].remove(card)
+    # if "armageddon_cloak" not in [x.title for x in card.upgrade]:
+    #   player.board["Creature"].remove(card)
   elif card.type == "Artifact":
-    player.board["Artifact"].remove(card)
+    card.destroyed = True
+    # player.board["Artifact"].remove(card)
 
-def stealAmber(thief, victim, num):
+def stealAmber(thief, victim, num, game):
   """ Function for stealing amber.
   """
   # this will account for edge cases that allow the inactive player to steal amber (namely, Magda leaving play)
@@ -29,14 +34,14 @@ def stealAmber(thief, victim, num):
     return
   if victim.amber >= num:
     victim.amber -= num
-    thief.amber += num
-    print(thief.name + " stole " + str(num) + " amber from " + victim.name + ".")
+    thief.gainAmber(num, game)
+    print(f"{thief.name} stole {num} amber from {victim.name}.")
   else:
-    thief.amber += victim.amber
+    thief.gainAmber(victim.amber, game)
     if victim.amber == 0:
-      print("Your opponent had no amber to steal. The card is stil played.")
+      print("Your opponent had no amber to steal.")
       return
-    print("Your opponent only had " + victim.amber + " amber for you to steal.")
+    print(f"Your opponent only had {victim.amber} amber for you to steal.")
     victim.amber = 0
 
 
@@ -56,7 +61,7 @@ def willEnterReady(game, card, reset: bool = True):
         if reset:
           activeS["blypyp"] = 0
         return True
-    if "speed_sigil" in [x.title for x in game.activePlayer.board["Artifacts"] + game.inactivePlayer.board["Artifacts"]]:
+    if "speed_sigil" in [x.title for x in game.activePlayer.board["Artifact"] + game.inactivePlayer.board["Artifact"]]:
       c_played = sum(x.type == "Creature" for x in game.playedThisTurn)
       if (not c_played and not reset) or (c_played == 1 and reset):
         return True

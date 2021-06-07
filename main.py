@@ -1,14 +1,12 @@
 import os, sys, logging, pyautogui
 
-logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
-
 # Feature add: when the game is installed (like, properly, which is something I'm totally going to get to) a variable will be set that says where the game is installed, then this will be called.
 ## os.chdir('/mnt/c/Users/devon/workspace/codeclass/keyforge')
 
 # import cards.cardsAsClass as card
 import decks.decks as deck
 import json, argparse
-from game import Board
+from game import Board, logger
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", "--action", help="launch the app, specifiying whether to start a [newgame], [import] a deck", type=str, default="newgame")
