@@ -260,6 +260,7 @@ class Card(pygame.sprite.Sprite):
                 return
             self.captured += inactive
             game.inactivePlayer.amber = 0
+        logging.info(f"{self.title} captured {self.title - initial} amber.")
         if self.title == "yxili_marauder":
             self.power += self.captured - initial
 
@@ -267,26 +268,31 @@ class Card(pygame.sprite.Sprite):
         """ Calculates damage, considering armor only.
         """
         if "shield_of_justice" in game.activePlayer.states and game.activePlayer.states["shield_of_justice"] and self in game.activePlayer.board["Creature"]:
-            pyautogui.alert(f"No damage is dealt to {self.title} because of Shield of Justice.")
+            logging.info(f"No damage is dealt to {self.title} because of Shield of Justice.")
             return
         if not self.damagable:
-            pyautogui.alert(f"No damage is dealt to {self.title} because it cannot take damage this turn.")
+            logging.info(f"No damage is dealt to {self.title} because it cannot take damage this turn.")
             return
-        if armor == False:
+        if not armor:
             self.damage += num
+            logging.info(f"{self.title}'s armor was ignored, and {num} damage was dealt")
         if poison and num > self.armor:
             self.destroyed = True
+            logging.info(f"{self.title} destroyed by poison.")
         if num >= self.armor:
             damage = (num - self.armor)
             self.armor = 0
+            logging.info(f"{self.title}'s armor was dealt {num} damage. {self.armor} armor remains.")
             shadows = sum(x.title == "shadow_self" for x in self.neighbors(game))
             if not shadows or "Specter" in self.traits:
                 self.damage += damage
+                logging.info(f"{self.title} was dealt {num} damage, and now has {self.damage} damage.")
             elif shadows == 1:
                 self.damage += 0
                 for c in self.neighbors(game):
                     if c.title == "shadow_self":
                         c.damage += damage
+                        logging.info(f"{c.title} took {self.title}'s {num} damage, and now has {c.damage} damage.")
             elif shadows == 2:
                 self.damage += 0
                 if self == game.activePlayer:
@@ -296,37 +302,39 @@ class Card(pygame.sprite.Sprite):
                     inactive = game.inactivePlayer.board["Creature"]
                     choice = inactive[game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "enemy", condition = lambda x: x in self.neighbors(game))[0][1]]
                 choice.damageCalc(game, damage)
+                logging.info(f"{choice.title} took {self.title}'s {num} damage, and now has {choice.damage} damage.")
         else:
             self.armor -= num
+            logging.info(f"{self.title}'s armor was dealt {num} damage. {self.armor} armor remains.")
     
     def fightCard(self, other, game) -> None:
         active = game.activePlayer.board["Creature"]
         inactive = game.inactivePlayer.board["Creature"]
-        print(self.title + " is fighting " + other.title + "!")
+        logging.info(self.title + " is fighting " + other.title + "!")
         self.ready = False
         # add hazardous and assault in here too
-        print(f"Hazard: {other.hazard}")
+        logging.info(f"Hazard: {other.hazard}")
         if other.hazard:
             self.damageCalc(game, other.hazard)
-            print("Damage from hazard calced")
+            logging.info("Damage from hazard calced")
             self.updateHealth(game.activePlayer)
-        print(f"Assault: {self.assault}")
+        logging.info(f"Assault: {self.assault}")
         if self.assault:
             other.damageCalc(game, self.assault)
-            print("Damage from assault calced")
+            logging.info("Damage from assault calced")
             other.updateHealth(game.inactivePlayer)
         if self.destroyed:
             game.pendingReloc.append(self)
         if other.destroyed:
             game.pendingReloc.append(other)
-        print("Before fight effects would go here too.")
+        logging.info("Before fight effects about to trigger.")
         if self.before:
             for b in self.before:
-                print("Trying to run before fight.")
+                logging.info("Trying to run before fight.")
                 b(game, self, other)
         else:
             fight.basicBeforeFight(game, self, other)
-        print("Up next, evasion sigil.")
+        logging.info("Up next, evasion sigil.")
         evasion = False
         sigil = sum(x.title == "evasion_sigil" for x in game.activePlayer.board["Artifact"] + game.inactivePlayer.board["Artifact"])
         if sigil:
@@ -336,7 +344,7 @@ class Card(pygame.sprite.Sprite):
                     if game.activePlayer.discard[-1].house in game.activeHouse:
                         evasion = True
         if self.destroyed or other.destroyed or other not in inactive or self not in active or evasion:
-            print(f"Exiting fight early b/c attacker {self.destroyed} or defender {other.destroyed} died during hazard/assault/before fight step, or is otherwise off the board (attacker: {other not in inactive}, defender: {self not in active}), or evasion sigil triggered: {evasion}.")
+            logging.info(f"Exiting fight early b/c attacker {self.destroyed} or defender {other.destroyed} died during hazard/assault/before fight step, or is otherwise off the board (attacker: {other not in inactive}, defender: {self not in active}), or evasion sigil triggered: {evasion}.")
             game.pending()
             basic = False
             if self.destroyed:
@@ -352,32 +360,32 @@ class Card(pygame.sprite.Sprite):
                 for f in self.fight:
                     f(game, self, other)
             return
-        print("If you're reading this, it's not self.before")
+        logging.info("If you're reading this, it's not self.before")
         if self.skirmish or self.temp_skirmish:
-            print("The attacker has skirmish, and takes no damage.") # Test line
+            logging.info("The attacker has skirmish, and takes no damage.")
         elif self.title in ["gabos_longarms", "ether_spider", "shadow_self"]:
-            print("The defender deals no damage while fighting.")
+            logging.info("The defender deals no damage while fighting.")
         elif other.elusive and self.title != "niffle_ape":
-            print("The defender has elusive, so no damage is dealt to the attacker.") # Test line
+            logging.info("The defender has elusive, so no damage is dealt to the attacker.")
         else:
-            print("Damage is dealt as normal to attacker.")
+            logging.info("Damage is dealt as normal to attacker.")
             self.damageCalc(game, other.power, poison = other.poison)
         if other.elusive and self.title != "niffle_ape":
-            print("The defender has elusive, so no damage is dealt to the defender.")
+            logging.info("The defender has elusive, so no damage is dealt to the defender.")
             other.elusive = False
         elif self.title in ["gabos_longarms", "ether_spider", "shadow_self"]:
-            print("The attacker deals no damage while fighting.")
+            logging.info("The attacker deals no damage while fighting.")
         else:
             damage = self.power
             if self.title == "valdr" and other.isFlank(game):
                 damage += 2
-            print(f"{damage} damage is dealt as normal to defender.")
+            logging.info(f"{damage} damage is dealt as normal to defender.")
             other.damageCalc(game, damage, self.poison)
-        print("After fight effects would go here, if attacker survives.")
-        print(f"Damage on attacker: {self.damage}")
-        print(f"Damage on defender: {other.damage}")
+        logging.info("After fight effects trigger here.")
+        logging.info(f"Damage on attacker: {self.damage}")
+        logging.info(f"Damage on defender: {other.damage}")
         self.updateHealth(game.activePlayer)
-        print("Updated attacker health.")
+        logging.info("Updated attacker health.")
         basic = False
         if self.destroyed:
             survived = False
@@ -386,9 +394,9 @@ class Card(pygame.sprite.Sprite):
             survived = True
             fight.basicFight(game, self, other)
             basic = True
-        print("I know it isn't self.fight that's failing.")
+        logging.info("Fight abilities concluded.")
         other.updateHealth(game.inactivePlayer)
-        print("Updated defender health.")
+        logging.info("Updated defender health.")
         if other.destroyed:
             game.pendingReloc.append(other)
         elif not basic:
@@ -400,7 +408,7 @@ class Card(pygame.sprite.Sprite):
         if survived:
             for f in self.fight:
                 f(game, self, other)
-        print("Another comment after pending has completed.")
+        logging.info("Pending and fight abilities completed.")
 
     # def health(self) -> int:
     #     return (self.power + self.extraPow) - self.damage
@@ -444,7 +452,6 @@ class Card(pygame.sprite.Sprite):
             return True
         return False
 
-
     def update(self):
         """ Doesn't do anything yet, but this is for the sprite if I use those
         """
@@ -473,13 +480,8 @@ class Card(pygame.sprite.Sprite):
 
     def updateHealth(self, player = None) -> None:
         if (self.power - self.damage) <= 0:
-            print(self.title + " is dead.")
+            logging.info(self.title + " is dead.")
             self.destroyed = True
-            # if "armageddon_cloak" not in [x.title for x in self.upgrade]:
-            #     print("Did we at least get here?")
-            #     player.board["Creature"].remove(self)
-        #     return True
-        # return False
 
     def tap(self, image):
         if image.get_width() > image.get_height():
@@ -492,7 +494,7 @@ class Card(pygame.sprite.Sprite):
         try:
             image = pygame.image.load(fullname)
         except FileNotFoundError:
-            print(fullname)
+            logging.error(f"{fullname} not found.")
         except pygame.error as message:
             fullname = os.path.join(f'cards\\card-fronts\\{self.exp}', 'mighty_javelin.png')
             image = pygame.image.load(fullname)
@@ -522,7 +524,3 @@ class Invisicard():
         self.rect = self.image.get_rect()
         self.tapped_rect = self.image.get_rect()
         self.type = False
-
-
-if __name__ == '__main__':
-    print ('This statement will be executed only if this script is called directly, which it really shouldn\'t be.')

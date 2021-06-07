@@ -15,6 +15,8 @@ args = parser.parse_args()
 """This file should be where instructions are entered by the user, and they can ask for help.
 """
 
+logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
+
 def startup(choice = ''): #Called at startup
   """The initial starting of the game. Includes importing the decks (and possibly loading a saved game).
   """

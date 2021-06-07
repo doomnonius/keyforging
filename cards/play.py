@@ -1,4 +1,4 @@
-import pyautogui, pygame, random
+import pyautogui, pygame, random, logging
 from functools import reduce
 from helpers import stealAmber, willEnterReady, destroy, return_card
 # I think it makes more sense to add these to the cardsAsClass file, which means that the only function here is addToBoard
@@ -14,24 +14,29 @@ def passFunc(game, card):
   activeS = game.activePlayer.states
   if card.type == "Creature":
     if "full_moon" in activeS and activeS["full_moon"]:
+      logging.info("Full Moon's effect is triggered.")
       game.activePlayer.gainAmber(activeS["full_moon"], game)
     if "teliga" in [x.title for x in inactive["Creature"]]:
+      logging.info("Teliga's effect is triggered.")
       count = 0
       for x in inactive["Creature"]:
         if x.title == "teliga":
           count += 1
       game.inactivePlayer.gainAmber(count, game)
     if "hunting_witch" in [x.title for x in active["Creature"]]:
+      logging.info("Hunting Witch's effect is triggered.")
       count = sum(x.title == "hunting_witch" for x in active["Creature"])
       if card.title == "hunting_witch":
         count -= 1 # this prevents hunting witch from triggering off itself
       game.activePlayer.gainAmber(count, game)
     if card.house == "Mars" and "tunk" in [x.title for x in active["Creature"]]:
+      logging.info("Tunk's effect is triggered.")
       location = [active["Creature"].index(x) for x in active["Creature"] if x.title == "tunk"]
       for x in location:
         active["Creature"][x].damage = 0
     if "charge" in activeS and activeS["charge"] and inactive["Creature"]:
       # above line makes sure there will be at least one potential target
+      logging.info("Charge!'s effect is triggered.")
       count = activeS["charge"]
       while inactive["Creature"] and count > 0:
         choice = game.chooseCards("Creature", "Choose an enemy minion to deal 2 damage to:", "enemy")[0][1]
@@ -43,18 +48,21 @@ def passFunc(game, card):
         count -= 1
     # stuff that gives armor
     if "grey_monk" in [x.title for x in active["Creature"]]:
+      logging.info("Grey Monk gives +1 armor.")
       extra = sum(x.title == "grey_monk" for x in active["Creature"])
       if card.name == "grey_monk":
         extra -= 1 # so it doesn't hit itself
       card.extraArm += extra
       card.resetArmor(game)
     if "banner_of_battle" in [x.title for x in active["Creature"]]:
+      logging.info("Banner of Battle give +1 power.")
       extra = sum(x.title == "banner_of_battle" for x in active["Creature"])
       card.power += extra
     # this is deliberately after grey_monk
     if "autocannon" in inactive["Artifact"] + active["Artifact"]:
       count = sum(x.title == "autocannon" for x in inactive["Artifact"] + active["Artifact"])
       while count > 0:
+        logging.info(f"Autocannon deals up 1 damage.")
         card.calcDamage(game, 1)
         count -= 1
         card.updateHealth(game.activePlayer)
@@ -64,6 +72,7 @@ def passFunc(game, card):
     if "pingle_who_annoys" in inactive["Creature"] + active["Creature"]:
       count = sum(x.title == "pingle_who_annoys" for x in inactive["Artifact"] + active["Artifact"])
       while count > 0:
+        logging.info(f"Pingle deals 1 damage.")
         card.calcDamage(game, 1)
         count -= 1
         card.updateHealth(game.activePlayer)
@@ -73,25 +82,29 @@ def passFunc(game, card):
     game.pending()
     if card.house == "Mars":
       if card.title in ["chuff_ape", "yxilx_dominator", "zorg"]:
+        logging.info(f"{card.title} enters play stunned.")
         card.stun = True
       for c in game.activePlayer.board["Creature"]:
         if "brain_stem_antenna" in [x.title for x in c.upgrade]:
+          logging.info(f"{c.title} is readied by Brain Stem Antenna.")
           c.ready = True
           c.house = "Mars"
           game.resetCard.append((c, "house"))
           game.cardChanged()
   if willEnterReady(game, card):
     card.ready = True
-    pyautogui.alert(card.title + " enters play ready!")
+    logging.info(f"{card.title} enters play ready!")
   if card.type == "Artifact":
     if "carlo_phantom" in [x.title for x in active["Creature"]]:
       stealAmber(game.activePlayer, game.inactivePlayer, sum(x.title == "carlo_phantom" for x in active["Creature"]), game)
-      pyautogui.alert("'Carlo Phantom' stole 1 amber for you. You now have " + str(game.activePlayer.amber) + " amber.")
+      logging.info("'Carlo Phantom' stole 1 amber for you. You now have " + str(game.activePlayer.amber) + " amber.")
     if "hayyel_the_merchant" in [x.title for x in active["Creature"]]:
       game.activePlayer.gainAmber(1, game)
+      logging.info("Hayyel gains you 1 amber.")
   if "library_access" in activeS and activeS["library_access"]:
     game.activePlayer += activeS["library_access"]
-    pyautogui.alert("You draw a card because you played 'Library Access' earlier this turn.")
+    # TODO: player can choose order of Library Access' ability and the played card's ability
+    logging.info("You draw a card because you played 'Library Access' earlier this turn.")
 
 
 ###########
@@ -106,9 +119,10 @@ def anger(game, card):
   """Anger. Ready and fight with a friendly creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   
   if not game.activePlayer.board["Creature"]:
-    pyautogui.alert("No valid targets. The card is still played.")
+    logging.info("No valid targets. The card is still played.")
     return
   
   choice = game.chooseCards("Creature", "Choose a friendly creature:", "friend")[0][1]
@@ -120,10 +134,10 @@ def anger(game, card):
 
 
 def barehanded(game, card):
-  """Barehanded. Put each artifact on top of its owner's \
-  deck.
+  """Barehanded. Put each artifact on top of its owner's deck.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Artifact"]
   inactive = game.inactivePlayer.board["Artifact"]
   for c in active[::-1]:
@@ -138,8 +152,9 @@ def blood_money(game, card):
   """Blood Money: Place 2 amber from the common supply on an enemy creature.
   """
   passFunc(game, card)
-  if len(game.inactivePlayer.board["Creature"]) == 0:
-    pyautogui.alert("Your opponent has no creatures for you to target. The card is still played.")
+  logging.info(f"{card.title}'s play ability is triggered.")
+  if not game.inactivePlayer.board["Creature"]:
+    logging.info("No valid targets.")
   else:
     choice = game.chooseCards("Creature", "Choose an enemy creature to gain two amber:", "enemy")[0][1]
     game.inactivePlayer.board["Creature"][choice].captured += 2
@@ -150,22 +165,25 @@ def brothers_in_battle(game, card):
   """ Brothers in Battle: Value: 1 amber. Choose a house. For the remainder of the turn, each friendly creature of that house may fight.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.extraFightHouses.append(game.chooseHouse("extraFight")[0]) # this function will add extra houses that only work for fighting
 
 def burn_the_stockpile(game, card):
   """Burn the Stockpile: If your opponent has 7 or more amber, they lose 4.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.inactivePlayer.amber > 6:
     game.inactivePlayer.amber -= 4
-    pyautogui.alert("Your opponent had " + str(game.inactivePlayer.amber + 4) + " amber, and you destroyed 4, leaving them with " + str(game.inactivePlayer.amber) + " amber." )
+    logging.info("Your opponent had " + str(game.inactivePlayer.amber + 4) + " amber, and you destroyed 4, leaving them with " + str(game.inactivePlayer.amber) + " amber." )
   else:
-    pyautogui.alert("Your opponent didn't have enough amber, so you didn't destroy anything. The card is still played.")
+    logging.info("Your opponent didn't have enough amber, so you didn't destroy anything.")
 
 def champions_challenge(game, card):
   """ Champion's Challenge: Destroy each enemy creature except the most powerful enemy creature. Destroy each friendly creature except the most powerful friendly creature. Ready and fight with your remaining creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -192,8 +210,8 @@ def champions_challenge(game, card):
   game.cardChanged()
 
   # then ready and fight with remaining minion
-  if len(game.activePlayer.board["Creature"]) == 0:
-    pyautogui.alert("You have no creatures to target.")
+  if not active:
+    logging.info("You have no creatures to target.")
     return
   choice = active[game.chooseCards("Creature", "Choose a creature to fight with:", "friend")[0][1]] # because ward will be a thing, and something could happen
   if not choice.ready:
@@ -206,6 +224,7 @@ def cowards_end (game, card):
   """Coward's End: Destroy each undamaged creature. Gain 3 chains.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc
@@ -230,6 +249,7 @@ def follow_the_leader(game, card):
   """Follow the Leader: For the remainder of the turn, each friendly creature may fight.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # as easy as setting game.extraFightHouses to all houses
   game.extraFightHouses = ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]
 
@@ -237,12 +257,13 @@ def lava_ball (game, card):
   """Lava Ball: Deal 4 damage to a creature with 2 splash.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc # this one's fine because only one side is ever affected; pending would be able to handle it anyway though
 
   if not activeBoard and not inactiveBoard:
-    pyautogui.alert("No valid targets. The card is still played.")
+    logging.info("No valid targets.")
     return
 
   side, choice = game.chooseCards("Creature", "Deal 4 damage with 2 splash to a creature:")[0]
@@ -276,6 +297,7 @@ def loot_the_bodies (game, card):
   """ Loot the Bodies: For the remainder of the turn, gain 1 amber each time an enemy creature is destroyed.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.states[card.title] += 1
   game.resetStates.append(("a", card.title))
   # the rest will be in basicDest
@@ -284,6 +306,7 @@ def take_that_smartypants (game, card):
   """Take that, Smartypants: Steal 2 amber if your opponent has 3 or more Logos cards in play.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactiveBoard = game.inactivePlayer.board
   count = 0
   for c in (inactiveBoard["Creature"] + inactiveBoard["Artifact"]):
@@ -291,22 +314,22 @@ def take_that_smartypants (game, card):
       count += 1
       if count >= 3:
         stealAmber(game.activePlayer, game.inactivePlayer, 2, game)
-        pyautogui.alert("You stole 2 amber from your opponent!")
         break
   else:
-    pyautogui.alert("Your opponent had less than 3 Logos cards in play, so you didn't steal anything. The card is still played.")
+    logging.info("Your opponent had less than 3 Logos cards in play, so you didn't steal anything.")
 
 
 def punch (game, card):
   """ Punch: Deal 3 damage to a creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only one side ever affected
 
   if not activeBoard and not inactiveBoard:
-    pyautogui.alert("No valid targets. The card is still played.")
+    logging.info("No valid targets. The card is still played.")
     return
 
   side, choice = game.chooseCards("Creature", "Deal 3 damage to a creature:")[0]
@@ -328,31 +351,25 @@ def relentless_assault (game, card):
   """ Relentless Assault: Ready and fight with up to 3 friendly creatures, one at a time.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   
   count = 1
   chosen = []
   while count < 4:
     if sum(x in chosen for x in activeBoard) == len(activeBoard):
-      pyautogui.alert("No more valid friendly targets.")
+      logging.info("No more valid friendly targets.")
       break
     if activeBoard:
       choice = game.chooseCards("Creature", f"Choose up to three creatures, one at a time. (Choice {count} of 3):", "friend", 1, False, lambda x: x not in chosen, con_message = "You've already chosen that creature, you can't fight with it again.")
     else:
-      pyautogui.alert("No friendly creatures to target.")
+      logging.info("No friendly creatures to target.")
       return
     if choice:
       choice = choice[0][1]
     else:
       return
     card = activeBoard[choice]
-    # first choice should always be valid, but not the rest
-    if card not in chosen:
-      card.ready = True
-      game.fightCard(choice, cheat=True)
-    else:
-      pyautogui.alert("You've already chosen that creature, you can't fight with it again.")
-      continue
     chosen.append(card)
     count += 1
 
@@ -360,23 +377,25 @@ def smith (game, card):
   """Smith: Gain 2 amber if you control more creatures than your opponent.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if len(game.activePlayer.board["Creature"]) > len(game.inactivePlayer.board["Creature"]):
+    logging.info("You have more creatures.")
     game.activePlayer.gainAmber(2, game)
-    pyautogui.alert("You have more creatures, so you gain 2 amber.")
   else:
-    pyautogui.alert("You do not have more creatures, so you don't gain the 2 extra amber. The card is still played.")
+    logging.info("You do not have more creatures, so you don't gain the 2 extra amber. The card is still played.")
 
 def sound_the_horns (game, card):
   """Sound the Horns: Discard cards from the top of your deck until you either discard a Brobnar creature or run out of cards. If you discarded a Brobnar creature this way, put it into your hand.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   discard = game.activePlayer.discard
   deck = game.activePlayer.deck
   hand = game.activePlayer.hand
   while deck and (deck[-1].house != "Brobnar" or deck[-1].type != "Creature"):
     discard.append(deck.pop())
   if not deck:
-    pyautogui.alert("Your deck is empty, and you found no Brobnar creatures.")
+    logging.info(f"{game.activePlayer.name}'s deck is empty, but found no Brobnar creatures.")
   else: # House is brobnar and type is creature if we get here
     hand.append(deck.pop())
 
@@ -384,11 +403,12 @@ def tremor (game, card):
   """Tremor: Stun a creature and each of its neighbors.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
 
   if not activeBoard and not inactiveBoard:
-    pyautogui.alert("No valid targets. Card is still played.")
+    logging.info("No valid targets.")
     return
   
   choice = game.chooseCards("Creature", "Stun a creature and its neighbors:")[0]
@@ -408,17 +428,17 @@ def unguarded_camp (game, card):
   """Unguarded Camp: For each creature you have in excess of your opponent, a friendly creature captures 1 amber. Each creature cannot capture more than 1 amber this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   diff = len(activeBoard) - len(inactiveBoard)
 
   if diff < 0:
-    pyautogui.alert("You have less creatures than your opponent, so no amber is captured. The card is stil played.")
+    logging.info(f"{game.activePlayer.name} has less creatures than their opponent, so no amber is captured. The card is stil played.")
     return
   elif diff == 0:
-    pyautogui.alert("You have as many creatures as your opponent, so no amber is captured. The card is still played.")
+    logging.info(f"{game.activePlayer.name} has as many creatures as their opponent, so no amber is captured. The card is still played.")
     return
-  # pyautogui.alert(f"You have {diff} more minions than your opponent, so you will capture {diff} amber.")
   if diff == len(activeBoard) and game.inactivePlayer.amber >= diff:
     [x.capture(game, 1) for x in activeBoard]
     return
@@ -432,6 +452,7 @@ def warsong (game, card):
   """Warsong: For the remainder of the turn, gain 1 amber each time a friendly creature fights.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.states[card.title] += 1
   game.resetStates.append(("a", card.title))
 
@@ -439,6 +460,7 @@ def banner_of_battle (game, card):
   """ Banner of Battle: Each friendly creature gets +1 power.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   for card in game.activePlayer.board["Creature"]:
     card.power += 1
 
@@ -450,12 +472,13 @@ def bumpsy (game, card):
   """Bumpsy: Your opponent loses one amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   victim = game.inactivePlayer.amber
   if victim > 0:
     game.inactivePlayer.amber -= 1
-    pyautogui.alert("Your opponent had " + str(victim) + " amber.\n\nThey now have " + str(game.inactivePlayer.amber) + " amber.")
+    logging.info(f"{game.inactivePlayer.name} had {victim} amber.\n\nThey now have {game.inactivePlayer.amber} amber.")
     return
-  pyautogui.alert("Your opponent had no amber to lose.")
+  logging.info(f"{game.inactivePlayer.name} had no amber to lose.")
 
 
 
@@ -463,6 +486,7 @@ def earthshaker (game, card):
   """Earthshaker: Destroy each creature with power 3 or lower.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDiscard= game.pendingReloc
@@ -483,6 +507,7 @@ def ganger_chieftain (game, card):
   """Ganger Chieftain: You may ready and fight with a neighboring creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
 
   # this can't handle the edge case where ganger chieftain is destroyed upon entering
@@ -506,6 +531,7 @@ def hebe_the_huge (game, card):
   """Hebe the Huge: Deal 2 damage to each other undamaged creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
 
@@ -530,17 +556,19 @@ def lomir_flamefist (game, card):
   """Lomir Flamefist: If your opponent has 7 or more amber, they lose 2.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   victim = game.inactivePlayer.amber
   if victim >= 7:
-    pyautogui.alert(f"Your opponent had {victim} amber. They now have {victim - 2} amber.")
+    logging.info(f"Your opponent had {victim} amber. They now have {victim - 2} amber.")
     game.inactivePlayer.amber -= 2
     return
-  pyautogui.alert(f"Your opponent only had {victim} amber. They don't lose anything.")
+  logging.info(f"Your opponent only had {victim} amber. They don't lose anything.")
 
 def smaaash (game, card):
   """Smaaash: Stun a creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   
@@ -558,8 +586,8 @@ def smaaash (game, card):
 def wardrummer (game, card):
   """Wardrummer: Return each other friendly Brobnar creature to your hand.
   """
-  # ward?
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   pending = game.pendingReloc
   
@@ -585,6 +613,7 @@ def a_fair_game (game, card):
   """ A Fair Game: Discard top card of opp's deck, reveal their hand. Gain amber for each card in hand matching house of discarded card. Opponent repeats effect on you.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   count = 0
   if len(game.inactivePlayer.deck) > 0:
     game.inactivePlayer.discard.append(game.inactivePlayer.deck.pop())
@@ -593,11 +622,11 @@ def a_fair_game (game, card):
       card.revealed = True
       if card.house == house:
         count += 1
-    pyautogui.alert(f"Your opponent has {str(count)} cards in their hand of the same house as the discarded card. You gain that much amber.")
+    logging.info(f"Your opponent has {count} cards in their hand of the same house as the discarded card. You gain that much amber.")
   else:
     for card in game.inactivePlayer.hand:
       card.revealed = True
-    pyautogui.alert("Your opponent has no cards to discard, so you gain no amber.")
+    logging.info("Your opponent has no cards to discard, so you gain no amber.")
   game.activePlayer.gainAmber(count, game)
   count = 0
   if len(game.activePlayer.deck) > 0:
@@ -607,17 +636,18 @@ def a_fair_game (game, card):
       card.revealed = True
       if card.house == house:
         count += 1
-    pyautogui.alert("You have " + str(count) + " cards in your hand of the same house as the discarded card. Your opponent gains that much amber.")
+    logging.info(f"You have {count} cards in your hand of the same house as the discarded card. Your opponent gains that much amber.")
   else:
     for card in game.activePlayer.hand:
       card.revealed = True
-    pyautogui.alert("You have no cards to discard, so your opponent gains no amber.")
+    logging.info("You have no cards to discard, so your opponent gains no amber.")
   game.inactivePlayer.gainAmber(count, game)
 
 def arise (game, card):
   """Arise!: Choose a house. Return each creature of that house from your discard pile to your hand. Gain 1 chain.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.discard
   house = game.chooseHouse("other")[0]
   # return cards from discard pile
@@ -634,6 +664,7 @@ def control_the_weak (game, card):
   """ Control the Weak: Choose a house on opp's id card, they must choose that house on next turn.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.states[card.title] = game.chooseHouse("control")
   game.resetStatesNext.append(("i", card.title))
 
@@ -641,6 +672,7 @@ def creeping_oblivion (game, card):
   """ Creeping Oblivion: purge up to 2 cards from a discard pile.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeDisc = game.activePlayer.discard
   inactiveDisc = game.inactivePlayer.discard
   game.drawFriendDiscard = True
@@ -663,10 +695,10 @@ def dance_of_doom (game, card):
   """ Dance of Doom: Choose a number. Destroy each creature with power equal to that number.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDestroyed = game.pendingReloc
-  # choice = int(pyautogui.prompt("Choose a number. All creatures with power equal to that number will be destroyed:"))
   choice = int(game.chooseHouse("custom", ("Choose a number. All creatures with power equal to that number will be destroyed:", [0] + list({x.power for x in active + inactive})))[0])
   for card in active[::-1]:
     if card.power == choice:
@@ -683,12 +715,12 @@ def dance_of_doom (game, card):
 def fear (game, card):
   """ Fear: Return an enemy creature to its owner's hand.
   """
-  # ward?
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
   if len(inactive) == 0:
-    pyautogui.alert("Your opponent has no creatures to target. The card is still played.")
+    logging.info("No valid targets.")
     return
   elif len(inactive) == 1:
     choice = inactive[0]
@@ -703,6 +735,7 @@ def gateway_to_dis (game, card):
   """ Gateway to Dis: Destroy each creature. Gain three gains.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc
@@ -725,6 +758,7 @@ def gongoozle (game, card):
   """ Gongoozle: Deal 3 to a creature. If it is not destroyed, its owner discards a random card from their hand.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only ever one side
@@ -762,6 +796,7 @@ def guilty_hearts (game, card):
   """ Guilty Hearts: Destroy each creature with any amber on it.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc
@@ -782,6 +817,7 @@ def hand_of_dis (game, card):
   """ Hand of Dis: Destroy a creature that is not on a flank.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only one target
@@ -791,7 +827,7 @@ def hand_of_dis (game, card):
     pyautogui.alert("No valid targets. The card is still played.")
     return
   
-  side, choice = game.chooseCards("Creature", "Choose a non-flank creature to destroy:", condition = lambda x: x.isFlank(game), con_message = "You didn't choose a flank creature. Please try again.")[0]
+  side, choice = game.chooseCards("Creature", "Choose a non-flank creature to destroy:", condition = lambda x: x.isFlank(game), con_message = "That's not a flank creature.")[0]
   if side == "fr":
     card = active[choice]
     destroy(card, game.activePlayer, game)
@@ -809,6 +845,7 @@ def hecatomb (game, card):
   """ Hecatomb: Destroy each Dis creature. Each player gains 1 amber for each creature they control that was destroyed this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc
@@ -834,6 +871,7 @@ def tendrils_of_pain (game, card):
   """ Tendrils of Pain: Deal 1 to each creature. Deal an additional 3 to each creature if your opponent forged a key on their previous turn.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc
@@ -871,8 +909,8 @@ def tendrils_of_pain (game, card):
 def hysteria (game, card):
   """ Hysteria: Return each creature to its owner's hand.
   """
-  # ward
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -892,6 +930,7 @@ def key_hammer (game, card):
   """ Key Hammer: If your opponent forged a key on their previous turn, unforge it. Your opponent gains 6 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.forgedLastTurn:
     if len(game.forgedLastTurn) > 1:
       unforge = game.forgedLastTurn[0]
@@ -911,6 +950,7 @@ def mind_barb (game, card):
   """ Mind Barb: Your opponent discards a random card from their hand.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.hand
   ran = inactive[random.choice(list(range(len(inactive))))]
   game.inactivePlayer.discard.append(ran)
@@ -920,6 +960,7 @@ def pandemonium (game, card):
   """ Pandemonium: Each undamaged creature captures 1 from its opponent.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -929,32 +970,22 @@ def pandemonium (game, card):
     [x.capture(game, 1) for x in active if x.damage == 0]
   else:
     choices = game.chooseCards("Creature", "Choose which friendly undamaged creatures will capture an amber:", "friend", game.inactivePlayer.amber, condition = lambda x: x.damage == 0, con_message = "That creature is not damaged. Choose a different one")
-    # for choice in choices:
-    #   if active[choice[1]].damage > 0:
-    #     pyautogui.alert("You chose a damaged creature, please select again.")
-    #     continue
     for choice in choices:
       active[choice[1]].capture(game, 1)
-    # break
   #inactive
   undamaged = [x for x in inactive if x.damage == 0]
   if len(undamaged) <= game.activePlayer.amber:
     [x.capture(game, 1) for x in inactive if x.damage == 0]
   else:
-    #  while True:
     choices = game.chooseCards("Creature", "Choose which enemy undamaged creatures will capture an amber:", "enemy", game.inactivePlayer.amber, condition = lambda x: x.damage == 0, con_message = "That creature is not damaged. Choose a different one")
-      # for choice in choices:
-      #   if inactive[choice[1]].damage > 0:
-      #     pyautogui.alert("You chose a damaged creature, please select again.")
-      #     continue
     for choice in choices:
       inactive[choice[1]].capture(game, 1)
-      # break
 
 def poltergeist (game, card):
   """ Poltergeist: Use an artifact controlled by any player as if it were yours. Destroy that artifact.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Artifact"]
   inactive = game.inactivePlayer.board["Artifact"]
   pending = game.pendingReloc
@@ -981,6 +1012,7 @@ def red_hot_armor (game, card):
   """ Red-Hot Armor: Each enemy creature with armor loses all of its armor until the end of the turn and is dealt 1 for each point of armor it lost this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only hits one side
   # deal damage
@@ -998,6 +1030,7 @@ def three_fates (game, card):
   """ Three Fates: Destroy the three most powerful creatures.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc
@@ -1074,12 +1107,14 @@ def charette (game, card):
   """ Charette: Capture 3 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   card.capture(game, 3)
 
 def drumble (game, card):
   """ Drumble: if your opponent has 7 amber or more, capture all of it.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.inactivePlayer.amber >= 7:
     card.capture(game, game.inactivePlayer.amber)
 
@@ -1087,12 +1122,13 @@ def guardian_demon (game, card):
   """ Guardian Demon: Heal up to 2 damage from a creature. Deal that amount of damage to another creature
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc
   # easy case: no damage
   if reduce(lambda x, y: x + y, [x.damage for x in game.activePlayer.board["Creature"]] + [x.damage for x in game.inactivePlayer.board["Creature"]]) == 0:
-    pyautogui.alert("There are no damaged creatures, so the play effect doesn't happen. The card is still played.")
+    logging.info("There are no damaged creatures, so the play effect doesn't happen.")
     return
   choice = game.chooseCards("Creature", "Choose a creature:")[0]
   if choice[0] == "fr":
@@ -1100,14 +1136,14 @@ def guardian_demon (game, card):
     if card1.damage > 0:
       heal = int(game.chooseHouse("custom", ("How much damage would you like to heal?", ["  0  ", "  1  ", "  2  "]))[0])
     else:
-      pyautogui.alert("There was no damage on this creature, so no damage will be dealt.")
+      logging.info("There was no damage on this creature, so no damage will be dealt.")
       return
   else:
     card1 = inactive[choice[1]]
     if card1.damage > 0:
       heal = game.chooseHouse("guardian")[0]
     else:
-      pyautogui.alert("There was no damage on this creature, so no damage will be dealt.")
+      logging.info("There was no damage on this creature, so no damage will be dealt.")
       return
   if heal:
     side, choice = game.chooseCards("Creature", f"Choose a creature to deal {heal} damage to:", condition = lambda x: x != card1, con_message = "You can't damage the creature you healed. Choose a different target.")[0]
@@ -1129,13 +1165,15 @@ def restringuntus (game, card):
   """ Restringuntus: Choose a house. Your opponent cannot choose that house as their active house until Restringuntus leaves play.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # no deck has more than one copy of this card
-  game.chooseHouse("other")
+  game.activePlayer.states[card.title] = game.chooseHouse("other")
 
 def shooler (game, card):
   """ Shooler: if your opponent has 4 or more amber, steal 1.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.inactivePlayer.amber >= 4:
     stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   
@@ -1143,6 +1181,7 @@ def the_terror (game, card):
   """ The Terror: If your opponent has no amber, gain 2.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.inactivePlayer.amber == 0:
     game.activePlayer.gainAmber(2, game)
 
@@ -1150,6 +1189,7 @@ def truebaru (game, card):
   """ Truebaru: You must lose 3<a> in order to play Truebaru.
   """
   passFunc(game, card)
+  logging.info(f"Playing {card.title} loses you 3 amber.")
   game.activePlayer.amber -= 3
 
 ## End house Dis
@@ -1166,6 +1206,7 @@ def bouncing_deathquark (game, card):
   """ Bouncing Deathquark: Destroy an enemy creature and a friendly creature. Repeat effect as many times as you want, as long as you can repeat entire effect.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc
@@ -1175,7 +1216,7 @@ def bouncing_deathquark (game, card):
       if len(choices) == 0:
         return
       if len(choices) == 1 or choices[0][0] == choices[1][0]:
-        pyautogui.alert("You need to choose one enemy and one friendly creature. Try again.")
+        logging.info("You need to choose one enemy and one friendly creature.")
         continue
       else:
         for choice in choices:
@@ -1196,6 +1237,7 @@ def dimension_door (game, card):
   """ Dimension Door: For the remainder of the turn, any amber you would gain from reaping is stolen from your opponent instead.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # just set a state, effect doesn't stack from multiple copies
   game.activePlayer.states[card.title] += 1
   game.resetStates.append("a", card.title)
@@ -1204,20 +1246,21 @@ def effervescent_principle (game, card):
   """ Effervescent Principle: Each player loses half their amber (rounding down the loss). Gain one chain.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.activePlayer.amber % 2 != 0:
     game.activePlayer.amber += 1 # this is actually not a gain amber, this is just a hack
   if game.inactivePlayer.amber % 2 != 0:
     game.inactivePlayer.amber += 1 # this is actually not a gain amber, this is just a hack
   if game.activePlayer.amber > 0:
     game.activePlayer.amber //= 2
-    pyautogui.alert("After losing half your amber, you now have " + str(game.activePlayer.amber) + " amber.")
+    logging.info(f"After losing half your amber, you now have {game.activePlayer.amber} amber.")
   else:
-    pyautogui.alert("You still have no amber.")
+    logging.info("You still have no amber.")
   if game.inactivePlayer.amber > 0:
     game.inactivePlayer.amber //= 2
-    pyautogui.alert("After losing half their amber, your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+    logging.info(f"After losing half their amber, your opponent now has {game.inactivePlayer.amber} amber.")
   else:
-    pyautogui.alert("Your opponent still has no amber.")
+    logging.info("Your opponent still has no amber.")
   game.activePlayer.chains += 1
   game.setKeys()
 
@@ -1225,6 +1268,7 @@ def foggify (game, card):
   """ Foggify: your opponent cannot use creatures to fight on their next turn.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # states should always be in deck that they affect
   game.activePlayer.states[card.title] += 1
   game.resetStatesNext.append(("i", card.title))
@@ -1233,7 +1277,8 @@ def help_from_future_self (game, card):
   """ Help from Future Self: Search your deck and discard pile for a Timetraveller, reveal it, and put it into your hand. Shuffle your discard pile into your deck.
   """
   passFunc(game, card)
-  # multiples of these pairings is possible, but only come in pairs
+  logging.info(f"{card.title}'s play ability is triggered.")
+  # multiples of these pairings is possible, but only come in pairs - because you shuffle discard into deck, doesn't matter which one you choose to search, you'll end up in the same state afterwards
   # let's use an iterative function to search with
   def search(hand, L):
     # look at first item in deck
@@ -1248,13 +1293,14 @@ def help_from_future_self (game, card):
   
   if not search(game.activePlayer.hand, game.activePlayer.deck):
     if not search(game.activePlayer.hand, game.activePlayer.discard):
-      pyautogui.alert("No 'Timetraveller' found.")
+      logging.info("No 'Timetraveller' found.")
   game.activePlayer.shuffleDiscard()
 
 def interdimensional_graft (game, card):
   """ Interdimensional Graft: If an opponent forges a key on their next turn, they must give you their remaining amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # update state
   game.activePlayer.states[card.title] += 1
   game.resetStatesNext.append(("i", card.title))
@@ -1263,6 +1309,7 @@ def knowledge_is_power (game, card):
   """ Knowledge is Power: Choose one: Archive a card, or, for each archived card you have, gain 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # b/c this is one of only two choose card in whole set, will give card text
   choice = game.chooseHouse("custom", ("Archive a card, or gain 1 amber for each card in your archives?", ["Archive", "Gain amber"]))[0]
   if choice == "Archive":
@@ -1273,7 +1320,7 @@ def knowledge_is_power (game, card):
       game.activePlayer.hand["Creature"].remove(card)
       game.pending("archive", target = game.activePlayer)
     else:
-      pyautogui.alert("Your hand is empty, so you can't archive a card.")
+      logging.info("Your hand is empty, so you can't archive a card.")
   else:
     game.activePlayer.gainAmber(len(game.activePlayer.archive), game)
 
@@ -1282,6 +1329,7 @@ def labwork (game, card):
   """ Labwork: Archive a card.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.activePlayer.hand:
     archive = game.chooseCards("Hand", "Choose a card from your hand to archive:")[0][1]
     card = game.activePlayer.hand[archive]
@@ -1293,24 +1341,27 @@ def library_access (game, card):
   """ Library Access: Purge this card. For the remainder of the turn, each time you play another card, draw a card.
   """
   passFunc(game, card)
-  # purging is handled in the playCard function, my old solution would have led to popping from an empty list
+  logging.info(f"{card.title}'s play ability is triggered.")
+  # purging is handled in the playCard function
   game.activePlayer.states[card.title] += 1
 
 def neuro_syphon (game, card):
   """ Neuro Syphon: If your opponent has more amber than you, steal 1 amber and draw a card.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.inactivePlayer.amber > game.activePlayer.amber:
     stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
-    pyautogui.alert("Your opponent has more amber than you, so the effect triggers. You now have " + str(game.activePlayer.amber) + " amber. Drawing a card.")
+    logging.info("Your opponent has more amber than you, so the effect triggers. You now have " + str(game.activePlayer.amber) + " amber. Drawing a card.")
     game.activePlayer += 1
     return
-  pyautogui.alert("You have at least as much amber as your opponent. Nothing happens.")
+  logging.info("You have at least as much amber as your opponent. Nothing happens.")
     
 def phase_shift (game, card):
   """ Phase Shift: You may play one non-Logos card this turn.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # this is a tough one. effect can stack, so we'll use a list
   game.activePlayer.states[card.title] += 1
   game.resetStates.append("a", card.title)
@@ -1319,12 +1370,13 @@ def positron_bolt (game, card):
   """ Positron Bolt: Deal 3 damage to a flank creature. Deal 2 damage to its neighbor. Deal 1 damage to the second creature's other neighbor.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc # fine b/c only one side
   
   if not active and not inactive:
-    pyautogui.alert("No valid targets. The cards is still played.")
+    logging.info("No valid targets.")
     return
   
   side, choice = game.chooseCards("Creature", "Choose a flank creature to deal three damage to:", condition = lambda x: x.isFlank(game), con_message = "You didn't choose a flank creature. Please try again.")[0]
@@ -1429,20 +1481,22 @@ def random_access_archives (game, card):
   """ Random Access Archives: Archive the top card of your deck.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # if deck is empty, don't shuffle
   if len(game.activePlayer.deck) > 0:
     card = game.activePlayer.deck[-1]
     game.pendingReloc.append(card)
     game.activePlayer.deck["Creature"].remove(card)
     game.pending("archive", target = game.activePlayer)
-    pyautogui.alert("The top card or your deck has been archived.")
+    logging.info("The top card or your deck has been archived.")
     return
-  pyautogui.alert("Your deck is empty. Nothing happens.")
+  logging.info("Your deck is empty. Nothing happens.")
 
 def remote_access(game, card):
   """ Remote Access: use an opponent's artifact as if it were yours.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Artifact"]
   if len(inactive) > 0:
     choice = game.chooseCards("Artifact", "Choose an opponent's artifact to use:", "enemy")[0][1]
@@ -1450,12 +1504,13 @@ def remote_access(game, card):
       inactive[choice].action(game, game.inactivePlayer.board["Artifact"][choice])
       inactive[choice].ready = False
   else:
-    pyautogui.alert("Your opponent has no artifacts. The card is stil played.")
+    logging.info("Your opponent has no artifacts.")
 
 def reverse_time (game, card):
   """ Reverse Time: Swap your deck and your discard pile. Then, shuffle your deck.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.deck, game.activePlayer.discard = game.activePlayer.discard, game.activePlayer.deck
   random.shuffle(game.activePlayer.deck)
 
@@ -1463,6 +1518,7 @@ def scrambler_storm (game, card):
   """ Scrambler Storm: Your opponent cannot play action cards on their next turn.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.states[card.title] += 1
   game.resetStatesNext.append(("i", card.title))
 
@@ -1470,6 +1526,7 @@ def sloppy_labwork (game, card):
   """ Sloppy Labwork: Archive a card. Discard a card.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   hand = game.activePlayer.hand
   
   if len(hand) > 0:
@@ -1481,13 +1538,15 @@ def sloppy_labwork (game, card):
     pyautogui.alert("Card archived!")
   if len(hand) > 0:
     choice = game.chooseCards("Hand", "Choose a card to discard:")[0][1]
+    c = hand[choice]
     game.discardCard(choice, cheat=True)
-    pyautogui.alert("Card discarded!")
+    logging.info(f"{c} discarded!")
 
 def twin_bolt_emission (game, card):
   """ Twin Bolt Emission: Deal 2 damage to a creature and deal 2 damage to a different creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc
@@ -1512,8 +1571,9 @@ def wild_wormhole (game, card):
   """ Wild Wormhole: Play the top card of your deck.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.deck[-1].revealed = True
-  game.draw() # so they can see what card is being played (if I update the drawing the board function properly)
+  game.draw() # so they can see what card is being played
   pygame.display.update()
   game.playCard(len(game.activePlayer.deck) - 1, "Deck")
 
@@ -1525,6 +1585,7 @@ def dextre(game, card):
   """ Dextre: Capture 1 amber. Destroyed: Put Dextre on top of your deck.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   card.capture(game, 1)
   pyautogui.alert("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
 
@@ -1532,6 +1593,7 @@ def dr_escotera(game, card):
   """ Dr. Escotera: Gain 1 amber for each key your opponent has.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.gainAmber(game.inactivePlayer.keys, game)
   pyautogui.alert("You now have " + str(game.activePlayer.amber) + " amber")
 
@@ -1539,6 +1601,7 @@ def dysania (game, card):
   """ Dysania: Your opponent discards each of their archived cards. You gain 1 amber for each card discarded this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # edge case: if your opponent has your cards in their archive, they don't get discarded, but sent to your hand, so you don't gain amber for them
   if len(game.inactivePlayer.archive) > 0:
     count = 0
@@ -1551,23 +1614,23 @@ def dysania (game, card):
         game.activePlayer.hand.append(x)
         game.inactivePlayer.archive.remove(x)
     game.activePlayer.gainAmber(count, game)
-    print("You gained " + str(count) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
+    logging.info("You gained " + str(count) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
     game.pending()
 
 def harland_mindlock (game, card):
   """ Harland Mindlock: Take control of an enemy flank creature until Harland Mindlock leaves play.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
   if not inactive:
-    pyautogui.alert("No enemy creatures to steal!")
+    logging.info("No enemy creatures to steal!")
     return
 
   choice = inactive[game.chooseCards("Creature", "Choose an enemy flank creature to steal:", "enemy", condition = lambda x: x.isFlank(game), con_message = "You didn't choose a flank creature. Please try again.")[0][1]]
   flank = game.chooseFlank(choice)
-  # game.chooseHouse("custom", ("Put the minion on your left flank or your right flank?", ["Left", "Right"]))
   card.harland = choice
   if flank == "Left":
     flank = 0
@@ -1581,6 +1644,7 @@ def neutron_shark (game, card):
   """ Neutron Shark: Destroy an enemy creature or artifact and a friendly creature or artifact. Discard the top card of your deck. If that card is not a Logos card, trigger this effect again.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board
   inactive = game.inactivePlayer.board
   pendingDiscard = game.pendingReloc
@@ -1612,6 +1676,7 @@ def psychic_bug (game, card):
   """ Psychic Bug: Look at your opponent's hand.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   for card in game.inactivePlayer.hand:
     card.revealed = True
 
@@ -1619,6 +1684,7 @@ def skippy_timehog (game, card):
   """ Skippy Timehog: Your opponent canot use any cards next turn.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.states[card.title] += 1
   game.resetStatesNext.append(("i", card.title))
 
@@ -1626,6 +1692,7 @@ def timetraveller (game, card):
   """ Timetraveller: Draw two cards.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer += 2
 
 ## End house Logos
@@ -1644,6 +1711,7 @@ def ammonia_clouds (game, card):
   """ Ammonia Clouds: Deal 3 damage to each creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
@@ -1667,6 +1735,7 @@ def battle_fleet (game, card):
   """ Battle Fleet: Reveal any number of Mars cards from your hand. For each card revealed this way, draw 1 card.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
   for card in revealed:
     game.activePlayer.hand[card].revealed = True
@@ -1676,6 +1745,7 @@ def deep_probe (game, card):
   """ Deep Probe: Choose a house: Reveal your opponent's hand. Discard each creature of that house revealed this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   house = game.chooseHouse("other")[0]
 
   for c in game.activePlayer.hand[::-1]:
@@ -1690,6 +1760,7 @@ def emp_blast (game, card):
   """ EMP Blast: Each Mars creature and each Robot creature is stunned. Each artifact is destroyed.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   
   activeC = game.activePlayer.board["Creature"]
   activeA = game.activePlayer.board["Artifact"]
@@ -1710,22 +1781,25 @@ def hypnotic_command (game, card):
   """ Hypnotic Command: For each friendly Mars creature, choose an enemy creature to capture one amber from their own side.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
   count = sum((x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
-  while count > 0:
-    choice = game.chooseCards("Creature", "Choose an enemy creature to capture one amber from their own side: ", "enemy")[0][1]
+  hits = 1
+  while hits <= count:
+    choice = game.chooseCards("Creature", f"Choose an enemy creature to capture one amber from their own side ({hits} of {count}):", "enemy")[0][1]
     # looks like they can choose the same minion each time, which is why the loop
     inactive[choice].capture(game, 1, True)
     count -= 1
-  pyautogui.alert("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
+  logging.info("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
   
 def irradiated_amber (game, card):
   """ Irradiated Amber: If your opponent has 6 or more amber, deal 3 damage to each enemy creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc
@@ -1743,6 +1817,7 @@ def key_abduction (game, card):
   """ Key Abduction: Return each Mars creature to its owner's hand. Then you may forge a key at +9 current cost, reduced by 1 for each card in your hand.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -1762,25 +1837,24 @@ def key_abduction (game, card):
   if game.canForge() and game.activePlayer.amber >= temp_cost:
     forge = game.chooseHouse("custom", (f"You may now forge a key for {temp_cost} amber. Would you like to do so?", ["Yes", "No"]))[0]
     if forge == "No":
-      pyautogui.alert("You have chosen not to forge a key.")
+      logging.info("You have chosen not to forge a key.")
       return
     game.forgeKey("active", temp_cost)
     if game.activePlayer.keys >= 3:
       pyautogui.alert(f"{game.activePlayer.name} wins!")
       pygame.quit()
   elif game.canForge():
-    pyautogui.alert("You don't have enough amber to forge a key.")
-  else:
-    pyautogui.alert("You are unable to forge a key right now for some reason.")
+    logging.info("You don't have enough amber to forge a key.")
 
 def martian_hounds (game, card):
   """ Martian Hounds: Choose a creature. For each damaged creature, give the chosen creature two +1 power counters.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   
   count = sum(x.damage > 0 for x in game.activePlayer.board["Creature"] + game.inactivePlayer.board["Creature"])
   if count == 0:
-    pyautogui.alert("There are no damaged creatures, so no power will be gained. The card is still played.")
+    logging.info("There are no damaged creatures, so no power will be gained.")
     return
   side, choice = game.chooseCards("Creature", f"Choose a creature to give {count * 2} power counters to:")[0]
   if side == "fr": # friendly
@@ -1791,12 +1865,13 @@ def martian_hounds (game, card):
     return
   choice = game.inactivePlayer.board["Creature"][choice]
   choice.power += (2 * count)
-  print(choice.title + " now has " + str(choice.power) + " power.")
+  logging.info(choice.title + " now has " + str(choice.power) + " power.")
 
 def martians_make_bad_allies (game, card):
   """ Martians Make Bad Allies: Reveal your hand. Purge each revealed non-Mars creature and gain 1 amber for each card purged this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.hand
   count = 0 
   for c in active[::-1]:
@@ -1807,20 +1882,21 @@ def martians_make_bad_allies (game, card):
       active.remove(c)
   if count > 0:
     game.activePlayer.gainAmber(count, game)
-    pyautogui.alert("You gained " + str(count) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
+    logging.info("You gained " + str(count) + " amber. You now have " + str(game.activePlayer.amber) + " amber.")
     return
-  pyautogui.alert("You had no non-Mars creatures in hand. You gain no amber. The card is still played.")
+  logging.info("You had no non-Mars creatures in hand. You gain no amber. The card is still played.")
 
 def mass_abduction (game, card):
   """ Mass Abduction: Put up to 3 damaged enemy creatures into your archives. If any of these creatures leave your archives, they are put into their owner's hand instead.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   
   inactive = game.inactivePlayer.board["Creature"]
   count = len([x for x in inactive if x.damage > 0])
   
   if count == 0:
-    pyautogui.alert("There are no damaged enemy creatures. The card is still played.")
+    logging.info("There are no damaged enemy creatures. The card is still played.")
     return
 
   choices = [x[1] for x in game.chooseCards("Creature", "Choose up to 3 damaged enemy creatures to put into your archives:", "enemy", 3, False, lambda x: x.damage > 0)]
@@ -1839,6 +1915,7 @@ def mating_season (game, card):
   """ Mating Season: Shuffle each Mars creature into its owner's deck. Each player gains 1 amber for each creature shuffled into their deck this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeD = game.activePlayer.deck
   inactiveD = game.inactivePlayer.deck
   activeC = game.activePlayer.board["Creature"]
@@ -1869,6 +1946,7 @@ def mothership_support (game, card):
   """ Mothership Support: For each friendly ready Mars creature, deal 2 damage to a creature. (You may choose a different creature each time.)
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
@@ -1877,7 +1955,7 @@ def mothership_support (game, card):
   enemy_damaged = []
   count = sum(x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
   if count == 0:
-    pyautogui.alert("You have no Mars creatures, so no damage is dealt. The card is still played.")
+    logging.info("You have no Mars creatures, so no damage is dealt. The card is still played.")
     return
   hits = 1
   while hits <= count:
@@ -1907,6 +1985,7 @@ def orbital_bombardment (game, card):
   """ Orbital Bombardment: Reveal any number of Mars cards from your hand. For each card revealed this way, deal 2 damage to a creature. (you may choose a different creature each time.)
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -1916,7 +1995,7 @@ def orbital_bombardment (game, card):
   revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
   count = len(revealed)
   if count == 0:
-    pyautogui.alert("You revealed no Mars cards, so no damage is dealt. The card is still played.")
+    logging.info("You revealed no Mars cards, so no damage is dealt.")
     return
   hits = 1
   while hits <= count:
@@ -1946,6 +2025,7 @@ def phosphorus_stars (game, card):
   """ Phosphorus Stars: Stun each non-Mars creature. Gain 2 chains.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -1960,10 +2040,11 @@ def psychic_network (game, card):
   """ Psychic Network: Steal 1 amber for each friendly ready Mars creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   count = sum(x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
   if count == 0:
-    pyautogui.alert("You have no friendly ready Mars creatures, so you don't steal any amber. The card is still played.")
+    logging.info("You have no friendly ready Mars creatures, so you don't steal any amber.")
     return
   stealAmber(game.activePlayer, game.inactivePlayer, count, game)
 
@@ -1971,6 +2052,7 @@ def sample_collection (game, card):
   """ Sample Collection: Put an enemy creature into your archives for each key your opponent has forged. If any of these creatures leave your archives, they are put into their owner's hand instead.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   count = game.inactivePlayer.keys
   inactive = game.inactivePlayer.board["Creature"]
   

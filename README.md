@@ -4,12 +4,11 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
- <li>implement the rule of six: change playedThisTurn, etc into dictionaries?</li>
  <li>Code reap, fight, action, abilities with knowledge that there might be more than one</li>
  <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves. Actually, I think I'll have basic dest, but I'll call it from pending, not tied to the card. Potentially the same with basicReap and basicFight</li>
  <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal - everytime a function tries to ref pendingReloc, it needs to check if pendingReloc contains something - if it does, then this is a nested destroy, and secondary needs to be used instead - I think this shouldn't matter for play effects</li>
  <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs, unless it is revealed</li>
- <li>game.pending should be able to handle things going into archives (because of card.reset())</li>
+ <li>game.pending should be able to handle things going into archives from play (because of card.reset())</li>
  <li>Code not yet implemented to only display valid options for items, instead of all. - in progress, don't think all effects are taken into account</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
  <li>The game usually doesn't tell you if an attempt to play a card failed, or why it failed. - in progress</li>
@@ -114,6 +113,7 @@
 
 <h2>Testing / Rules: </h2>
 <ol>
+<li>implement the rule of six: change playedThisTurn, etc into dictionaries?</li>
 <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 15 card in hand or more than 12(?) creatures or artifacts</li>
 <li>Is captured amber returned, while amber on artifacts lost? - this will be in game.pending</li>
 <li>Mantle of Zealot and Experimental Therapy in canReap, canFight, canAction: note that these actually do work differently, and Experimental Therapy is going to be a b to implement properly.</li>

@@ -1,4 +1,3 @@
-from tkinter.constants import E
 from types import LambdaType
 from pygame.constants import MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION, SRCALPHA, KEYDOWN, QUIT
 from pygame import Rect, Surface
@@ -11,22 +10,6 @@ from cards.destroyed import basicDest, basicLeaves
 from cards.reap import basicReap, spectral_tunneler as st
 from typing import Dict, List, Set, Tuple
 from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW, OB
-
-logging.basicConfig(filename='game.log',level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
-
-def logger(log: str, level: str):
-  """ For consistency in the logging.\nLevels: debug, info, warn, error, crit
-  """
-  if level == "debug":
-    logging.debug(log)
-  elif level == "info":
-    logging.info(log)
-  elif level == "warn":
-    logging.warning(log)
-  elif level == "error":
-    logging.error(log)
-  elif level == "crit":
-    logging.critical(log)
 
 #####################
 # Contains modules: #
@@ -143,7 +126,9 @@ class Board():
       self.inactivePlayer = deck.Deck(deck.deckName(self.second), self.target_cardw, self.target_cardh, self.margin)
     else:
       self.inactivePlayer = deck.Deck(deck.deckName(self.first), self.target_cardw, self.target_cardh, self.margin)
+    logging.info("pygame initialized")
     pygame.display.set_caption(f'Keyforge: {self.activePlayer.name} vs {self.inactivePlayer.name}')
+    logging.info(f'{self.activePlayer.name} vs {self.inactivePlayer.name}')
     self.main()
 
   def __repr__(self):
@@ -402,7 +387,7 @@ class Board():
           if True in hit and True not in self.friendDraws:
             self.dragging.append(hand.pop(hit.index(True)))
             self.dragCard()
-            print("Exiting dragCard, back into events.")
+            # logging.info("Exiting dragCard, back into events.")
 
         
         if event.type == MOUSEBUTTONUP and event.button == 1:
@@ -452,7 +437,6 @@ class Board():
             self.drawEnemyArchive = True
           
         if event.type == KEYDOWN:
-          # print(event)
           if event.key == 113 and (event.mod == 64 or event.mod == 4160):
             run = False
 
@@ -477,6 +461,7 @@ class Board():
         else:
           mull = self.chooseHouse("custom", ("Player 1, would you like to keep or mulligan?", ["Keep", "Mulligan"]), ["GREEN", "RED"])[0]
           if mull == "Mulligan":
+            logging.info("Player 1 has mulliganed.")
             for card in self.activePlayer.hand:
               self.activePlayer.deck.append(card)
             random.shuffle(self.activePlayer.deck)
@@ -489,6 +474,7 @@ class Board():
         else:
           mull2 = self.chooseHouse("custom", ("Player 2, would you like to keep or mulligan?", ["Keep", "Mulligan"]), ["GREEN", "RED"])[0]
           if mull2 == "Mulligan":
+            logging.info("Player 2 has mulliganed.")
             for card in self.inactivePlayer.hand:
               self.inactivePlayer.deck.append(card)
             random.shuffle(self.inactivePlayer.deck)
@@ -505,6 +491,7 @@ class Board():
       ###################################
 
       elif self.turnStage == 0:
+        logging.info(f"Starting turn {self.turnNum}")
         # start of turn effects will go here
         self.turnStage += 1
       
@@ -515,10 +502,9 @@ class Board():
       elif self.turnStage == 1: # forge a key
         if self.canForge(): # returns True if you can forge, false if you can't (and why you can't), which in CotA is basically only Miasma
           self.forgeKey("active", self.calculateCost())
-        else:
-          pyautogui.alert("Forging skipped this turn but I'm not going to tell you why!")
         if self.activePlayer.keys >= 3:
           pyautogui.alert(f"{self.activePlayer.name} wins!")
+          logging.info(f"{self.activePlayer.name} wins!")
           run = False
         self.turnStage += 1
       
@@ -564,8 +550,6 @@ class Board():
           
           if self.response == "House":
             pyautogui.alert(self.activeHouse)
-          # elif self.response == "Board":
-            # print(self)
           elif self.response == "Turn":
             pyautogui.alert(f"It is turn {self.turnNum}, stage {self.turnStage}.")
           elif self.response == "MyDiscard":
@@ -617,6 +601,7 @@ class Board():
             pyautogui.alert("Your opponent's hand has " + str(len(self.inactivePlayer.hand)) + " cards.")
           elif self.response == "Concede":
             pyautogui.alert(f"{self.inactivePlayer.name} wins!")
+            logging.info(f"{self.inactivePlayer.name} wins!")
             run = False
           elif self.response == "Quit":
             run = False
@@ -627,7 +612,7 @@ class Board():
             self.fightCard(self.targetCard)
           elif self.response == "Discard":
             if len(self.playedThisTurn) + len(self.discardedThisTurn) >= 1 and self.turnNum == 1: # I shouldn't actually be able to get here I think
-              pyautogui.alert("You've already taken your one action for turn one.")
+              logging.info("You've already taken your one action for turn one.")
             else:
               self.discardCard(self.targetCard)
           elif self.response == "Action":
@@ -669,7 +654,6 @@ class Board():
         
         self.checkEOTStates()
 
-        # switch players
         for creature in self.activePlayer.board["Creature"]:
           creature.eot(self, creature)
         for creature in self.inactivePlayer.board["Creature"]:
@@ -692,8 +676,6 @@ class Board():
         self.usedThisTurn = []
         self.destInFight = []
         self.remaining = True
-        # print(f"States: {self.resetStates}")
-        # print(f"Next states: {self.resetStatesNext}")
         if self.resetStates:
           for key in self.resetStates:
             if key[0] == "a":
@@ -709,17 +691,17 @@ class Board():
             c.reap.remove(st)
         self.resetStates = self.resetStatesNext.copy()
         self.resetStatesNext = []
-        # print(f"States: {self.resetStates}")
-        # print(f"Next states: {self.resetStatesNext}")
         self.endBack.fill(COLORS["GREEN"])
         if self.activePlayer.amber >= self.calculateCost(): # I'm ruling that this is the rule for declaring check - extra amber on Pocket Universe, etc doesn't count here
           pyautogui.alert(f"Check for key {self.activePlayer.keys + 1}!")
         self.highlight = []
+        # switch players
         self.switch()
         self.cardChanged()
         self.setKeys()
         self.turnNum += 1
         self.turnStage = 0
+        logging.info(f"Ending turn {self.turnNum}")
       
       
       self.draw() # this will need hella updates
@@ -1154,10 +1136,12 @@ class Board():
     activeA = self.activePlayer.board["Artifact"]
     if "miasma" in self.inactivePlayer.states and self.inactivePlayer.states["miasma"]:
       pyautogui.alert("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
+      logging.info("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
       self.inactivePlayer.states["miasma"] = 0
       return False
     if "the_sting" in [x.title for x in self.activePlayer.board["Artifact"]]:
       pyautogui.alert("You skip your forge a key step this turn because you have 'The Sting' in play.")
+      logging.info("You skip your forge a key step this turn because you have 'The Sting' in play.")
       return False
     if "pocket_universe" in activeA:
       initial = self.activePlayer.amber
@@ -1176,19 +1160,20 @@ class Board():
     """
     card = self.activePlayer.board[loc][cardNum]
     if not self.canAction(card, r_click=True, cheat=cheat):
-      pyautogui.alert(f"{card.title} can't use action/omni right now")
+      logging.info(f"{card.title} can't use action/omni right now")
       return
     if card.type == "Creature" and card.stun:
       pyautogui.alert("Creature is stunned and unable to act. Unstunning creature instead.")
+      logging.info("Creature is stunned and unable to act. Unstunning creature instead.")
       card.stun = False
       card.ready = False
       if card not in self.usedThisTurn:
         self.usedThisTurn.append(card)
       self.cardChanged()
       return
-    # Trigger action
+    # TODO: this is not how I want this to work - I probably want to split canAction into canAction and canOmni
     if card.action or card.omni:
-      if len(card.action) + len(card.omni)> 1:
+      if len(card.action) + len(card.omni) > 1:
         pass # choose which action to do
       else:
         try:
@@ -1201,6 +1186,7 @@ class Board():
         card.omni(self, card)
       except:
         pyautogui.alert("Omni failed.")
+        logging.info("Omni failed.")
     card.ready = False
     if card not in self.usedThisTurn:
       self.usedThisTurn.append(card)
@@ -1216,7 +1202,7 @@ class Board():
       pending = []
     else:
       pending = self.pendingReloc
-    if card.house in self.activeHouse or cheat:
+    if self.canDiscard(card, cheat = cheat):
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       self.cardChanged()
       if "rock_hurling_giant" in [x.title for x in active] and card.house == "Brobnar":
@@ -1233,8 +1219,6 @@ class Board():
           pending.append(target)
         self.pending()
       self.discardedThisTurn.append(card)
-    else:
-      pyautogui.alert("You can only discard cards of the active house.")
     self.cardChanged(True)
 
 
@@ -1246,11 +1230,13 @@ class Board():
     # this check is also in cardOptions, but sometimes things let you trigger a fight other ways
     if len(self.inactivePlayer.board["Creature"]) == 0:
       pyautogui.alert("Your opponent has no creatures for you to attack. Fight canceled.")
+      logging.info("Fight canceled because no opposing creatures.")
       return self
     if not self.canFight(card, cheat=cheat, r_click = True):
       pyautogui.alert("This card can't fight right now.")
     if card.stun:
       pyautogui.alert("Creature is stunned and unable to fight. Unstunning creature instead.")
+      logging.info(f"Unstunning {card.title}.")
       card.stun = False
       card.ready = False
       if card not in self.usedThisTurn:
@@ -1268,9 +1254,9 @@ class Board():
       return
     defenderCard = self.inactivePlayer.board["Creature"][defender]
     try:
-      print("Trying to fight.")
+      logging.info("Trying to fight.")
       card.fightCard(defenderCard, self)
-    except: print("Fight failed.")
+    except: logging.info("Fight failed.")
     if card not in self.usedThisTurn:
       self.usedThisTurn.append(card)
     self.cardChanged(True)
@@ -1278,7 +1264,7 @@ class Board():
   def playCard(self, chosen: int, cheat: str = "Hand", flank = "Right", ask = True):
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
-    print(f"numPlays: {len(self.playedThisTurn)}")
+    logging.info(f"numPlays: {len(self.playedThisTurn)}")
     if cheat == "Deck":
       source = self.activePlayer.deck
     elif cheat == "Discard":
@@ -1293,21 +1279,19 @@ class Board():
     # Increases amber, adds the card to the action section of the board, then calls the card's play function
     if card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
-      pyautogui.alert(f"{source[chosen].title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
+      logging.info(f"{source[chosen].title} gave {self.activePlayer.deck.name} {card.amber} amber. {self.activePlayer.deck.name} now has {self.activePlayer.amber} amber.")
     if ask:
       if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
         flank = self.chooseFlank(card)
     # left flank
     if card.type != "Upgrade" and flank == "Left":
       self.activePlayer.board[card.type].insert(0, source.pop(chosen))
-      print(f"numPlays: {len(self.playedThisTurn)}") # test line
+      logging.info(f"numPlays: {len(self.playedThisTurn)}")
     # default case: right flank
     elif card.type != "Upgrade":
-      print(card.type)
       self.activePlayer.board[card.type].append(source.pop(chosen))
-      print(f"numPlays: {len(self.playedThisTurn)}") # test line
+      logging.info(f"numPlays: {len(self.playedThisTurn)}")
     else:
-      print("Choose a creature to play this upgrade on: ")
       targeted = self.chooseCards("Creature", "Choose a creature to attach the upgrade to:")[0]
       self.playUpgrade(card, targeted)
       self.cardChanged()
@@ -1318,7 +1302,8 @@ class Board():
     self.draw()
     pygame.display.update()
     card.play(self, card)
-    print(f"numPlays: {len(self.playedThisTurn)}")
+    logging.info(f"{card.title} play ability resolved.")
+    logging.info(f"numPlays: {len(self.playedThisTurn)}")
     # if the card is an action, now add it to the discard pile
     if card.type == "Action":
       if card.title == "library_access":
@@ -1337,6 +1322,7 @@ class Board():
       return
     if card.stun:
       pyautogui.alert("Creature is stunned and unable to reap. Unstunning creature instead.")
+      logging.info(f"Unstunning {card.title}.")
       card.stun = False
       card.ready = False
       if card not in self.usedThisTurn:
@@ -1419,11 +1405,11 @@ class Board():
         forger.red = True
       self.setKeys()
       if player == "active" and "interdimensional_graft" in other.states and other.states["interdimensional_graft"] and forger.amber > 0:
-        pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber.")
-        # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
         other.gainAmber(forger.amber, self) # setKeys is called in here
         forger.amber = 0
-        pyautogui.alert(f"They now have {other.amber} amber.")
+        pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber. They now have {other.amber} amber.")
+        logging.info(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber. They now have {other.amber} amber.")
+        # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
       if "bilgum_avalanche" in [x.title for x in forger.board["Creature"]]:
         # deal two damage to each enemy creature. I don't remember how I set this up to work
         length = len(other.board["Creature"])
@@ -1435,6 +1421,7 @@ class Board():
             self.pendingReloc.append(card) # this trigger shouldn't end up nested, though it could create a nest
         self.pending()
       pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
+      logging.info(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
       if player == "active":
         self.forgedThisTurn.append(forged)
 
@@ -1499,10 +1486,11 @@ class Board():
       else: # need to scale down
         offset = ((area[0] + area[2]) // 2) - ((l * card_h) // 2)
         rescale = True
+      if rescale:  # scale everything down or up
+        ratio = CARDH / card_h
+        card_w = int(CARDW // ratio)
       for card in board:
-        if rescale:  # scale everything down or up
-          ratio = CARDH / card_h
-          card_w = int(CARDW // ratio)
+        if rescale:
           card.image, card.rect = card.scale_image(card_w, card_h)
           card.tapped, card.tapped_rect = card.tap(card.image)
         if card.ready:
@@ -1537,11 +1525,40 @@ class Board():
         self.cardBlits.append((card_image, card_rect))
     # card areas
     for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
+      l = len(board)
       x = 0
+      if l:
+        card_h = (area.width - ((l - 1) * self.margin)) // (l + 2)
+      else:
+        card_h = self.target_cardh
+      if card_h >= self.target_cardh:
+        offset = ((area[0] + area[2]) // 2) - ((l * self.target_cardh) // 2)
+        card_h = self.target_cardh
+        if l and board[0].rect.height < self.target_cardh:
+          rescale = True
+        else:
+          rescale = False
+      elif card_h > board[0].rect.height * 1.5: # can't use usual image, but can also afford to scale up the image
+        offset = ((area[0] + area[2]) // 2) - ((l * card_h) // 2)
+        rescale = True
+      elif board[0].rect.height * 1.5 >= card_h >= board[0].rect.height: # too many cards to use usual image, but current image scale works
+        offset = ((area[0] + area[2]) // 2) - ((l * board[0].rect.height) // 2)
+        rescale = False
+      else: # need to scale down
+        offset = ((area[0] + area[2]) // 2) - ((l * card_h) // 2)
+        rescale = True
+      x = 0
+      if rescale: # scale everything up or down
+        ratio = CARDH / card_h
+        card_w = int(CARDW // ratio)
+      else:
+        card_w = CARDW
       for card in board:
+        if rescale:
+          card.image, card.rect = card.scale_image(card_w, card_h)
         card_image, card_rect = card.image, card.rect
         card.tapped_rect.topleft = OB
-        card_rect.topleft = (area.left + (x * self.target_cardw) + self.margin * (x + 1), area.top)
+        card_rect.topleft = (offset + (x * card_w) + self.margin * (x + 1), area.top)
         x += 1
         self.cardBlits.append((card_image, card_rect))
     # discards
@@ -1589,11 +1606,11 @@ class Board():
     if True not in [self.canPlay(c, reset = False) for c in self.activePlayer.hand if c.type] + [self.canDiscard(c, reset = False) for c in self.activePlayer.hand if c.type]:
       if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canFight(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canReap(c, reset = False) for c in self.activePlayer.board["Creature"]]:
         if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Artifact"]]:
-          print("Nothing left to do!")
+          logging.info("Nothing left to do!")
           self.endBack.fill(COLORS["LIGHT_GREEN"])
           self.remaining = False
           return
-    print("There's stuff left to do.")
+    logging.info("There's stuff left to do.")
     self.remaining = True
     
 
@@ -1637,8 +1654,10 @@ class Board():
     inactive = self.inactivePlayer.board
     if secondary:
       L = secondary # this is for handling if destruction triggers another destruction
+      logging.info("This is a nested destruction.")
     else:
       L = self.pendingReloc
+      logging.info("This is an initial destruction.")
 
     if not L:
       self.cardChanged(True)
@@ -1658,6 +1677,7 @@ class Board():
     # at this point I would let them order the destroyed triggers - draw the pending destroyed cards and use chooseCards to pick them one at a time, but I won't implement that yet
     for d, c in triggers:
       d(self, c)
+      logging.info(f"dest trigger {d} on card {c.title} completed.")
     for c in L[::-1]:
       if c.destroyed:
         for x in c.upgrade:
@@ -1680,7 +1700,7 @@ class Board():
           c.reset()
           c.destroyed = True
     if destination not in ['purge', 'discard', 'hand', 'deck', 'archive', 'annihilate']:
-      pyautogui.alert("Pending was given an invalid destination.")
+      logging.error("Pending was given an invalid destination.")
       self.cardChanged(True)
       return
     if destination == "purge":
@@ -1753,117 +1773,18 @@ class Board():
         L.remove(c)
     # check that the list was emptied
     if L:
-      pyautogui.alert(f"Pending did not properly empty the list. {L}")
+      logging.error(f"Pending did not properly empty the list. {L}")
     self.cardChanged(True)
 
-
-  def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
-    if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
-      if message: pyautogui.alert("You cannot play more than one card on your first turn.")
-      return False
-    if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and len(self.playedThisTurn) >= 2: #
-      if message: pyautogui.alert("'Ember Imp' prevents playing this")
-      return False
-    if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
-      pyautogui.alert("'Treasure Map' prevents playing more cards this turn")
-      return False
-    if "witch_of_the_wilds" in [x.title for x in self.activePlayer.board["Creature"]] \
-    and "Untamed" not in self.activeHouse \
-    and sum(x.house == "Untamed" for x in self.playedThisTurn) < 2:
-      return True # the problem is this probably does stack with phase shift
-    if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
-      if card.type == "Action":
-        if "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
-          if message: pyautogui.alert("'Scrambler Storm' prevents playing actions this turn, so you can't cheat this card out.")
-          return False
-      elif card.type == "Creature":
-        if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
-          if message: pyautogui.alert("You need 7 amber to play 'Kelifi Dragon'")
-          return False
-        if card.title == "truebaru" and self.activePlayer.amber < 3:
-          if message: pyautogui.alert("You must have 3 amber to sacrifice in order to play 'Truebaru'")
-          return False
-        if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
-          if message: pyautogui.alert("You can't play creatures with 'Grommid' in play")
-          return False
-        if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
-          if message: pyautogui.alert("You can't play creatures because of 'Lifeward'")
-          return False
-      if card.house not in self.activeHouse and not cheat:
-        return True
-    if card.type == "Artifact":
-      # if there are other things that affect playing artifacts, make sure this one is last
-      if "customs_office" in [x.title for x in self.inactivePlayer.board["Artifact"]] and self.activePlayer.amber < sum(x.title == "customs_office" for x in self.inactivePlayer.board["Artifact"]):
-        if message: pyautogui.alert("You are unable to pay for your opponent's custom office.")
-        return False
-      elif "customs_office" in [x.title for x in self.inactivePlayer.board["Artifact"]] and reset:
-        self.activePlayer.amber -= 1
-        self.inactivePlayer.gainAmber(1, self)
-    if card.type == "Upgrade" and len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
-      if message: pyautogui.alert("No valid targets for this upgrade.")
-      return False
-    if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0) and not cheat:
-      if reset:
-        self.activePlayer.states["phase_shift"] -= 1 # reset to false
-    elif card.house not in self.activeHouse and not cheat:
-      if message: pyautogui.alert("Can't play cards not from the active house.")
-      return False
-    return True
   
-  def canFight(self, card, reset = True, cheat: bool = False, r_click: bool = False):
-    if card.type != "Creature":
+  def canAction(self, card, reset = True, r_click: bool = False, cheat: bool = False, message: bool = False):
+    if self.ruleOfSix(card):
+      logging.info(f"Rule of six prevents using this {card.title}.")
       return False
-    if not card.ready or (card.stun and not r_click):
-      return False
-    if not self.inactivePlayer.board["Creature"]:
-      return False
-    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
-      return False
-    if card.type == "Creature": # why wouldn't it?
-      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
-        pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
-        return False
-      if card.house not in self.activeHouse and card.house not in self.extraFightHouses and card.house not in self.extraUseHouses and card.title != "tireless_crocag" and not cheat:
-        if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
-          pass
-        else:
-          return False
-      if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
-        return False
-      if card.title == "bigtwig" and True not in [x.stun for x in self.inactivePlayer.board["Creature"]]:
-        return False
-    
-
-    return True
-
-  def canReap(self, card, reset = True, r_click: bool = False, cheat: bool = False):
-    if card.type != "Creature" or not card.ready or (card.stun and not r_click):
-      print(f"Type: {card.type}, ready: {card.ready}, stun: {card.stun}")
-      return False
-    if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
-      print(f"House: {card.house}, cheat: {cheat}")
-      if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
-        pass
-      else:
-        return False
-    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
-      return False
-    if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
-      pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
-      return False
-    if card.title == "tireless_crocag":
-      return False
-    
-
-    return True
-
-  def canAction(self, card, reset = True, r_click: bool = False, cheat: bool = False):
     if not card.ready:
       return False
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      pyautogui.alert("'Skippy Timehog' is preventing you from using cards")
+      logging.info("'Skippy Timehog' is preventing you from using cards")
       return False
     if card.omni:
       return True
@@ -1872,11 +1793,11 @@ class Board():
         pass
       else:
         return False
-    if card.type == "Creature" and (card.stun and not r_click):
-      return False
     if card.type == "Creature":
+      if card.stun and not r_click:
+        return False
       if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
-        pyautogui.alert("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+        logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
         return False
     
 
@@ -1885,19 +1806,139 @@ class Board():
     else:
       return False
   
-  def canDiscard(self, card, reset = True):
+  def canDiscard(self, card, reset = True, cheat = True):
     if self.turnNum == 1 and (len(self.playedThisTurn) > 0 or len(self.discardedThisTurn) > 0):
+      logging.info("Can't discard, action for first turn already taken.")
       return False
-    if card.house in self.activeHouse:
-      return True
+    if card.house not in self.activeHouse or not cheat:
+      logging.info("Can't discard card not in activeHouse.")
+      return False
     # I don't think anything messes with your ability to discard
-    # print(f"{card.title} belongs to house {card.house}")
-    return False
+    return True
   
+  def canFight(self, card, reset = True, cheat: bool = False, r_click: bool = False, message: bool = False):
+    if card.type != "Creature":
+      return False
+    if self.ruleOfSix(card):
+      logging.info(f"Rule of six prevents using this {card.title}.")
+      return False
+    if not card.ready or (card.stun and not r_click):
+      return False
+    if not self.inactivePlayer.board["Creature"]:
+      return False
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+      logging.info("'Skippy Timehog' is preventing you from using cards")
+      return False
+    if card.type == "Creature": # why wouldn't it?
+      if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
+        logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+        return False
+      if card.house not in self.activeHouse and card.house not in self.extraFightHouses and card.house not in self.extraUseHouses and card.title != "tireless_crocag" and not cheat:
+        if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
+          pass
+        else:
+          return False
+
+      if "foggify" in self.inactivePlayer.states and self.inactivePlayer.states["foggify"] or "fogbank" in self.inactivePlayer.states and self.inactivePlayer.states["fogbank"]:
+        return False
+      if card.title == "bigtwig" and True not in [x.stun for x in self.inactivePlayer.board["Creature"]]:
+        return False
+    
+
+    return True
+
+  def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
+    if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
+      logging.info("You cannot play more than one card on your first turn.")
+      return False
+    if self.ruleOfSix(card):
+      logging.info(f"Rule of six prevents playing {card.title}.")
+      return False
+    if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and len(self.playedThisTurn) >= 2: #
+      logging.info(f"'Ember Imp' prevents playing {card.title}")
+      return False
+    if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
+      logging.info("'Treasure Map' prevents playing more cards this turn")
+      return False
+    if "witch_of_the_wilds" in [x.title for x in self.activePlayer.board["Creature"]] \
+    and "Untamed" not in self.activeHouse \
+    and sum(x.house == "Untamed" for x in self.playedThisTurn) < 2:
+      return True # the problem is this probably does stack with phase shift
+    if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
+      if card.type == "Action":
+        if "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
+          logging.info("'Scrambler Storm' prevents playing actions this turn, so you can't cheat this card out.")
+          return False
+      elif card.type == "Creature":
+        if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
+          logging.info("You need 7 amber to play 'Kelifi Dragon'")
+          return False
+        if card.title == "truebaru" and self.activePlayer.amber < 3:
+          logging.info("You must have 3 amber to sacrifice in order to play 'Truebaru'")
+          return False
+        if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
+          logging.info("You can't play creatures with 'Grommid' in play")
+          return False
+        if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
+          logging.info("You can't play creatures because of 'Lifeward'")
+          return False
+      if card.house not in self.activeHouse and not cheat:
+        return True
+    if card.type == "Artifact":
+      # if there are other things that affect playing artifacts, make sure this one is last
+      if "customs_office" in [x.title for x in self.inactivePlayer.board["Artifact"]] and self.activePlayer.amber < sum(x.title == "customs_office" for x in self.inactivePlayer.board["Artifact"]):
+        logging.info("You are unable to pay for your opponent's custom office.")
+        return False
+      elif "customs_office" in [x.title for x in self.inactivePlayer.board["Artifact"]] and reset:
+        self.activePlayer.amber -= 1
+        self.inactivePlayer.gainAmber(1, self)
+    if card.type == "Upgrade" and len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
+      logging.info("No valid targets for this upgrade.")
+      return False
+    if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0) and not cheat:
+      if reset:
+        self.activePlayer.states["phase_shift"] -= 1 # reset to false
+    elif card.house not in self.activeHouse and not cheat:
+      logging.info("Can't play cards not from the active house.")
+      return False
+    return True
+
+  def canReap(self, card, reset = True, r_click: bool = False, cheat: bool = False, message: bool = False):
+    if self.ruleOfSix(card):
+      logging.info(f"Rule of six prevents using {card.title}.")
+      return False
+    if card.type != "Creature" or not card.ready or (card.stun and not r_click):
+      logging.info(f"Type: {card.type}, ready: {card.ready}, stun: {card.stun}")
+      return False
+    if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
+      logging.info(f"House: {card.house}, cheat: {cheat}")
+      if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
+        pass
+      else:
+        return False
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+      logging.info("'Skippy Timehog' is preventing you from using cards")
+      return False
+    if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
+      logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+      return False
+    if card.title == "tireless_crocag":
+      return False
+    
+
+    return True
+  
+  def ruleOfSix(self, card):
+    """ Checks a card against the rule of six.
+    """
+    if sum(x.title == card.title for x in self.playedThisTurn + self.usedThisTurn) >= 6:
+      return False
+    return True
+
   def playUpgrade(self, card, target = None):
     """ Plays an upgrade on a creature.
     """
-    print(card)
+    logging.info(card)
     active = self.activePlayer.board["Creature"]
     inactive = self.inactivePlayer.board["Creature"]
     hand = self.activePlayer.hand
@@ -1983,14 +2024,6 @@ class Board():
             eval(f"upgrade.{card.title}(self, card, side, choice)")
             broken = True
             break
-          # elif True in activeHitTapped:
-          #   self.activePlayer.board["Upgrade"].append(self.dragging.pop())
-          #   side = "fr"
-          #   choice = activeHitTapped.index(True)
-          #   active[choice].upgrade.append(card)
-          #   eval(f"upgrade.{card.title}(self, card, side, choice)")
-          #   broken = True
-          #   break
           elif True in inactiveHit:
             self.activePlayer.board["Upgrade"].append(self.dragging.pop())
             side = "fo"
@@ -1999,14 +2032,6 @@ class Board():
             eval(f"upgrade.{card.title}(self, card, side, choice)")
             broken = True
             break
-          # elif True in inactiveHitTapped:
-          #   self.activePlayer.board["Upgrade"].append(self.dragging.pop())
-          #   side = "fo"
-          #   choice = inactiveHitTapped.index(True)
-          #   inactive[choice].upgrade.append(card)
-          #   eval(f"upgrade.{card.title}(self, card, side, choice)")
-          #   broken = True
-          #   break
           elif self.canDiscard(card, reset=False) and Rect.collidepoint(discRect, (self.mousex, self.mousey)):
             hand.append(self.dragging.pop())
             self.discardCard(-1)
@@ -2020,7 +2045,7 @@ class Board():
             return
 
         if e.type == MOUSEBUTTONDOWN and e.button == 1:
-          print("You shouldn't be able to do that here.")
+          logging.error("You shouldn't be able to trigger MOUSEBUTTONDOWN in dragCard.")
 
       if Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
         l = len(hand)
@@ -2051,7 +2076,7 @@ class Board():
     
     if not target and card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
-      pyautogui.alert(f"{card.title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
+      logging.info(f"{card.title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
     self.playedThisTurn.append(card)
     self.cardChanged(True)
     return
@@ -2087,7 +2112,6 @@ class Board():
         return
       elif card.type == "Creature" or card.type == "Artifact":
         flank = self.chooseFlank(card)
-        print(flank)
         if flank:
           self.activePlayer.hand.append(self.dragging.pop())
           self.playCard(-1, flank=flank, ask=False)
@@ -2145,7 +2169,7 @@ class Board():
             return
 
         if e.type == MOUSEBUTTONDOWN and e.button == 1:
-          print("You shouldn't be able to do that here.")
+          logging.error("You shouldn't be able to trigger MOUSEBUTTONDOWN in dragCard.")
 
       if Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
         l = len(hand)
@@ -2601,7 +2625,6 @@ class Board():
       houseBackRect = houseBackSurf.get_rect()
       houseBackRect.top = messageRect[1] + messageRect[3] + self.margin
       houses_rects.append(( houseBackSurf, houseBackRect, houseMessageSurf, houseMessageRect))
-    # print(houses_rects)
     length = sum(house[1][2] for house in houses_rects) + (self.margin * (len(houses_rects) - 1))
     left = (WIDTH // 2) - (length // 2)
     for house_rect in houses_rects:
@@ -2768,7 +2791,7 @@ class Board():
     elif canHit == "either":
       target = self.activePlayer
     else:
-      print(f"Invalid canhit: {canHit}")
+      logging.error(f"Invalid canhit: {canHit}")
       raise ValueError
     
     if targetPool == "Hand":
