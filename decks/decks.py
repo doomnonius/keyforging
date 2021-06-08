@@ -1,4 +1,4 @@
-import random, os, pygame, requests, json, pyautogui
+import random, os, pygame, requests, json, pyautogui, logging
 import cards.cardsAsClass as cards
 import cards.destroyed as dest
 from constants import WIDTH, HEIGHT
@@ -94,7 +94,7 @@ class Deck:
     def shuffleDiscard(self):
         """ Deals with an empty deck.
         """
-        if self.deck == []:
+        if not self.deck:
             self.deck = self.discard
             self.discard = []
         else:
@@ -113,20 +113,24 @@ class Deck:
             if count > 1:
                 choice = inactive[game.chooseCards("Creature", "Choose which Ether Spider will capture the amber:", "enemy", condition = lambda x: x.title == "ether_spider", con_message = "That's not an ether spider")[0][1]] # choose which one captures
                 choice.capture(game, count)
+                logging.info(f"Ether Spider captured the {count} amber that was gained.")
             elif count == 1:
                 for c in inactive:
                     if c.title == "ether_spider" and not c.destroyed and not c.returned:
                         c.capture(game, count)
+                        logging.info(f"Ether Spider captured the {count} amber that was gained.")
         if self == game.inactivePlayer:
             count = sum(x.title == "ether_spider" and not x.destroyed and not x.returned for x in active)
             if count > 1:
                 choice = active[game.chooseCards("Creature", "Choose which Ether Spider will capture the amber:", "friend", condition = lambda x: x.title == "ether_spider", con_message = "That's not an ether spider")[0][1]] # choose which one captures
                 choice.capture(game, count)
+                logging.info(f"Ether Spider captured the {count} amber that was gained.")
             elif count == 1:
                 for c in active:
                     if c.title == "ether_spider" and not c.destroyed and not c.returned:
                         c.capture(game, count)
-                
+                        logging.info(f"Ether Spider captured the {count} amber that was gained.")
+        logging.info(f"{self.activePlayer.deck.name} gained {count} amber. {self.activePlayer.deck.name} now has {self.activePlayer.amber} amber.")
         game.setKeys()
 
     def __iadd__(self, num):
@@ -137,7 +141,7 @@ class Deck:
                 self.shuffleDiscard()
             self.hand.append(self.deck.pop())
             num -= 1
-        # self.hand.sort(key = lambda x: x.house)
+        logging.info(f"{self.name}'s hand is now: {[x.title for x in self.hand]}")
         return self
 
     def load_image(self, title): # this loads keys and house symbols
@@ -145,7 +149,7 @@ class Deck:
         try:
             image = pygame.image.load(fullname)
         except pygame.error as message:
-            # logging.error(f'Cannot load image: {title}, {message}')
+            logging.error(f'Cannot load image: {title}, {message}')
             raise SystemExit(message)
         image = image.convert_alpha()
         scaled = pygame.transform.scale(image, (HEIGHT // 21, HEIGHT // 21))

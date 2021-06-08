@@ -1,3 +1,4 @@
+import logging
 from typing import Dict
 
 
@@ -12,6 +13,7 @@ from typing import Dict
 
 def return_card(card, game):
   # here is where we could check for ward
+  logging.info(f"{card.title} leaving play.")
   card.returned = True
 
 def destroy(card, player, game):
@@ -19,10 +21,12 @@ def destroy(card, player, game):
   """
   if card.type == "Creature":
     card.destroyed = True
+    logging.info(f"{card.title} destroyed")
     # if "armageddon_cloak" not in [x.title for x in card.upgrade]:
     #   player.board["Creature"].remove(card)
   elif card.type == "Artifact":
     card.destroyed = True
+    logging.info(f"{card.title} destroyed")
     # player.board["Artifact"].remove(card)
 
 def stealAmber(thief, victim, num, game):
