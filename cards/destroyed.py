@@ -92,9 +92,14 @@ def basicLeaves(game, card):
     if card.title == "spangler_box":
       logging.info("Returning Spangler Box's minions.")
       for c in card.spangler:
-        # TODO: choose which order to put them in
+        # TODO: choose which order to put them into play
         if c.deck == game.activePlayer.name:
-          game.chooseFlank(card)
+          flank = game.chooseFlank(c)
+          if flank == "Left":
+            flank = 0
+          else:
+            flank = len(active)
+          active[t].insert(flank, c)
         else:
           # TODO: update choose flank to allow putting a minion on the opponent's flank
           ...

@@ -1,3 +1,4 @@
+from cards.play import cowards_end
 import random
 import pyautogui
 from helpers import stealAmber, destroy, return_card
@@ -371,15 +372,234 @@ def spectral_tunneler (game, card):
   c.reap.append(st)
   game.resetCard.append((c, "st"))
 
+def novu_archaeologist (game, card):
+  """ Novu Archaeologist: Archive a card from your discard pile.
+  """
+  discard = game.activePlayer.discard
+
+  if discard:
+    archive = game.chooseCards("Discard", "Choose a card from your hand to archive:", "friend")[0][1]
+    card = discard[archive]
+    game.activePlayer.archive.append(card)
+    discard.remove(card) # not using pending because no need to reset card in any way
+
+def timetraveller (game, card):
+  """ Timetraveller: Shuffle Timetraveller into your deck.
+  """
+  return_card(card, game)
+  if card.returned:
+    game.pendingReloc.append(card)
+  game.pending("deck")
+
+  if card in game.activePlayer.deck:
+    random.shuffle(game.activePlayer.deck) 
+  else:
+    random.shuffle(game.inactivePlayer.deck) # I think this is how you would handle it?
 
 def transposition_sandals (game, card):
   """ Transposition Sandals: Swap this creature with another friendly creature in the battleline. You may use that creature this turn.
   """
-  pass
+  active = game.activePlayer.board["Creature"]
+
+  if len(active) < 2:
+    pyautogui.alert("No creatures to swap with.")
+    return
+  
+  choice = active[game.chooseCards("Creature", "Swap positions with another friendly creature in your battleline. You can use that card this turn.", "friend", condition = lambda x: x != card)[0][1]]
+  sg_i = active.index(card)
+  other_i = active.index(choice)
+  active[sg_i], active[other_i] = active[other_i], active[sg_i]
+
+  if not game.activePlayer.states[card.title]:
+    game.activePlayer.states[card.title] = [choice]
+  else:
+    game.activePlayer.states[card.title].append(choice)
+  game.resetStates(("a", card.title))
 
 ########
 # Mars #
 ########
+
+def omni_combat_pheromones (game, card):
+  """ Sacrifice Combat Pheromones. You may use up to 2 other Mars cards this turn.
+  """
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    game.pendingReloc.append(card)
+  game.pending()
+  game.activePlayer.states[card.title] += 2
+  game.resetStates(("a", card.title))
+
+def commpod (game, card):
+  """ Reveal any number of Mars cards from your hand. For each card revealed this way, you may ready one Mars creature.
+  """
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+
+  revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
+  count = len(revealed)
+  if count == 0:
+    pyautogui.alert("You revealed no Mars cards, so no damage is dealt. The card is still played.")
+    return
+  readied = game.chooseCards("Creature", f"Ready up to {count} Mars creatures:", count = count, full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")
+  for side, choice in readied:
+    if side == "fr":
+      c = active[choice]
+    else:
+      c = inactive[choice]
+    c.ready = True
+
+def crystal_hive (game, card):
+  """ Crystal Hive: For the remainder of the turn, gain 1 amber each time a creature reaps.
+  """
+  game.activePlayer.states[card.title] += 1
+  game.resetStates(("a", card.title))
+
+def omni_custom_virus (game, card):
+  """ Custom Virus: Sacrifice Custom Virus. Purge a creature from your hand. Destroy each creature that shares a trait with the purged creature.
+  """
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    game.pendingReloc.append(card)
+  game.pending()
+  
+  hand = game.activePlayer.hand
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+  if not sum(x.type == "Creature" for x in hand):
+    pyautogui.alert("No creatures in your hand")
+    return
+
+  choice = hand[game.chooseCards("Hand", "Purge a creature from your hand:", condition = lambda x: x.type == "Creature", con_message = "That's not a creature.")[0][1]]
+  game.activePlayer.purged.append(choice)
+  hand.remove(choice) # no need for pending b/c don't need it reset
+  traits = [x for x in choice.traits.split() if len(x) > 2]
+  
+  for c in active + inactive:
+    for tr in traits:
+      if tr in c.traits:
+        destroy(c, game.activePlayer, game)
+        if c.destroyed:
+          game.pendingReloc.append(c)
+        break # if it matches two traits, we don't destroy it twice (ie ward)
+  game.pending()
+
+def feeding_pit (game, card):
+  """ Feeding Pit: Discard a creature card from your hand. If you do, gain 1 amber.
+  """
+  hand = game.activePlayer.hand
+  if not sum(x.type == "Creature" for x in hand):
+    pyautogui.alert("No creatures in your hand")
+    return
+
+  choice = hand[game.chooseCards("Hand", "Discard a creature from your hand:", condition = lambda x: x.type == "Creature", con_message = "That's not a creature.")[0][1]]
+  game.activePlayer.discard.append(choice)
+  hand.remove(choice)
+  game.activePlayer.gainAmber(1, game)
+
+def omni_incubation_chamber (game, card):
+  """ Incubation Chamber: Reveal a Mars creature from your hand. If you do, archive it.
+  """
+  hand = game.activePlayer.hand
+  
+  if not sum(x.type == "Creature" and x.house == "Mars" for x in hand):
+    pyautogui.alert("No Mars creatures in your hand")
+    return
+
+  choice = hand[game.chooseCards("Hand", "Reveal a Mars creature from your hand:", condition = lambda x: x.type == "Creature" and x.house == "Mars", con_message = "That's not a Mars creature.")[0][1]]
+  game.activePlayer.archive.append(choice)
+  hand.remove(choice) # no need to use pending because no need to reset
+
+def invasion_portal (game, card):
+  """ Invastion Portal: Discard cards from the top of your deck until you discard a Mars creature or run out of cards. If you discard a Mars creature this way, put it into your hand.
+  """
+  discard = game.activePlayer.discard
+  deck = game.activePlayer.deck
+  hand = game.activePlayer.hand
+  while deck and (deck[-1].house != "Mars" or deck[-1].type != "Creature"):
+    discard.append(deck.pop())
+  if not deck:
+    pyautogui.alert("Your deck is empty, and you found no Mars creatures.")
+  else: # House is mars and type is creature if we get here
+    hand.append(deck.pop())
+
+def mothergun (game, card):
+  """ Mothergun: Reveal any number of Mars cards from your hand. Deal damage to a creature equal to the number of Mars cards revealed this way.
+  """
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+
+  revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
+  damage = len(revealed)
+  if damage == 0:
+    pyautogui.alert("You revealed no Mars cards, so no damage is dealt.")
+    return
+
+  if not active + inactive:
+    pyautogui.alert("No valid targets.")
+    return
+  side, choice = game.chooseCards("Creature", f"Deal {damage} damage to a creature:")[0]
+  if side == "fr":
+    c = active[choice]
+  else:
+    c = inactive[choice]
+  c.damageCalc(game, damage)
+  c.updateHealth()
+  if c.destroyed:
+    game.pendingReloc.append(c)
+  game.pending()
+
+def sniffer (game, card):
+  """ Sniffer: For the remainder of the turn, each creature loses elusive.
+  """
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+
+  for c in active + inactive:
+    c.elusive = False # already have reseting elusive next to reseting armor
+
+def swap_widget (game, card):
+  """ Swap Widget: Return a ready friendly Mars creature to your hand. If you do, put a Mars creature with a different name from your hand into play, then ready it.
+  """
+  active = game.activePlayer.board["Creature"]
+  hand = game.activePlayer.hand
+  initial = len(hand)
+  choice = active[game.chooseCards("Creature", "Return a ready friendly Mars creature to your hand", "friend", condition = lambda x: x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]), con_message = "That's not ready and/or not Mars.")[0][1]]
+  return_card(choice, game)
+  if choice.returned:
+    game.pendingReloc.append(choice)
+  game.pending("hand")
+  if len(hand) > initial:
+    replace = hand[game.chooseCards("Hand", f"Put a Mars creature not named {choice.title.replace('_', ' ').title()} into play:")[0][1]]
+    game.activePlayer.states[card.title] = 1
+    flank = game.chooseFlank(replace)
+    if flank == "Left":
+      flank = 0
+    else:
+      flank = len(active)
+    active.insert(flank, replace)
+    game.activePlayer.states[card.title] = 0
+
+def mindwarper (game, card):
+  """ Mindwarper: Choose an enemy creature. It captures 1 amber from its own side.
+  """
+  inactive = game.inactivePlayer.board["Creature"]
+  choice = inactive[game.chooseCards("Creature", "Choose an enemy creature to capture 1 amber from it's own side:", "enemy")[0][1]]
+  choice.capture(game, 1, True)
+
+def phylyx_the_disintegrator (game, card):
+  """ Phylyx the Disintegrator: Your opponent loses 1 amber for each other friendly Mars creature.
+  """
+  active = game.activePlayer.board["Creature"]
+
+  count = sum((x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) and x != card for x in active)
+  game.inactivePlayer.amber -= min(game.inactivePlayer.amber, count)
+
+def omni_epic_quest (game, card):
+  """ Epic Quest: If you have played 7 or more Sanctum cards this turn, destroy Epic Quest and forge a key at no cost.
+  """
+  if sum(x.house == "Sanctum" for x in game.playedThisTurn) >= 7:
+    
 
 ###########
 # Sanctum #

@@ -1910,6 +1910,11 @@ class Board():
     if card.type != "Creature" or not card.ready or (card.stun and not r_click):
       logging.info(f"Type: {card.type}, ready: {card.ready}, stun: {card.stun}")
       return False
+    if "transposition_sandals" in self.activePlayer.states and card in self.activePlayer.states["transposition_sandals"]:
+      cheat = True
+    if card.house == "Mars" and "combat_pheromones" in self.activePlayer.states and self.activePlayer.states["combat_pheromones"] > 0:
+      self.activePlayer.states["combat_pheromones"] -= 1
+      cheat = True
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
       logging.info(f"House: {card.house}, cheat: {cheat}")
       if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):

@@ -61,9 +61,11 @@ def willEnterReady(game, card, reset: bool = True):
     if card.title == "silvertooth":
       return True
     if card.house == "Mars":
-      if "blypyp" in activeS and activeS["blypyp"] and card.house == "Mars":
+      if "blypyp" in activeS and activeS["blypyp"]:
         if reset:
           activeS["blypyp"] = 0
+        return True
+      if "swap_widget" in activeS and activeS["swap_widget"]:
         return True
     if "speed_sigil" in [x.title for x in game.activePlayer.board["Artifact"] + game.inactivePlayer.board["Artifact"]]:
       c_played = sum(x.type == "Creature" for x in game.playedThisTurn)

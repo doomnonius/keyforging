@@ -8,6 +8,8 @@ def basicReap(game, card, replicated: bool = False):
     stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   else:
     game.activePlayer.gainAmber(1, game)
+  if "crystal_hive" in game.activePlayer.states:
+    game.activePlayer.gainAmber(game.activePlayer.states["crystal_hive"], game)
   # game.log("You now have " + str(game.activePlayer.amber) + " amber.")
 
 
@@ -320,7 +322,7 @@ def replicator (game, card, replicated: bool = False):
   else:
     c = inactive[choice]
   if len(c.reap) > 1:
-    pass # make them choose one, need a function for this kind of thing
+    pass # TODO: make them choose one, need a function for this kind of thing
   else:
     c.reap[0](game, c, True)
 
