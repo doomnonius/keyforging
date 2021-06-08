@@ -595,21 +595,113 @@ def phylyx_the_disintegrator (game, card):
   count = sum((x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) and x != card for x in active)
   game.inactivePlayer.amber -= min(game.inactivePlayer.amber, count)
 
+###########
+# Sanctum #
+###########
+
 def omni_epic_quest (game, card):
   """ Epic Quest: If you have played 7 or more Sanctum cards this turn, destroy Epic Quest and forge a key at no cost.
   """
   if sum(x.house == "Sanctum" for x in game.playedThisTurn) >= 7:
+    pass # TODO: this
     
+def omni_gorm_of_omm (game, card):
+  """ Gorm of Omm: Destroy Gorm of Omm. Destroy an artifact.
+  """
 
-###########
-# Sanctum #
-###########
+def hallowed_blaster (game, card):
+  """ Hallowed Blaster: Heal 3 damage from a creature.
+  """
+
+def omni_potion_of_invulnerability (game, card):
+  """ Potion of Invulnerability: Destroy Potion of Invulnerability. For the remainder of the turn, each friendly creature cannot be dealt damage.
+  """
+
+def omni_sigil_of_brotherhood (game, card):
+  """ Sigil of Brotherhood: Sacrifice Sigil of Brotherhood. For the remainder of the turn, you may use friendly Sanctum creatures.
+  """
+
+def whispering_reliquary (game, card):
+  """ Whispering Reliquary: Return an artifact to its owner's hand.
+  """
+
+def lady_maxena (game, card):
+  """ Lady Maxena: Return Lady Maxena to its owner's hand.
+  """
 
 ###########
 # Shadows #
 ###########
 
+def omni_longfused_mines (game, card):
+  """ Longfused Mines: Sacrific Longfused Mines. Deal 3 damage to each enemy creature not on a flank.
+  """
+
+def omni_masterplan (game, card):
+  """ Masterplan: Play the card under Masterplan. Destroy Masterplan.
+  """
+
+def safe_place (game, card):
+  """ Safe Place: Move 1 amber from your pool to Safe Place.
+  """
+
+def seeker_needle (game, card):
+  """ Seeker Needle: Deal 1 damage to a creature. If this damage destroys that creature, gain 1 amber.
+  """
+
+def skeleton_key (game, card):
+  """ Skeleton Key: A friendly creature captures 1 amber.
+  """
+
+def omni_special_delivery (game, card):
+  """ Special Delivery: Sacrifice Special Delivery. Deal 3 damage to a flank creature. If this damage destroys that creature, purge it.
+  """
+
+def subtle_maul (game, card):
+  """ Subtle Maul: Your opponent discards a random card from their hand.
+  """
+
+def the_sting (game, card):
+  """ The Sting: Destroy The Sting.
+  """
+
+def omni_deipno_spymaster (game, card):
+  """ Deipno Spymaster: Choose a friendly creature. You may use that creature this turn.
+  """
+
+def mack_the_knife (game, card):
+  """ Mack the Knife: Deal 1 damage to a creature. If this damage destroys that creature, gain 1 amber.
+  """
+
+def noddy_the_thief (game, card):
+  """ Noddy the Thief: Steal 1 amber.
+  """
+
+
 ###########
 # Untamed #
 ###########
 
+def bear_flute (game, card):
+  """ Bear Flute: Fully heal an Ancient Bear. If there are no Ancient Bears in play, search your deck and discard pile and put each Ancient Bear from them into your hand. If you do, shuffle your discard pile into your deck.
+  """
+
+def omni_nepenthe_seed (game, card):
+  """ Sacrifice Nepenthe Seed. Return a card from your discard pile to your hand.
+  """
+
+def ritual_of_balance (game, card):
+  """ Ritual of Balance: If your opponent has 6 or more amber, steal 1 amber.
+  """
+
+def omni_ritual_of_the_hunt (game, card):
+  """ Ritual of the Hunt: Sacrifice Ritual of the Hunt. For the remainder of the turn, you may use friendly Untamed creatures.
+  """
+
+def world_tree (game, card):
+  """ World Tree: Return a creature from your discard pile to the top of your deck.
+  """
+
+def giant_sloth (game, card):
+  """ Giant Sloth: Gain 3 amber.
+  """

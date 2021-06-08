@@ -1788,6 +1788,9 @@ class Board():
       return False
     if card.omni:
       return True
+    if card.house == "Mars" and "combat_pheromones" in self.activePlayer.states and self.activePlayer.states["combat_pheromones"] > 0:
+      if reset: self.activePlayer.states["combat_pheromones"] -= 1
+      cheat = True
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
       if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
         pass
@@ -1826,6 +1829,9 @@ class Board():
       return False
     if not self.inactivePlayer.board["Creature"]:
       return False
+    if card.house == "Mars" and "combat_pheromones" in self.activePlayer.states and self.activePlayer.states["combat_pheromones"] > 0:
+      if reset: self.activePlayer.states["combat_pheromones"] -= 1
+      cheat = True
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
       logging.info("'Skippy Timehog' is preventing you from using cards")
       return False
@@ -1913,7 +1919,7 @@ class Board():
     if "transposition_sandals" in self.activePlayer.states and card in self.activePlayer.states["transposition_sandals"]:
       cheat = True
     if card.house == "Mars" and "combat_pheromones" in self.activePlayer.states and self.activePlayer.states["combat_pheromones"] > 0:
-      self.activePlayer.states["combat_pheromones"] -= 1
+      if reset: self.activePlayer.states["combat_pheromones"] -= 1
       cheat = True
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
       logging.info(f"House: {card.house}, cheat: {cheat}")
