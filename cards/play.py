@@ -996,16 +996,16 @@ def poltergeist (game, card):
 
   choice = game.chooseCards("Artifact", "Choose an artifact to use as if it were yours, then destroy it:")[0]
   if choice[0] == "fr": # friendly side
-    card = active[choice[1]]
-    if card.ready and card.action:
-      game.actionCard(card, "Artifact", cheat=True)
-    destroy(card, game.activePlayer, game)
-    pending.append(card)
+    c = active[choice[1]]
+    if c.ready and c.action:
+      game.actionCard(c, "Artifact", cheat=True)
+    destroy(c, game.activePlayer, game)
+    pending.append(c)
   else:
-    card = inactive[choice[1]]
-    if card.ready and card.action:
-      card.action(game, card)
-    pending.append(card)
+    c = inactive[choice[1]]
+    if c.ready and c.action:
+      c.action(game, c)
+    pending.append(c)
   game.pending()
 
 def red_hot_armor (game, card):
@@ -1016,13 +1016,13 @@ def red_hot_armor (game, card):
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only hits one side
   # deal damage
-  for card in inactive:
-    damage = card.armor
-    card.armor = 0
-    card.damageCalc(game, damage)
-  for card in inactive[::-1]:
-    card.updateHealth(game.inactivePlayer)
-    if card.destroyed:
+  for c in inactive:
+    damage = c.armor
+    c.armor = 0
+    c.damageCalc(c, damage)
+  for c in inactive[::-1]:
+    c.updateHealth(game.inactivePlayer)
+    if c.destroyed:
       pendingDiscard.append(card)
   game.pending()
 
@@ -2076,6 +2076,7 @@ def shatter_storm (game, card):
   """ Shatter Storm: Lose all your amber. Then, your opponent loses triple the amount of amber you lost this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   count = game.activePlayer.amber
   if count == 0:
     pyautogui.alert("You have no amber to lose, so your opponent loses no amber. The card is still played.")
@@ -2089,6 +2090,7 @@ def soft_landing (game, card):
   """ Soft Landing: The next creature or artifact you play this turn enters play ready.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.states[card.title] = 1
   # this one still needs to be in reset states in case it isn't triggered
   game.resetStates.append(("a", card.title))
@@ -2097,6 +2099,7 @@ def squawker (game, card):
   """ Squawker: Ready a Mars creature or stun a non-Mars creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   
@@ -2120,6 +2123,7 @@ def total_recall (game, card):
   """
   # ward
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   pendingHand = game.pendingReloc
   count = sum(x.ready for x in active)
@@ -2142,6 +2146,7 @@ def yxili_marauder (game, card):
   """ Yxili Marauder: Capture 1 amber for each friendly ready Mars creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   count = sum(x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
 
@@ -2165,6 +2170,7 @@ def begone (game, card):
   """ Begone!: Choose one: destroy each Dis creature, or gain 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   choice = game.chooseHouse("custom", ("Choose one: Destroy each Dis creature, or gain 1 amber", ["Destroy Dis", "Gain amber"]))[0]
   if choice[0] == "D":
     for c in game.activePlayer.board["Creature"][::-1]:
@@ -2184,6 +2190,7 @@ def blinding_light (game, card):
   """ Blinding Light: Choose a house. Stun each creature of that house.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   choice = game.chooseHouse("any")
   if choice not in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
     print("Not a valid input. Try again.")
@@ -2197,6 +2204,7 @@ def charge (game, card):
   """ Charge!: For the remainder of the turn, each creature you play gains, "Play: Deal 2 to an enemy creature."
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.states[card.title] += 1
   game.resetStates.append(("a", card.title))
 
@@ -2204,6 +2212,7 @@ def cleansing_wave (game, card):
   """ Cleansing Wave: Heal 1 damage from each creature. Gain 1 amber for each creature healed this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Creature"]
   active = game.activePlayer.board["Creature"]
   count = 0
@@ -2218,6 +2227,7 @@ def clear_mind (game, card):
   """ Clear Mind: Unstun each friendly creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   for x in active:
     x.stun = False
@@ -2226,6 +2236,7 @@ def doorstep_to_heaven (game, card):
   """ Doorstep to Heaven: Each player with 6 or more amber is reduced to five amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.activePlayer.amber >= 6:
     game.activePlayer.amber = 5
   if game.inactivePlayer.amber >= 6:
@@ -2235,6 +2246,7 @@ def glorious_few (game, card):
   """ Glorious Few: For each creature your opponent controls in excess of you, gain 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if len(inactive) > len(active):
@@ -2247,6 +2259,7 @@ def honorable_claim (game, card):
   """ Honorable Claim: Each friendly knight creature captures 1.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   knights = sum("Knight" in x.traits for x in active)
   if knights > game.inactivePlayer.amber and game.inactivePlayer.amber > 0:
@@ -2265,6 +2278,7 @@ def inspiration (game, card):
   """ Inspiration: Ready and use a friendly creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   choice = game.chooseCards("Creature", "Ready and use a friendly creature", "friend")[0][1]
   card = active[choice]
@@ -2295,6 +2309,7 @@ def mighty_lance (game, card):
   """ Mighty Lance: Deal 3 damage to a creature and 3 damage to a neighbor of that creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingD = game.pendingReloc
@@ -2336,6 +2351,7 @@ def oath_of_poverty (game, card):
   """ Oath of Poverty: Destroy each of your artifacts. Gain 2 amber for each artifact destroyed this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Artifact"]
   count = len(active)
   pending = game.pendingReloc
@@ -2354,6 +2370,7 @@ def one_stood_against_many (game, card):
   """ One Stood Against Many: Ready and fight with a friendly creature 3 times, each time against a different enemy creature. Resolve these fights one at a time.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   count = 3
@@ -2380,14 +2397,17 @@ def radiant_truth (game, card):
   """ Radiant Truth: Stun each enemy creature not on a flank.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Creature"]
-  for x in inactive[1:-1]:
-    x.stun = True
+  for x in inactive:
+    if not x.isFlank(game):
+      x.stun = True
 
 def shield_of_justice (game, card):
   """ Shield of Justice: For the remainder of the turn, each friendly creature cannot be dealt damage.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # create a state that is checked in damageCalc
   game.activePlayer.states[card.title] += 1
   game.resetStates.append(("a", card.title))
@@ -2396,6 +2416,7 @@ def take_hostages (game, card):
   """ Take Hostages: For the remainder of the turn, each time a friendly creature fights, it captures 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # create a state that is check in basicFight
   game.activePlayer.states[card.title] += 1
   game.resetStates.append(("a", card.title))
@@ -2404,6 +2425,7 @@ def terms_of_redress (game, card):
   """ Terms of Redress: Choose a friendly creature to capture 2 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   choice = game.chooseCards("Creature", "Choose a friendly creature to capture 2 amber:", "friend")[0][1]
   active[choice].capture(game, 2)
@@ -2412,6 +2434,7 @@ def the_harder_they_come (game, card):
   """ The Harder They Come: Purge a creature with power 5 or higher.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   
@@ -2434,6 +2457,7 @@ def the_spirits_way (game, card):
   """ The Spirit's Way: Destroy each creature with power 3 or higher.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingD = game.pendingReloc
@@ -2455,6 +2479,7 @@ def epic_quest (game, card):
   """ Epic Quest: Archive each friendly Knight creature in play.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
 
   for c in active[::-1]:
@@ -2481,6 +2506,7 @@ def horseman_of_death (game, card):
   """ Horseman of Death: Return each Horseman creature from your discard pile to your hand.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   discard = game.activePlayer.discard
   hand = game.activePlayer.hand
   for c in discard[::-1]:
@@ -2491,6 +2517,7 @@ def horseman_of_famine (game, card):
   """ Horseman of Famine: Destroy the least powerful creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   low = min(x.power for x in (active + inactive))
@@ -2516,6 +2543,7 @@ def horseman_of_pestilence (game, card):
   """ Horseman of Pestilence: Deal 1 damage to each non-Horseman creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -2541,12 +2569,14 @@ def horseman_of_war (game, card):
   """ Horseman of War: For the remainder of the turn, each friendly creature can be used as if they were in the active house, but can only fight.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.extraFightHouses = ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]
 
 def lady_maxena (game, card):
   """ Lady Maxena: Stun a creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   
@@ -2560,6 +2590,7 @@ def numquid_the_fair (game, card):
   """ Numquid the Fair: Destroy an enemy creature. Repeat this card's effect if your opponent still controls more creatures than you.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -2577,12 +2608,14 @@ def raiding_knight (game, card):
   """ Raiding Knight: Capture 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   card.capture(game, 1)
 
 def sergeant_zakiel (game, card):
   """ Sergeant Zakiel: You may ready and fight with a neighboring creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
 
   # this can't handle the edge case where zakiel is destroyed upon entering
@@ -2606,6 +2639,7 @@ def gatekeeper (game, card):
   """ Gatekeeper: If your opponent has 7 or more amber, capture all but 5 of it.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.inactivePlayer.amber >= 7:
     diff = game.inactivePlayer.amber - 5
   card.capture(game, diff)
@@ -2615,6 +2649,7 @@ def veemos_lightbringer (game, card):
   """ Veemos Lightbringer: Destroy each elusive creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -2646,6 +2681,7 @@ def bait_and_switch (game, card):
   """ Bait and Switch: If your opponent has more amber than you, steal 1. Repeat the preceding effect if your opponent still has more amber than you.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   count = 2
   while count > 0:
     if game.inactivePlayer.amber > game.activePlayer.amber:
@@ -2659,6 +2695,7 @@ def booby_trap (game, card):
   """ Booby Trap: Deal 4 damage to a creature that is not on a flank with 2 splash.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -2700,6 +2737,7 @@ def finishing_blow (game, card):
   """ Finishing Blow: Destroy a damaged creature. If you do, steal 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -2729,6 +2767,7 @@ def ghostly_hand (game, card):
   """ Ghostly Hand: If your opponent has exactly 1 amber, steal it.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.inactivePlayer.amber == 1:
     stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
     pyautogui.alert("You stole your opponent's only amber, you jerk. You now have " + str(game.activePlayer.amber) + " amber.")
@@ -2739,6 +2778,7 @@ def hidden_stash (game, card):
   """ Hidden Stash: Archive a card.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if game.activePlayer.hand:
     archive = game.chooseCards("Hand", "Choose a card from your hand to archive:", "friend")[0][1]
     c = game.activePlayer.hand[archive]
@@ -2750,6 +2790,7 @@ def imperial_traitor (game, card):
   """ Imperial Traitor: Look at your opponent's hand. You may choose and purge a Sanctum card in it.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # check for Sanctum card in opp hand
   hand = game.inactivePlayer.hand
   pending = game.pendingReloc
@@ -2770,6 +2811,7 @@ def key_of_darkness (game, card):
   """ Key of Darkness: Forge a key at +6 current cost. If your opponent has no amber, forge a key at +2 current cost instead.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # whenever we forge a key, we calculate key cost
   # this will be a function in Game
   if game.inactivePlayer.amber == 0:
@@ -2781,6 +2823,7 @@ def lights_out (game, card):
   """ Lights Out: Return 2 enemy creature's to their owner's hand.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
 
@@ -2798,6 +2841,7 @@ def miasma (game, card):
   """ Miamsa: Your opponent skips the "forge a key" step on their next turn.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.states[card.title] = 1
   # this one resets in canForge
 
@@ -2805,6 +2849,7 @@ def nerve_blast (game, card):
   """ Nerve Blast: Steal 1 amber. If you do, deal 2 damage to a creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -2836,6 +2881,7 @@ def one_last_job (game, card):
   """ One Last Job: Purge each friendly Shadows creature. Steal 1 amber for each creature purged this way.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   pending = game.pendingReloc
   
@@ -2854,6 +2900,7 @@ def oubliette (game, card):
   """ Oubliette: Purge a creature with power 3 or lower.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -2877,6 +2924,7 @@ def pawn_sacrifice (game, card):
   """ Pawn Sacrifice: Sacrifice a friendly creature. If you do, deal 3 damage each to 2 creatures.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -2916,6 +2964,7 @@ def poison_wave (game, card):
   """ Poison Wave: Deal 2 damage to each creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc
@@ -2939,6 +2988,7 @@ def relentless_whispers (game, card):
   """ Relentless Whispers: Deal 2 damage to a creature. If this damage destroys that creature, steal 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -2969,6 +3019,7 @@ def routine_job (game, card):
   """ Routine Job: Steal 1 amber. Then, steal 1 amber for each copy of Routine Job in your discard pile.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   
   for c in game.activePlayer.discard:
@@ -2979,6 +3030,7 @@ def too_much_to_protect (game, card):
   """ Too Much to Protect: Steal all but 6 of your opponent's amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   diff = 0
   if game.inactivePlayer.amber > 6:
     diff = game.inactivePlayer.amber - 6
@@ -2988,6 +3040,7 @@ def treasure_map (game, card):
   """ Treasure Map: If you have not played any other cards this turn, gain 3 amber. For the remainder of the turn, you cannot play cards.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if len(game.playedThisTurn) - 1 == 0:
     game.activePlayer.gainAmber(3, game)
     pyautogui.alert("You gained 3 amber. You now have " + str(game.activePlayer.amber) + " amber.")
@@ -2997,6 +3050,7 @@ def masterplan (game, card):
   """ Masterplan: Put a card from your hand facedown beneath Masterplan.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   hand = game.activePlayer.hand
 
   if len(hand):
@@ -3013,18 +3067,21 @@ def magda_the_rat (game, card):
   """ Magda the Rat: Steal 2 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   stealAmber(game.activePlayer, game.inactivePlayer, 2, game)
 
 def old_bruno (game, card):
   """ Old Bruno: Capture 3 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   card.capture(game, 3)
 
 def sneklifter(game, card):
   """ Sneklifter: Take control of an enemy artifact. While under your control, if it does not belong to one of your three houses, it is considered to be of house Shadows.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Artifact"]
   inactive = game.inactivePlayer.board["Artifact"]
 
@@ -3042,6 +3099,7 @@ def urchin (game, card):
   """ Urchin: Steal 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 ## End house Shadows
@@ -3058,6 +3116,7 @@ def cooperative_hunting (game, card):
   """ Cooperative Hunting: Deal 1 damage for each friendly creature in play. You may divide this damage among any number of creatures.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -3096,6 +3155,7 @@ def curiosity (game, card):
   """ Curiosity: Destroy each Scientist creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -3117,6 +3177,7 @@ def fertility_chant (game, card):
   """ Fertility Chant: Your opponent gains 2 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.inactivePlayer.gainAmber(2, game)
   pyautogui.alert("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
 
@@ -3124,6 +3185,7 @@ def fogbank (game, card):
   """ Fogbank: Your opponent cannot use creatures to fight on their next turn.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # states should always be in deck that they affect
   game.activePlayer.states[card.title] = 1
   game.resetStatesNext.append(("i", card.title))
@@ -3132,6 +3194,7 @@ def full_moon (game, card):
   """ Full Moon: For the remainder of the turn, gain 1 amber each time you play a creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.states[card.title] += 1
   game.resetStates.append(("a", card.title))
   # should be able to account for multiple instances of full 
@@ -3140,6 +3203,7 @@ def grasping_vines (game, card):
   """ Grasping Vines: Return up to 3 artifacts to their owners' hands.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Artifact"]
   inactive = game.inactivePlayer.board["Artifact"]
   pending = game.pendingReloc
@@ -3165,6 +3229,7 @@ def key_charge (game, card):
   """ Key Charge: Lost 1 amber. If you do, you may forge a key at current cost.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.amber -= 1
   
   temp_cost = game.calculateCost()
@@ -3186,6 +3251,7 @@ def lifeweb (game, card):
   """ Lifeweb: If your opponent played 3 or more creatures on their previous turn, steal 2 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   # implement tracking how many creatures opponent played last turn
   # if a deck has lifeweb in it, it will set Lifeweb in states to [True, 0]. Whenever the opponent plays a creature, it will be incremented.
   if sum(x.type == "Creature" for x in game.playedLastTurn) > 2:
@@ -3198,6 +3264,7 @@ def lost_in_the_woods (game, card):
   """ Lost in the Woods: Choose 2 friendly creatures and 2 enemy creatures. Shuffle each chosen creature into its owner's deck.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -3238,6 +3305,7 @@ def natures_call (game, card):
   """ Nature's Call: Return up to 3 creatures to their owners' hands.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -3266,6 +3334,7 @@ def nocturnal_maneuver (game, card):
   """ Nocturnal Maneuver: Exhaust up to 3 creatures.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   
@@ -3286,6 +3355,7 @@ def perilous_wild (game, card):
   """ Perilous Wild: Destroy each elusive creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -3307,6 +3377,7 @@ def regrowth (game, card):
   """ Regrowth: Return a creature from your discard pile to your hand.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.discard
   options = sum(x.type == "Creature" for x in active)
 
@@ -3325,6 +3396,7 @@ def save_the_pack (game, card):
   """ Save the Pack: Destroy each damaged creature. Gain 1 chain.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -3348,6 +3420,7 @@ def scout (game, card):
   """ Scout: For the remainder of the turn, up to 2 friendly creatures gain skirmish. Then, fight with those creatures one at a time.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   
   if not active:
@@ -3376,6 +3449,7 @@ def stampede (game, card):
   """ Stampede: If you used 3 or more creatures this turn, steal 2 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   if sum(x.type == "Creature" for x in game.usedThisTurn) > 2:
     pyautogui.alert("You have used at least 3 creatures this turn, so you steal 2 amber.")
     stealAmber(game.activePlayer, game.inactivePlayer, 2, game)
@@ -3386,6 +3460,7 @@ def the_common_cold (game, card):
   """ The Common Cold: Deal 1 damage to each creature. You may destroy all Mars creatures.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -3428,6 +3503,7 @@ def troop_call (game, card):
   """ Troop Call: Return each friendly Niffle creature from your discard pile and from play to your hand.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   disc = game.activePlayer.discard
   active = game.activePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -3448,6 +3524,7 @@ def vigor (game, card):
   """ Vigor: Heal up to 3 damage from a creature. If you healed 3 damage, gain 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -3465,6 +3542,7 @@ def word_of_returning (game, card):
   """ Word of Returning: Deal 1 damage to each enemy for each amber on it. Return all amber from those creatures to your pool.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
 
@@ -3486,6 +3564,7 @@ def chota_hazri (game, card):
   """ Chota Hazri: Lose 1 amber, if you do, you may forge a key at current cost.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.activePlayer.amber -= 1
   
   temp_cost = game.calculateCost()
@@ -3507,6 +3586,7 @@ def flaxia (game, card):
   """ Flaxia: If you control more creatures than your opponent, gain 2 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Creature"]
   active = game.activePlayer.board["Creature"]
 
@@ -3518,6 +3598,7 @@ def fuzzy_gruen (game, card):
   """ Fuzzy Gruen: Your opponent gains 1 amber.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   game.inactivePlayer.gainAmber(1, game)
   pyautogui.alert("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
 
@@ -3525,6 +3606,7 @@ def inka_the_spider (game, card):
   """ Inka the Spider: Stun a creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   
@@ -3543,6 +3625,7 @@ def lupo_the_scarred (game, card):
   """ Lupo the Scarred: Deal 2 damage to an enemy creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
 
@@ -3562,6 +3645,7 @@ def mighty_tiger (game, card):
   """ Mighty Tiger: Deal 4 damage to an enemy creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
   if not inactive:
@@ -3579,6 +3663,7 @@ def piranha_monkeys (game, card):
   """ Piranha Monkeys: Deal 2 damage to each other creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc

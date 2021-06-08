@@ -1,4 +1,4 @@
-import pyautogui
+import pyautogui, logging
 from helpers import stealAmber, destroy
 
 def basicFight(game, card, attacked):
@@ -75,6 +75,7 @@ def basicBeforeFight(game, card, attacked):
 def before_firespitter (game, card, attacked):
   """ Firespitter: Deal 1 damage to each enemy creature:
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   basicBeforeFight(game, card, attacked)
   
   active = game.activePlayer.board["Creature"]
@@ -99,18 +100,20 @@ def before_firespitter (game, card, attacked):
 def headhunter (game, card, attacked):
   """ Headhunter: gain 1 amber
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   game.activePlayer.gainAmber(1, game)
 
 def kelifi_dragon (game, card, attacked):
   """ Kelifi Dragon: Gain 1 amber. Deal 5 damage to a creature.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
 
   game.activePlayer.gainAmber(1, game)
   if not active and not inactive:
-    pyautogui.alert("No valid targets.")
+    logging.info("No valid targets.")
     return
 
   side, choice = game.chooseCards("Creature", "Deal 5 damage to a creature:")[0]
@@ -132,6 +135,7 @@ def kelifi_dragon (game, card, attacked):
 def eater_of_the_dead (game, card, attacked):
   """ Purge a creature from a discard pile. If you do, put a +1 power counter on Eater of the Dead.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.discard
   inactive = game.inactivePlayer.discard
   if sum(x.type == "Creature" for x in active):
@@ -141,7 +145,7 @@ def eater_of_the_dead (game, card, attacked):
   
   count = sum(x.type == "Creature" for x in active + inactive)
   if not count:
-    pyautogui.alert("No valid targets.")
+    logging.info("No valid targets.")
     return
 
   side, choice = game.chooseCards("Discard", "Purge a creature from a discard pile:")[0]
@@ -160,6 +164,7 @@ def eater_of_the_dead (game, card, attacked):
 def before_gabos_longarms (game, card, attacked):
   """ Gabos Longarms: choose a creature. Gabos deals damage to that creature rather than the one it is fighting.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   basicBeforeFight(game, card, attacked)
   active = game.activePlayer.discard
   inactive = game.inactivePlayer.discard
@@ -177,12 +182,13 @@ def before_gabos_longarms (game, card, attacked):
 def guardian_demon (game, card, attacked):
   """ Guardian Demon: Heal up to 2 damage from a creature. Deal that amount of damage to another creature
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc
   # easy case: no damage
   if sum([x.damage for x in game.activePlayer.board["Creature"]] + [x.damage for x in game.inactivePlayer.board["Creature"]]) == 0:
-    pyautogui.alert("There are no damaged creatures, so the play effect doesn't happen. The card is still played.")
+    logging.info("There are no damaged creatures, so the play effect doesn't happen. The card is still played.")
     return
   choice = game.chooseCards("Creature", "Choose a creature:")[0]
   if choice[0] == "fr":
@@ -190,14 +196,14 @@ def guardian_demon (game, card, attacked):
     if card1.damage > 0:
       heal = int(game.chooseHouse("custom", ("How much damage would you like to heal?", list(range(min(3, card1.damage + 1)))))[0])
     else:
-      pyautogui.alert("There was no damage on this creature, so no damage will be dealt.")
+      logging.info("There was no damage on this creature, so no damage will be dealt.")
       return
   else:
     card1 = inactive[choice[1]]
     if card1.damage > 0:
       heal = int(game.chooseHouse("custom", ("How much damage would you like to heal?", list(range(min(3, card1.damage + 1)))))[0])
     else:
-      pyautogui.alert("There was no damage on this creature, so no damage will be dealt.")
+      logging.info("There was no damage on this creature, so no damage will be dealt.")
       return
   if heal:
     side, choice = game.chooseCards("Creature", f"Choose a creature to deal {heal} damage to:", condition = lambda x: x != card1, con_message = "You can't damage the creature you healed. Choose a different target.")[0]
@@ -218,6 +224,7 @@ def guardian_demon (game, card, attacked):
 def snudge (game, card, attacked):
   """ Snudge: Return an artifact or flank creature to its owner's hand.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board
   inactive = game.inactivePlayer.board
   pendingDisc = game.pendingReloc
@@ -239,16 +246,19 @@ def snudge (game, card, attacked):
 def batdrone (game, card, attacked):
   """ Batdrone: Steal 1 amber
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 def quixo_the_adventurer (game, card, attacked):
   """ Quixo the Adventurer: Draw a card
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   game.activePlayer += 1
 
 def neutron_shark (game, card, attacked):
   """ Neutron Shark: Destroy an enemy creature or artifact and a friendly creature or artifact. Discard the top card of your deck. If that card is not a Logos card, trigger this effect again.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board
   inactive = game.inactivePlayer.board
   pendingDiscard = game.pendingReloc
@@ -279,6 +289,7 @@ def neutron_shark (game, card, attacked):
 def ozmo_martianologist (game, card, attacker):
   """ Ozmo, Martianologist: Heal 3 damage from a Mars creature or stun a Mars creature.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   side, choice = game.chooseCards("Creature", "Choose a Mars creature to heal or stun:", condition = lambda x: x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade], con_message = "That creature is not from house Mars.")[0]
@@ -296,6 +307,7 @@ def ozmo_martianologist (game, card, attacker):
 def rocket_boots (game, card, attacked):
   """ Rocket Boots: If this is the first time this creature was used this turn, ready it.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   if card not in game.usedThisTurn:
     card.ready = True
 
@@ -306,11 +318,12 @@ def rocket_boots (game, card, attacked):
 def chuff_ape (game, card, attacked):
   """ Chuff Ape: You may sacrifice another friendly creature. If you do, fully heal Chuff Ape.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
 
   choice = game.chooseCards("Creature", "You may sacrifice another creature to fully heal Chuff Ape:", full = False)
   if not choice:
-    pyautogui.alert("No creature is sacrificed.")
+    logging.info("No creature is sacrificed.")
     return
   
   choice = active[choice[0][1]]
@@ -323,11 +336,13 @@ def chuff_ape (game, card, attacked):
 def grabber_jammer (game, card, attacked):
   """ Grabber Jammer: Capture 1 amber.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   card.capture(game, 1)
 
 def john_smyth (game, card, attacked):
   """ John Smyth: Ready a non-agent Mars creature.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -342,6 +357,7 @@ def john_smyth (game, card, attacked):
 def qyxxlyx_plague_master (game, card, attacked):
   """ Qyxxlyx Plague Master: Deal 3 damage to each human creature. This damage cannot be prevented by armor.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -364,16 +380,17 @@ def qyxxlyx_plague_master (game, card, attacked):
 def ulyq_megamouth (game, card, attacked):
   """ Ulyq Megamouth: Use a friendly non-Mars creature.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
 
   if not sum(x.house != "Mars" and "experimental_therapy" not in [y.title for y in x.upgrade] for x in active):
-    pyautogui.alert("No valid targets.")
+    logging.info("No valid targets.")
     return
 
   choice = active[game.chooseCards("Creature", "Use a friendly non-Mars creature:", "friend", condition = lambda x: x.house != "Mars" and "experimental_therapy" not in [y.title for y in x.upgrade], con_message = "You must pick a creature that doesn't belong to house Mars.")[0][1]]
   
   if not choice.ready:
-    pyautogui.alert("Card isn't ready, so can't be used.")
+    logging.info("Card isn't ready, so can't be used.")
     return
 
   uses =  []
@@ -398,12 +415,13 @@ def ulyq_megamouth (game, card, attacked):
 def yxilo_bolter (game, card, attacked):
   """ Yxilo Bolter: Deal 2 damage to a creaure. If this damage destroys that creature, purge it.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
 
   if not active and not inactive:
-    pyautogui.alert("No valid targets.") # this is impossible
+    logging.info("No valid targets.") # this is impossible
     return
 
   side, choice = game.chooseCards("Creature", "Deal 2 damage to a creature. If this damage destroys the creature, purge it:")[0]
@@ -420,6 +438,7 @@ def yxilo_bolter (game, card, attacked):
 def before_zorg (game, card, attacked):
   """ Zorg: Stun the creature Zorg fights and each of that creature's neighbors.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   basicBeforeFight(game, card, attacked)
   attacked.stun = True
   for neigh in attacked.neighbors(game):
@@ -428,10 +447,11 @@ def before_zorg (game, card, attacked):
 def zyzzix_the_many (game, card, attacked):
   """ Zyzzix the Many: You may reveal a creature from your hand. If you do, archive it and Zyzzix the many gets three +1 power counters.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   hand = game.activePlayer.hand
   choice = game.chooseCards("Hand", "You may reveal a creature from your hand:", full = False, condition = lambda x: x.type == "Creature", con_message = "You must choose a creature.")
   if not choice:
-    pyautogui.alert("Nothing revealed.")
+    logging.info("Nothing revealed.")
     return
   choice = hand[choice[0][1]]
   choice.reveal = True
@@ -447,11 +467,13 @@ def zyzzix_the_many (game, card, attacked):
 def champion_tabris (game, card, attacked):
   """ Champion Tabris: Capture 1 amber.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   card.capture(game, 1)
 
 def horseman_of_famine (game, card, attacked):
   """ Horseman of Famine: Destroy the least powerful creature.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   low = min(x.power for x in (active + inactive))
@@ -476,6 +498,7 @@ def horseman_of_famine (game, card, attacked):
 def horseman_of_pestilence (game, card, attacked):
   """ Horseman of Pestilence: Deal 1 damage to each non-Horseman creature.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
@@ -500,6 +523,7 @@ def horseman_of_pestilence (game, card, attacked):
 def before_lord_golgotha (game, card, attacked):
   """ Lord Golgotha: Deal 3 damage to each neighbor of the creature Lord Golgotha fights.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   basicBeforeFight (game, card, attacked)
   for n in attacked.neighbors(game):
     n.damageCalc(game, 3)
@@ -513,10 +537,11 @@ def before_lord_golgotha (game, card, attacked):
 def sanctum_guardian (game, card, attacked):
   """ Sanctum Guardian: Swap SG with another friendly creature in your battleline.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
 
   if len(active) < 2:
-    pyautogui.alert("No creatures to swap with.")
+    logging.info("No creatures to swap with.")
     return
   
   choice = active[game.chooseCards("Creature", "Swap positions with another friendly creature in your battleline.", "friend", condition = lambda x: x != card)[0][1]]
@@ -532,16 +557,19 @@ def sanctum_guardian (game, card, attacked):
 def mooncurser (game, card, attacked):
   """ Mooncurser: Steal 1 amber
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 def dodger (game, card, attacked):
   """ Dodger: Steal 1 amber.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 def selwyn_the_fence (game, card, attacked):
   """ Selwyn the Fence: move 1 amber from one of your cards to your pool.
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
   activeA = game.activePlayer.board["Artifact"]
 
@@ -552,7 +580,7 @@ def selwyn_the_fence (game, card, attacked):
   elif sum(x.captured for x in activeA):
     targetType = "Artifact"
   else:
-    pyautogui.alert("There is no amber on your cards.")
+    logging.info("There is no amber on your cards.")
     return
 
   choice = game.chooseCards(targetType, f"Move an amber from a friendly {targetType.lower()} to your pool:", "friend", condition = lambda x: x.captured > 0, con_message = "That card has no amber on it.")[0][1]
@@ -566,6 +594,7 @@ def selwyn_the_fence (game, card, attacked):
 def umbra (game, card, attacked):
   """ Umbra: steal 1 amber
   """
+  logging.info(f"{card.title}'s fight or before fight ability triggered.")
   stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 ###########

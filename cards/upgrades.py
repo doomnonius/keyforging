@@ -1,4 +1,4 @@
-import pyautogui
+import logging
 from cards.play import passFunc
 from cards.destroyed import armageddon_cloak as ac, phoenix_heart as ph, biomatrix_backup as bb
 from cards.reap import basicReap, red_planet_ray_gun as rprg, duskrunner as dr, silent_dagger as sd
@@ -10,6 +10,7 @@ def blood_of_titans (game, card, side: str, choice: int):
   """ Blood of Titans: This creature has +5 power.
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   if side == "fr":
     game.activePlayer.board["Creature"][choice].power += 5
   else:
@@ -19,6 +20,7 @@ def phoenix_heart (game, card, side:str, choice: int):
   """ Phoenix Heart: This creature gains “Destroyed: Return this creature to its owner’s hand and deal 3<D> to each creature in play.”
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   if side == "fr":
     game.activePlayer.board["Creature"][choice].dest.append(ph)
   else:
@@ -28,6 +30,7 @@ def yo_mama_mastery (game, card, side: str, choice: int):
   """Yo Mama Mastery: Fully heal this creature
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   if side == "fr":
     game.activePlayer.board["Creature"][choice].damage = 0
     game.activePlayer.board["Creature"][choice].taunt = True
@@ -39,14 +42,14 @@ def collar_of_subordination(game, card, side:str, choice:int):
   """ Collar of Subordiation: You control this creature
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
-    pyautogui.alert("Dude, what are you doing?")
+    logging.info("Dude, what are you doing?")
   else:
     c = inactive[choice]
     flank = game.chooseFlank(c)
-    # game.chooseHouse("custom", ("Put the minion on your left flank or your right flank?", ["Left", "Right"]))
     if flank == "Left":
       flank = 0
     else:
@@ -58,6 +61,7 @@ def flame_wreathed (game, card, side:str, choice:int):
   """ This creature gains hazardous 2 and +2 power.
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   if side == "fr":
     game.activePlayer.board["Creature"][choice].power += 2
     game.activePlayer.board["Creature"][choice].hazard += 2
@@ -69,6 +73,7 @@ def experimental_therapy (game, card, side: str, choice: int):
   """ Experimental Therapy: Stun and exhaust this creature.
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -82,6 +87,7 @@ def rocket_boots (game, card, side: str, choice: int):
   """ Rocket Boots: This creature gains, “Fight/Reap: If this is the first time this creature was used this turn, ready it.”
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -101,6 +107,7 @@ def transposition_sandals (game, card, side: str, choice: int):
   """ Transposition Sandals: This creature gains, “Action: Swap this creature with another friendly creature in the battleline. You may use that other creature this turn.”
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -116,6 +123,7 @@ def biomatrix_backup (game, card, side: str, choice: int):
   """ Biomatrix Backup: This creature gains, “Destroyed: You may put this creature into its owner's archives.”
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -138,6 +146,7 @@ def red_planet_ray_gun (game, card, side:str, choice: int):
   """ Red Planet Ray Gun: This creature gains, “Reap: Choose a creature. Deal 1<D> to that creature for each Mars creature in play.”
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -153,6 +162,7 @@ def armageddon_cloak (game, card, side: str, choice: int):
   """ Armageddon Cloak: This creature gains hazardous 2 and, “Destroyed: Fully heal this creature and destroy Armageddon Cloak instead.”
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -171,6 +181,7 @@ def protect_the_weak (game, card, side: str, choice: int):
   """ Protect the Weak: This creature gets +1 armor and gains taunt.
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -184,12 +195,14 @@ def shoulder_armor (game, card, side: str, choice: int):
   """ Shoulder Armor: While this creature is on a flank, it get +2 armor and +2 power.
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   # this one will be implemented in the cardChanged function
 
 def duskrunner (game, card, side: str, choice: int):
   """ Duskrunner: This creature gains, “Reap: Steal 1A.”
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -205,6 +218,7 @@ def ring_of_invisibility (game, card, side: str, choice: int):
   """ Ring of Invisibility: This creature gains elusive and skirmish.
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -218,6 +232,7 @@ def silent_dagger (game, card, side: str, choice: int):
   """ Silent Dagger: This creature gains, “Reap: Deal 4<D> to a flank creature.”
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -233,6 +248,7 @@ def way_of_the_bear (game, card, side: str, choice: int):
   """ Way of the Bear: This creature gains assault 2.
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":
@@ -245,6 +261,7 @@ def way_of_the_wolf (game, card, side:str, choice: int):
   """ Way of the Wolf: This creature gains skirmish
   """
   passFunc(game, card)
+  logging.info(f"{card.title} has been played.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if side == "fr":

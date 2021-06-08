@@ -1,5 +1,5 @@
 import logging
-from helpers import return_card, stealAmber#, return_card
+from helpers import return_card, stealAmber, return_card
 
 # This is all the destroyed and leaves play effects
 # Also include things like Krump?
@@ -57,10 +57,12 @@ def basicLeaves(game, card):
     for up in card.upgrade:
       if up.deck == game.activePlayer.name:
         game.activePlayer.discard.append(up)
-        game.activePlayer.board["Upgrade"].remove(up)
+        if up in game.activePlayer.board["Upgrade"]:
+          game.activePlayer.board["Upgrade"].remove(up)
       else:
         game.inactivePlayer.discard.append(up)
-        game.inactivePlayer.board["Upgrade"].remove(up)
+        if up in game.inactivePlayer.board["Upgrade"]:
+          game.inactivePlayer.board["Upgrade"].remove(up)
     # remove from board
     logging.info(f"Removing {card.title} from the board.")
     if card in inactive[t]:
@@ -170,6 +172,7 @@ def basicDest(game, card):
 def grenade_snib (game, card):
   """ Grenade Snib: Your opponent loses 2 amber.
   """
+  logging.info(f"{card.title}'s destroyed ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if card in active:
@@ -182,10 +185,10 @@ def grenade_snib (game, card):
 def phoenix_heart (game, card):
   """ Phoenix Heart: Return this creature to its owner's hand and deal 3 damage to each creature.
   """
+  logging.info(f"{card.title}'s destroyed ability triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  friend_dest = []
-  enemy_dest = []
+  
   if game.pendingReloc:
     pending = []
     secondary = True

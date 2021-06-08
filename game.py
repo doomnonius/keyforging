@@ -160,7 +160,9 @@ class Board():
     if self.canReap(card, reset=False, r_click = True):
       retVal.append("Reap")
     if self.canAction(card, reset=False, r_click = True):
-      retVal.append("Action/Omni")
+      retVal.append("Action")
+    if self.canOmni(card, reset=False):
+      retVal.append("Omni")
     if card.type == "Creature" and card.stun and retVal: # have to be able to use a card to unstun, so this is perfect
       return ["Unstun", "Details"]
     retVal.append("Details")
@@ -620,12 +622,11 @@ class Board():
           elif self.response == "Reap":
             self.reapCard(self.targetCard)
           elif self.response == "Omni":
-            self.actionCard(self.targetCard, self.loc, True)
+            self.omniCard(self.targetCard, self.loc)
           elif self.response == "Unstun":
             self.activePlayer.board["Creature"][self.targetCard].stun = False
             self.activePlayer.board["Creature"][self.targetCard].ready = False
             self.cardChanged()
-            # self.actionCard(self.targetCard, self.loc)
           elif self.response == "Details":
             print(self.activePlayer.board[self.loc][self.targetCard])
 
@@ -668,6 +669,7 @@ class Board():
           self.forgedThisTurn = []
         self.activeHouse = []
         self.extraFightHouses = []
+        self.extraUseHouses = []
         self.playedLastTurn = self.playedThisTurn.copy()
         self.playedThisTurn = []
         self.discardedLastTurn = self.discardedThisTurn.copy()
@@ -678,11 +680,13 @@ class Board():
         self.remaining = True
         if self.resetStates:
           for key in self.resetStates:
+            logging.info(f"Reseting {key[1]}'s state.")
             if key[0] == "a":
               self.activePlayer.states[key[1]] = 0
             if key[0] == "i":
               self.inactivePlayer.states[key[1]] = 0
         for c, toReset in self.resetCard:
+          logging.info(f"Resetting {toReset.title}.")
           if toReset == "house":
             c.house = c.cardInfo["house"]
           elif toReset == "damagable":
@@ -1088,14 +1092,19 @@ class Board():
     self.dataBlits += [(self.key1y, self.key1y_rect), (self.key1r, self.key1r_rect), (self.key1b, self.key1b_rect), (self.key2y, self.key2y_rect), (self.key2r, self.key2r_rect), (self.key2b, self.key2b_rect), (self.house2a, self.house2a_rect), (self.house2b, self.house2b_rect), (self.house2c, self.house2c_rect), (self.house1a, self.house1a_rect), (self.house1b, self.house1b_rect), (self.house1c, self.house1c_rect), (self.amber1, self.amber1_rect), (self.amber2, self.amber2_rect), (self.chains1, self.chains1_rect), (self.chains2, self.chains2_rect), (self.cost1, self.cost1_rect), (self.cost2, self.cost2_rect)]
   
   def calculateCost(self, side: str = "active"):
-    """ Calculates the cost of a key considering current board state.
+    """ Calculates the cost of a key considering current board state. For future proofing, have to consider that the inactive player can potentially forge a key.
     """
     active = self.activePlayer.board["Creature"]
     inactive = self.inactivePlayer.board["Creature"]
+    activeA = self.activePlayer.board["Artifact"]
+    inactiveA = self.inactivePlayer.board["Artifact"]
     activeS = self.activePlayer.states
     inactiveS = self.inactivePlayer.states
     cost = 6
     if side == "active":
+      for c in inactiveA:
+        if c.title == "iron_obelisk":
+          cost += sum(x.damage > 0 and (x.house == "Brobnar" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in inactive)
       if "lash_of_broken_dreams" in inactiveS:
         cost += 3 * activeS["lash_of_broken_dreams"]
       for c in inactive:
@@ -1104,6 +1113,9 @@ class Board():
         if c.title == "grabber_jammer":
           cost += 1
     else:
+      for c in activeA:
+        if c.title == "iron_obelisk":
+          cost += sum(x.damage > 0 and (x.house == "Brobnar" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
       if "lash_of_broken_dreams" in activeS:
         cost += 3 * activeS["lash_of_broken_dreams"]
       for c in active:
@@ -1135,12 +1147,10 @@ class Board():
     """
     activeA = self.activePlayer.board["Artifact"]
     if "miasma" in self.inactivePlayer.states and self.inactivePlayer.states["miasma"]:
-      pyautogui.alert("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
       logging.info("You skip your forge a key step this turn because your opponent played 'Miasma' last turn.")
       self.inactivePlayer.states["miasma"] = 0
       return False
     if "the_sting" in [x.title for x in self.activePlayer.board["Artifact"]]:
-      pyautogui.alert("You skip your forge a key step this turn because you have 'The Sting' in play.")
       logging.info("You skip your forge a key step this turn because you have 'The Sting' in play.")
       return False
     if "pocket_universe" in activeA:
@@ -1155,7 +1165,7 @@ class Board():
 # Card functions #
 ##################
 
-  def actionCard(self, cardNum: int, loc: str, omni: bool = False, cheat: bool = False):
+  def actionCard(self, cardNum: int, loc: str, cheat: bool = False):
     """ Trigger a card's action from within the turn.
     """
     card = self.activePlayer.board[loc][cardNum]
@@ -1171,22 +1181,10 @@ class Board():
         self.usedThisTurn.append(card)
       self.cardChanged()
       return
-    # TODO: this is not how I want this to work - I probably want to split canAction into canAction and canOmni
-    if card.action or card.omni:
-      if len(card.action) + len(card.omni) > 1:
-        pass # choose which action to do
-      else:
-        try:
-          card.action(self, card)
-          # act.action(self, act)
-        except:
-          card.omni(self, card)
-    elif card.omni:
-      try:
-        card.omni(self, card)
-      except:
-        pyautogui.alert("Omni failed.")
-        logging.info("Omni failed.")
+    if len(card.action) > 1:
+      pass # TODO: choose which action to do
+    else:
+      card.action(self, card)
     card.ready = False
     if card not in self.usedThisTurn:
       self.usedThisTurn.append(card)
@@ -1261,6 +1259,25 @@ class Board():
       self.usedThisTurn.append(card)
     self.cardChanged(True)
 
+  def omniCard(self, chosen: int, location: str):
+    """ This activates Omni abilities.
+    """
+    card = self.activePlayer.board[location][chosen]
+    if not self.canOmni(card):
+      logging.info(f"Can't use {card.title} right now.")
+    if card.type == "Creature" and card.stun:
+      logging.info("Creature is stunned and unable to act. Unstunning creature instead.")
+      card.stun = False
+      card.ready = False
+      if card not in self.usedThisTurn:
+        self.usedThisTurn.append(card)
+      self.cardChanged()
+      return
+    if len(card.omni) > 1:
+      pass # TODO: choose which omni to do
+    else:
+      card.omni(self, card)
+  
   def playCard(self, chosen: int, cheat: str = "Hand", flank = "Right", ask = True):
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
@@ -1304,12 +1321,18 @@ class Board():
     card.play(self, card)
     logging.info(f"{card.title} play ability resolved.")
     logging.info(f"numPlays: {len(self.playedThisTurn)}")
-    # if the card is an action, now add it to the discard pile
+    # if the card is an action, now add it to the discard pile - remote access or poltergeist or nexuss on masterplan can potentially play cards that belong to the other player
     if card.type == "Action":
       if card.title == "library_access":
-        self.activePlayer.purged.append(self.activePlayer.board["Action"].pop())
+        if card.deck == self.activePlayer.name:
+          self.activePlayer.purged.append(self.activePlayer.board["Action"].pop())
+        else:
+          self.inactivePlayer.purged.append(self.activePlayer.board["Action"].pop())
       else:
-        self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
+        if card.deck == self.activePlayer.name:
+          self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
+        else:
+          self.inactivePlayer.discard.append(self.activePlayer.board["Action"].pop())
     self.cardChanged(True)
 
   def reapCard(self, cardNum: int, cheat:bool = False):
@@ -1340,6 +1363,7 @@ class Board():
     self.cardChanged(True)
 
   def forgeKey(self, player: str, cost: int):
+    initial_cost = cost
     if cost < 0:
       cost = 0
     if player == "active":
@@ -1365,7 +1389,7 @@ class Board():
         optional = False
         mando = True
         collect = sum(x.capture for x in self.activePlayer.board["Artifact"] if x.title == "pocket_universe" or x.title == "safe_place")
-        if collect > diff:
+        if collect == diff:
           full_mando = True
       else:
         spend = self.chooseHouse("custom", ("Would you like to spend amber from your artifacts?", ["Yes", "No"]))[0]
@@ -1404,10 +1428,14 @@ class Board():
       if forged == "Red":
         forger.red = True
       self.setKeys()
+      # TODO: these need to be ordered too, rather than in a set order that I decide
+      if "the_sting" in [x.title for x in other.board["Artifact"]]:
+        logging.info(f"{other.name} gains the amber used to forge this key because of The Sting.")
+        other.gainAmber(initial_cost, self)
       if player == "active" and "interdimensional_graft" in other.states and other.states["interdimensional_graft"] and forger.amber > 0:
         other.gainAmber(forger.amber, self) # setKeys is called in here
         forger.amber = 0
-        pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber. They now have {other.amber} amber.")
+        # pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber. They now have {other.amber} amber.")
         logging.info(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber. They now have {other.amber} amber.")
         # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
       if "bilgum_avalanche" in [x.title for x in forger.board["Creature"]]:
@@ -1420,7 +1448,13 @@ class Board():
           if card.destroyed:
             self.pendingReloc.append(card) # this trigger shouldn't end up nested, though it could create a nest
         self.pending()
-      pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
+      if "strange_gizmo" in forger.board["Artifact"]:
+        for c in forger.board["Artifact"] + other.board["Artifact"] + forger.board["Creature"] + other.board["Creature"]:
+          destroy(c, self.activePlayer, self)
+          if c.destroyed:
+            self.pendingReloc.append(c)
+        self.pending()
+      # pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
       logging.info(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
       if player == "active":
         self.forgedThisTurn.append(forged)
@@ -1448,12 +1482,12 @@ class Board():
               self.pendingReloc.append(c)
       # check for things that are affected by being on a flank, shoulder armor and staunch knight
       for c in active:
-        c.calcPower(self)
+        c.calcPower(self.activePlayer, self.inactivePlayer, self)
         c.updateHealth()
         if c.destroyed:
           self.pendingReloc.append(c)
       for c in inactive:
-        c.calcPower(self)
+        c.calcPower(self.inactivePlayer, self.activePlayer, self)
         c.updateHealth()
         if c.destroyed:
           self.pendingReloc.append(c)
@@ -1604,8 +1638,8 @@ class Board():
   def playsRemaining(self):
     # now, check if we should change the fill on endTurn
     if True not in [self.canPlay(c, reset = False) for c in self.activePlayer.hand if c.type] + [self.canDiscard(c, reset = False) for c in self.activePlayer.hand if c.type]:
-      if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canFight(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canReap(c, reset = False) for c in self.activePlayer.board["Creature"]]:
-        if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Artifact"]]:
+      if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canFight(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canReap(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canOmni(c, reset = False) for c in self.activePlayer.board["Creature"]]:
+        if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Artifact"]] + [self.canOmni(c, reset = False) for c in self.activePlayer.board["Artifact"]]:
           logging.info("Nothing left to do!")
           self.endBack.fill(COLORS["LIGHT_GREEN"])
           self.remaining = False
@@ -1781,21 +1815,31 @@ class Board():
     if self.ruleOfSix(card):
       logging.info(f"Rule of six prevents using this {card.title}.")
       return False
-    if not card.ready:
+    if not card.ready or not card.action:
       return False
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
       logging.info("'Skippy Timehog' is preventing you from using cards")
       return False
-    if card.omni:
-      return True
-    if card.house == "Mars" and "combat_pheromones" in self.activePlayer.states and self.activePlayer.states["combat_pheromones"] > 0:
+    if card.house == "Mars" and "combat_pheromones" in self.activePlayer.states and self.activePlayer.states["combat_pheromones"]:
       if reset: self.activePlayer.states["combat_pheromones"] -= 1
+      cheat = True
+    if "deipno_spymaster" in self.activePlayer.states and card in self.activePlayer.states["deipno_spymaster"]:
       cheat = True
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
       if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
         pass
       else:
         return False
+    if card.type == "Artifact" and "tentacus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
+      logging.info("You must pay one to Tentacus to use this artifact.")
+      if not self.activePlayer.amber:
+        logging.info("You can't afford to pay for Tentacus.")
+        return False
+      else:
+        if reset:
+          self.activePlayer.amber -= 1
+          logging.info(f"You paid for Tentacus to use {card.title}.")
+          return True
     if card.type == "Creature":
       if card.stun and not r_click:
         return False
@@ -1803,11 +1847,7 @@ class Board():
         logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
         return False
     
-
-    if card.action:
-      return True
-    else:
-      return False
+    return True
   
   def canDiscard(self, card, reset = True, cheat = True):
     if self.turnNum == 1 and (len(self.playedThisTurn) > 0 or len(self.discardedThisTurn) > 0):
@@ -1832,6 +1872,8 @@ class Board():
     if card.house == "Mars" and "combat_pheromones" in self.activePlayer.states and self.activePlayer.states["combat_pheromones"] > 0:
       if reset: self.activePlayer.states["combat_pheromones"] -= 1
       cheat = True
+    if "deipno_spymaster" in self.activePlayer.states and card in self.activePlayer.states["deipno_spymaster"]:
+      cheat = True
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
       logging.info("'Skippy Timehog' is preventing you from using cards")
       return False
@@ -1851,6 +1893,31 @@ class Board():
         return False
     
 
+    return True
+
+  def canOmni(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
+    if self.ruleOfSix(card):
+      logging.info(f"Rule of six prevents using this {card.title}.")
+      return False
+    if not card.ready or not card.omni:
+      return False
+    if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
+      logging.info("'Skippy Timehog' is preventing you from using cards")
+      return False
+    if card.type == "Artifact" and "tentacus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
+      logging.info("You must pay one to Tentacus to use this artifact.")
+      if not self.activePlayer.amber:
+        logging.info("You can't afford to pay for Tentacus.")
+        return False
+      else:
+        if reset:
+          answer = self.chooseHouse('custom', ("Would you like to pay for Tentacus?", ["Yes", "No"]))[0]
+          if answer == "Yes":
+            self.activePlayer.amber -= 1
+            logging.info(f"You paid for Tentacus to use {card.title}.")
+          else:
+            return False
+        return True
     return True
 
   def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
@@ -1920,6 +1987,8 @@ class Board():
       cheat = True
     if card.house == "Mars" and "combat_pheromones" in self.activePlayer.states and self.activePlayer.states["combat_pheromones"] > 0:
       if reset: self.activePlayer.states["combat_pheromones"] -= 1
+      cheat = True
+    if "deipno_spymaster" in self.activePlayer.states and card in self.activePlayer.states["deipno_spymaster"]:
       cheat = True
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
       logging.info(f"House: {card.house}, cheat: {cheat}")

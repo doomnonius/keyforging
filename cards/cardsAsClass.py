@@ -464,7 +464,7 @@ class Card(pygame.sprite.Sprite):
         self.temp_skirmish = False
         # I can change Gray Monk to match this by giving it a play effect and a leaves play effect.
 
-    def calcPower(self, game):
+    def calcPower(self, owner, other, game):
         self.power = self.base_power + self.extraPow # extraPow is counters
         if self.title == "staunch_knight" and self.isFlank(game):
             self.power += 2
@@ -478,6 +478,8 @@ class Card(pygame.sprite.Sprite):
             self.power += 5
         if "flame_wreathed" in [x.title for x in self.upgrade]:
             self.power += 2
+        if self.house == "Brobnar" and "king_of_the_crag" in [x.title for x in other.board["Creature"]]:
+            self.power -= 2
 
     def updateHealth(self, player = None) -> None:
         if (self.power - self.damage) <= 0:

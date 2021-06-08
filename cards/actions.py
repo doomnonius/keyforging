@@ -1,6 +1,4 @@
-from cards.play import cowards_end
-import random
-import pyautogui
+import random, pyautogui, pygame, logging
 from helpers import stealAmber, destroy, return_card
 from cards.reap import spectral_tunneler as st
 
@@ -11,6 +9,7 @@ from cards.reap import spectral_tunneler as st
 def cannon (game, card):
   """Cannon: Deal 2 damage to a creature.
   """
+  logging.info(f"Using {card.title}'s action.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only one side ever affected
@@ -33,6 +32,7 @@ def cannon (game, card):
 def gauntlet_of_command (game, card):
   """Gauntlet of Command: Ready and fight with a friendly creature.
   """
+  logging.info(f"Using {card.title}'s action.")
   if not game.activePlayer.board["Creature"]:
     pyautogui.alert("No valid targets. The card is still played.")
     return
@@ -47,6 +47,7 @@ def gauntlet_of_command (game, card):
 def omni_mighty_javelin (game, card):
   """Might Javelin: Sacrific Mighty Javelin. Deal 4 damage to a creature.
   """
+  logging.info(f"Using {card.title}'s action.")
   activeBoard = game.activePlayer.board["Creature"]
   inactiveBoard = game.inactivePlayer.board["Creature"]
   
@@ -72,6 +73,7 @@ def omni_mighty_javelin (game, card):
 def omni_screechbomb (game, card):
   """Screechbomb: Sacrifice Screechbomb. Your opponent loses 2 amber.
   """
+  logging.info(f"Using {card.title}'s action.")
   destroy(card, game.activePlayer, game)
   if card.destroyed:
     game.pendingReloc.append(card)
@@ -81,6 +83,7 @@ def omni_screechbomb (game, card):
 def the_warchest (game, card):
   """The Warchest: Gain 1 amber for each enemy creature that was destroyed in a fight this turn.
   """
+  logging.info(f"Using {card.title}'s action.")
   game.activePlayer.gainAmber(len(game.destInFight), game)
 
 #######
@@ -90,6 +93,7 @@ def the_warchest (game, card):
 def dominator_bauble (game, card):
   """ Dominator Bauble: Use a friendly creature.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
 
   if not active:
@@ -124,6 +128,7 @@ def dominator_bauble (game, card):
 def omni_key_to_dis (game, card):
   """ Key to Dis: Destroy each creature.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   destroy(card, game.activePlayer, game)
@@ -140,12 +145,14 @@ def omni_key_to_dis (game, card):
 def lash_of_broken_dreams (game, card):
   """ Lash of Broken Dreams: Keys cost +3 amber during your opponent's next turn.
   """
+  logging.info(f"Using {card.title}'s action.")
   game.activePlayer.states[card.title] += 1
   game.resetStatesNext.append(("i", card.title))
 
 def library_of_the_damned (game, card):
   """ Library of the Damned: Archive a card.
   """
+  logging.info(f"Using {card.title}'s action.")
   if game.activePlayer.hand:
     archive = game.chooseCards("Hand", "Choose a card from your hand to archive:")[0][1]
     card = game.activePlayer.hand[archive]
@@ -156,12 +163,14 @@ def library_of_the_damned (game, card):
 def omni_lifeward (game, card):
   """ Lifeward: Sacrific Lifeward. Your opponent canno play creatures on their next turn.
   """
+  logging.info(f"Using {card.title}'s action.")
   game.activePlayer.states[card.title] = 1
   game.resetStatesNext.append(("i", card.title))
 
 def sacrificial_altar (game, card):
   """ Sacrificial Altar: Purge a friendly human creature from play. If you do, play a creature from your discard pile.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
   discard = game.activePlayer.discard
   count = sum("Human" in x.traits for x in active)
@@ -191,22 +200,20 @@ def sacrificial_altar (game, card):
 def screaming_cave (game, card):
   """ Screaming Cave: Shuffle your hand and discard pile into your deck.
   """
+  logging.info(f"Using {card.title}'s action.")
   hand = game.activePlayer.hand
   discard = game.activePlayer.discard
-  deck = game.activePlayer.shuffle
 
   for c in hand[::-1]:
-    deck.append(c)
+    discard.append(c)
     hand.remove(c)
-  for c in discard[::-1]:
-    deck.append(c)
-    discard.remove(c)
   
-  random.shuffle(deck)
+  game.activePlayer.shuffleDiscard()
 
 def pit_demon (game, card):
   """ Pit Demon: Steal 1 amber.
   """
+  logging.info(f"Using {card.title}'s action.")
   stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   
 #########
@@ -216,6 +223,7 @@ def pit_demon (game, card):
 def anomaly_exploiter (game, card):
   """ Anomaly Exploiter: Destroy a damaged creature.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -237,6 +245,7 @@ def anomaly_exploiter (game, card):
 def chaos_portal (game, card):
   """ Chaos Portal: Choose a house. Reveal the top card of your deck. If it is of that house, play it.
   """
+  logging.info(f"Using {card.title}'s action.")
   deck = game.activePlayer.deck
   house = game.chooseHouse("other")
   deck[-1].revealed = True
@@ -250,6 +259,7 @@ def chaos_portal (game, card):
 def crazy_killing_machine (game, card):
   """ Crazy Killing Machine: Discard the top card of each player’s deck. For each of those cards, destroy a creature or artifact of that card’s house, if able. If 2 cards are not destroyed as a result of this, destroy Crazy Killing Machine.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board
   inactive = game.inactivePlayer.board
   activeD = game.activePlayer.deck
@@ -305,11 +315,13 @@ def crazy_killing_machine (game, card):
 def library_of_babble (game, card):
   """ Library of Babble: Draw a card.
   """
+  logging.info(f"Using {card.title}'s action.")
   game.activePlayer += 1
 
 def mobius_scroll (game, card):
   """ Mobius Scroll: Archive Mobius Scroll and up to 2 cards from your hand.
   """
+  logging.info(f"Using {card.title}'s action.")
   hand = game.activePlayer.hand
   return_card(card)
   if card.returned:
@@ -327,14 +339,16 @@ def mobius_scroll (game, card):
 def pocket_universe (game, card):
   """ Pocket Universe: Move 1 amber from your pool to Pocket Universe.
   """
-  # don't forget to account for pocket universe in canForge and forgeKey (should be done now) - I think we have previously ruled in our games that you only need to call check based on the contents of your pool, not based on whatever amber could be spent on artifacts or creatures
+  logging.info(f"Using {card.title}'s action.")
   if game.activePlayer.amber:
+    logging.info(f"{card.title} gains 1 amber from the active Player's pool.")
     card.captured += 1
     game.activePlayer.amber -= 1
 
 def spangler_box (game, card):
   """ Spangler Box: Purge a creature in play. If you do, your opponent gains control of Spangler Box. If Spangler Box leaves play, return to play all cards purged by Spangler Box.
   """
+  logging.info(f"Using {card.title}'s action.")
   # card.spangler will exist
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
@@ -357,6 +371,7 @@ def spangler_box (game, card):
 def spectral_tunneler (game, card):
   """ Spectral Tunneler: Choose a creature. For the remainder of the turn, that creature is considered a flank creature and gains, “Reap: Draw a card.”
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -375,6 +390,7 @@ def spectral_tunneler (game, card):
 def novu_archaeologist (game, card):
   """ Novu Archaeologist: Archive a card from your discard pile.
   """
+  logging.info(f"Using {card.title}'s action.")
   discard = game.activePlayer.discard
 
   if discard:
@@ -386,6 +402,7 @@ def novu_archaeologist (game, card):
 def timetraveller (game, card):
   """ Timetraveller: Shuffle Timetraveller into your deck.
   """
+  logging.info(f"Using {card.title}'s action.")
   return_card(card, game)
   if card.returned:
     game.pendingReloc.append(card)
@@ -399,6 +416,7 @@ def timetraveller (game, card):
 def transposition_sandals (game, card):
   """ Transposition Sandals: Swap this creature with another friendly creature in the battleline. You may use that creature this turn.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
 
   if len(active) < 2:
@@ -423,6 +441,7 @@ def transposition_sandals (game, card):
 def omni_combat_pheromones (game, card):
   """ Sacrifice Combat Pheromones. You may use up to 2 other Mars cards this turn.
   """
+  logging.info(f"Using {card.title}'s action.")
   destroy(card, game.activePlayer, game)
   if card.destroyed:
     game.pendingReloc.append(card)
@@ -433,6 +452,7 @@ def omni_combat_pheromones (game, card):
 def commpod (game, card):
   """ Reveal any number of Mars cards from your hand. For each card revealed this way, you may ready one Mars creature.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -452,12 +472,14 @@ def commpod (game, card):
 def crystal_hive (game, card):
   """ Crystal Hive: For the remainder of the turn, gain 1 amber each time a creature reaps.
   """
+  logging.info(f"Using {card.title}'s action.")
   game.activePlayer.states[card.title] += 1
   game.resetStates(("a", card.title))
 
 def omni_custom_virus (game, card):
   """ Custom Virus: Sacrifice Custom Virus. Purge a creature from your hand. Destroy each creature that shares a trait with the purged creature.
   """
+  logging.info(f"Using {card.title}'s action.")
   destroy(card, game.activePlayer, game)
   if card.destroyed:
     game.pendingReloc.append(card)
@@ -487,6 +509,7 @@ def omni_custom_virus (game, card):
 def feeding_pit (game, card):
   """ Feeding Pit: Discard a creature card from your hand. If you do, gain 1 amber.
   """
+  logging.info(f"Using {card.title}'s action.")
   hand = game.activePlayer.hand
   if not sum(x.type == "Creature" for x in hand):
     pyautogui.alert("No creatures in your hand")
@@ -500,6 +523,7 @@ def feeding_pit (game, card):
 def omni_incubation_chamber (game, card):
   """ Incubation Chamber: Reveal a Mars creature from your hand. If you do, archive it.
   """
+  logging.info(f"Using {card.title}'s action.")
   hand = game.activePlayer.hand
   
   if not sum(x.type == "Creature" and x.house == "Mars" for x in hand):
@@ -513,6 +537,7 @@ def omni_incubation_chamber (game, card):
 def invasion_portal (game, card):
   """ Invastion Portal: Discard cards from the top of your deck until you discard a Mars creature or run out of cards. If you discard a Mars creature this way, put it into your hand.
   """
+  logging.info(f"Using {card.title}'s action.")
   discard = game.activePlayer.discard
   deck = game.activePlayer.deck
   hand = game.activePlayer.hand
@@ -526,6 +551,7 @@ def invasion_portal (game, card):
 def mothergun (game, card):
   """ Mothergun: Reveal any number of Mars cards from your hand. Deal damage to a creature equal to the number of Mars cards revealed this way.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -552,6 +578,7 @@ def mothergun (game, card):
 def sniffer (game, card):
   """ Sniffer: For the remainder of the turn, each creature loses elusive.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
@@ -561,6 +588,7 @@ def sniffer (game, card):
 def swap_widget (game, card):
   """ Swap Widget: Return a ready friendly Mars creature to your hand. If you do, put a Mars creature with a different name from your hand into play, then ready it.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
   hand = game.activePlayer.hand
   initial = len(hand)
@@ -583,6 +611,7 @@ def swap_widget (game, card):
 def mindwarper (game, card):
   """ Mindwarper: Choose an enemy creature. It captures 1 amber from its own side.
   """
+  logging.info(f"Using {card.title}'s action.")
   inactive = game.inactivePlayer.board["Creature"]
   choice = inactive[game.chooseCards("Creature", "Choose an enemy creature to capture 1 amber from it's own side:", "enemy")[0][1]]
   choice.capture(game, 1, True)
@@ -590,6 +619,7 @@ def mindwarper (game, card):
 def phylyx_the_disintegrator (game, card):
   """ Phylyx the Disintegrator: Your opponent loses 1 amber for each other friendly Mars creature.
   """
+  logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
 
   count = sum((x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) and x != card for x in active)
@@ -602,80 +632,277 @@ def phylyx_the_disintegrator (game, card):
 def omni_epic_quest (game, card):
   """ Epic Quest: If you have played 7 or more Sanctum cards this turn, destroy Epic Quest and forge a key at no cost.
   """
+  logging.info(f"Using {card.title}'s action.")
   if sum(x.house == "Sanctum" for x in game.playedThisTurn) >= 7:
-    pass # TODO: this
+    if game.canForge():
+      destroy(card, game.activePlayer, game)
+      if card.destroyed:
+        game.pendingReloc.append(card)
+      game.pending()
+      game.forgeKey("active", 0)
     
 def omni_gorm_of_omm (game, card):
   """ Gorm of Omm: Destroy Gorm of Omm. Destroy an artifact.
   """
+  logging.info(f"Using {card.title}'s action.")
+  active = game.activePlayer.board["Artifact"]
+  inactive = game.inactivePlayer.board["Artifact"]
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    game.pendingReloc.append(card)
+  game.pending() # pending calls cardChanged
+  game.draw()
+  pygame.display.update()
+  side, choice = game.chooseCards("Artifact", "Destroy an artifact:")[0]
+  if side == "fr":
+    d = active[choice]
+  else:
+    d = inactive[choice]
+  destroy(d, game.activePlayer, game)
+  if d.destroyed:
+    game.pendingReloc.append(d)
+  game.pending()
+  
 
 def hallowed_blaster (game, card):
   """ Hallowed Blaster: Heal 3 damage from a creature.
   """
+  logging.info(f"Using {card.title}'s action.")
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+  
+  if not active + inactive:
+    logging.info("No valid targets.")
+    return
+  
+  side, choice = game.chooseCards("Creature", "Heal 3 damage from a creature:")[0]
+  if side == "fr":
+    c = active[choice]
+  else:
+    c = inactive[choice]
+  logging.info(f"Healing {min(c.damage, 3)} from {c.title}")
+  c.damage -= min(c.damage, 3)
 
 def omni_potion_of_invulnerability (game, card):
   """ Potion of Invulnerability: Destroy Potion of Invulnerability. For the remainder of the turn, each friendly creature cannot be dealt damage.
   """
+  logging.info(f"Using {card.title}'s action.")
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    game.pendingReloc.append(card)
+  game.pending()
+  game.activePlayer.states[card.title] = 1
+  logging.info(f"Turning on {card.title}'s state.")
+  game.resetStates.append(("a", card.title))
 
 def omni_sigil_of_brotherhood (game, card):
   """ Sigil of Brotherhood: Sacrifice Sigil of Brotherhood. For the remainder of the turn, you may use friendly Sanctum creatures.
   """
+  logging.info(f"Using {card.title}'s action.")
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    game.pendingReloc.append(card)
+  game.pending()
+  game.extraUseHouses.append("Sanctum")
+  logging.info("Added Sanctum to extraUseHouses.")
 
 def whispering_reliquary (game, card):
   """ Whispering Reliquary: Return an artifact to its owner's hand.
   """
+  logging.info(f"Using {card.title}'s action.")
+  active = game.activePlayer.board["Artifact"]
+  inactive = game.inactivePlayer.board["Artifact"]
+  side, choice = game.chooseCards("Artifact", "Return an artifact to it's owner's hand:")[0]
+  if side == "fr":
+    c = active[choice]
+  else:
+    c = inactive[choice]
+  return_card(c, game)
+  if c.returned:
+    game.pendingReloc.append(c)
+    logging.info(f"{c.title} will be returned to it's owner's hand.")
+  game.pending('hand')
 
 def lady_maxena (game, card):
   """ Lady Maxena: Return Lady Maxena to its owner's hand.
   """
+  logging.info(f"Using {card.title}'s action.")
+  return_card(card, game)
+  if card.returned:
+    game.pendingReloc.append(card)
+    logging.info(f"{card.title} will be returned to it's owner's hand.")
+  game.pending('hand')
 
 ###########
 # Shadows #
 ###########
 
 def omni_longfused_mines (game, card):
-  """ Longfused Mines: Sacrific Longfused Mines. Deal 3 damage to each enemy creature not on a flank.
+  """ Longfused Mines: Sacrifice Longfused Mines. Deal 3 damage to each enemy creature not on a flank.
   """
+  logging.info(f"Using {card.title}'s action.")
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    game.pendingReloc.append(card)
+  game.pending()
+  inactive = game.inactivePlayer.board["Creature"]
+  for c in inactive:
+    if not c.isFlank(game):
+      c.damageCalc(game, 3)
+      c.updateHealth()
+    if c.destroyed():
+      game.pendingReloc.append(c)
+  game.pending()
 
 def omni_masterplan (game, card):
   """ Masterplan: Play the card under Masterplan. Destroy Masterplan.
   """
+  logging.info(f"Using {card.title}'s action.")
+  # I think it's technically possible to have more than one card under master plan
+  # TODO: confirm this possibility, and add functionality for ordering cards
+  for c in card.upgrade:
+    logging.info(f"Playing {c.title} from under {card.title}.")
+    card.upgrade.remove(c)
+    game.activePlayer.hand.append(c)
+    game.playCard(-1)
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    game.pendingReloc.append(card)
+  game.pending()
 
 def safe_place (game, card):
   """ Safe Place: Move 1 amber from your pool to Safe Place.
   """
+  logging.info(f"Using {card.title}'s action.")
+  if game.activePlayer.amber:
+    logging.info(f"{card.title} gains 1 amber from the active Player's pool.")
+    card.captured += 1
+    game.activePlayer.amber -= 1
 
 def seeker_needle (game, card):
   """ Seeker Needle: Deal 1 damage to a creature. If this damage destroys that creature, gain 1 amber.
   """
+  logging.info(f"Using {card.title}'s action.")
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+  
+  if not active + inactive:
+    logging.info("No valid targets.")
+    return
+
+  side, choice = game.chooseCards("Creature", "Deal 1 damage to a creature:")[0]
+  if side == "fr":
+    c = active[choice]
+  else:
+    c = inactive[choice]
+  c.damageCalc(game, 1)
+  c.updateHealth()
+  if c.destroyed:
+    logging.info(f"{card.title} destroyed {c.title}, gaining 1 amber.")
+    game.activePlayer.gainAmber(1, game)
+    game.pendingReloc.append(c)
+  game.pending()
+
 
 def skeleton_key (game, card):
   """ Skeleton Key: A friendly creature captures 1 amber.
   """
+  logging.info(f"Using {card.title}'s action.")
+  active = game.activePlayer.board["Creature"]
+  c = active[game.chooseCards("Creature", "Choose a friendly creature to capture 1 amber:", "friend")[0][1]]
+  logging.info(f"{c.title} targeted with {card.title}")
+  c.capture(game, 1)
 
 def omni_special_delivery (game, card):
   """ Special Delivery: Sacrifice Special Delivery. Deal 3 damage to a flank creature. If this damage destroys that creature, purge it.
   """
+  logging.info(f"Using {card.title}'s action.")
+  pending = game.pendingReloc
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    pending.append(card)
+  game.pending()
+
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+
+  if not active and not inactive:
+    pyautogui.alert("No valid targets.")
+    return
+
+  side, choice = game.chooseCards("Creature", "Deal 3 damage to a flank creature. If this damage destroys the creature, purge it:", condition = lambda x: x.isFlank(game), con_message = "That's not a flank creature.")[0]
+  if side == "fr":
+    c = active[choice]
+  else:
+    c = inactive[choice]
+  c.damageCalc(3, game)
+  c.updateHealth()
+  if c.destroyed:
+    pending.append(c)
+    game.pending('purge')
 
 def subtle_maul (game, card):
   """ Subtle Maul: Your opponent discards a random card from their hand.
   """
+  logging.info(f"Using {card.title}'s action.")
+  inactive = game.inactivePlayer.hand
+  ran = inactive[random.choice(list(range(len(inactive))))]
+  game.inactivePlayer.discard.append(ran)
+  inactive.remove(ran)
+  logging.info(f"{card.title} discarded {ran.title} from your opponent's hand.")
 
 def the_sting (game, card):
   """ The Sting: Destroy The Sting.
   """
+  logging.info(f"Using {card.title}'s action.")
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    game.pendingReloc.append(card)
+  game.pending()
 
 def omni_deipno_spymaster (game, card):
   """ Deipno Spymaster: Choose a friendly creature. You may use that creature this turn.
   """
+  logging.info(f"Using {card.title}'s action.")
+  active = game.activePlayer.board["Creature"]
+  c = active[game.chooseCards("Creature", "Choose a friendly creature to be able to use this turn:", "friend")[0][1]]
+  logging.info(f"{c.title} was added to Deipno Spymaster's state.")
+  if not game.activePlayer.states[card.title]:
+    game.activePlayer.states[card.title] = [c]
+  else:
+    game.activePlayer.states[card.title].append(c)
 
 def mack_the_knife (game, card):
   """ Mack the Knife: Deal 1 damage to a creature. If this damage destroys that creature, gain 1 amber.
   """
+  logging.info(f"Using {card.title}'s action.")
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+  
+  if not active + inactive:
+    logging.info("No valid targets.")
+    return
+
+  side, choice = game.chooseCards("Creature", "Deal 1 damage to a creature:")[0]
+  if side == "fr":
+    c = active[choice]
+  else:
+    c = inactive[choice]
+  c.damageCalc(game, 1)
+  c.updateHealth()
+  if c.destroyed:
+    logging.info(f"{card.title} destroyed {c.title}, gaining 1 amber.")
+    game.activePlayer.gainAmber(1, game)
+    game.pendingReloc.append(c)
+  game.pending()
+
+
 
 def noddy_the_thief (game, card):
   """ Noddy the Thief: Steal 1 amber.
   """
+  logging.info(f"Using {card.title}'s action.")
+  stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
 
 
 ###########
@@ -685,23 +912,86 @@ def noddy_the_thief (game, card):
 def bear_flute (game, card):
   """ Bear Flute: Fully heal an Ancient Bear. If there are no Ancient Bears in play, search your deck and discard pile and put each Ancient Bear from them into your hand. If you do, shuffle your discard pile into your deck.
   """
+  logging.info(f"Using {card.title}'s action.")
+  active = game.activePlayer.board["Creature"]
+  inactive = game.inactivePlayer.board["Creature"]
+  
+  if sum(x.title == "ancient_bear" for x in active + inactive):
+    side, choice = game.chooseCards("Creature", "Fully heal an Ancient Bear:", condition = lambda x: x.title == "ancient_bear", con_message = "That's not an Ancient Bear.")[0]
+    if side == "fr":
+      c = active[choice]
+    else:
+      c = inactive[choice]
+    c.damage = 0
+    return
+  # otherwise:
+  for c in game.activePlayer.deck:
+    if c.title == "ancient_bear":
+      logging.info("Adding an Ancient Bear to hand from deck.")
+      game.activePlayer.hand.append(c)
+      game.activePlayer.deck.remove(c)
+  for c in game.activePlayer.discard:
+    if c.title == "ancient_bear":
+      logging.info("Adding an Ancient Bear to hand from discard.")
+      game.activePlayer.hand.append(c)
+      game.activePlayer.discard.remove(c)
+  game.activePlayer.shuffleDiscard()
 
 def omni_nepenthe_seed (game, card):
   """ Sacrifice Nepenthe Seed. Return a card from your discard pile to your hand.
   """
+  logging.info(f"Using {card.title}'s action.")
+  destroy(card, game.activePlayer, game)
+  if card.destroyed:
+    game.pendingReloc.append(card)
+  game.pending() # I'm ruling the player can return Nepenthe Seed to their hand
+
+  discard = game.activePlayer.discard
+
+  if not discard:
+    logging.info("No cardss in your discard.")
+    return
+
+  game.drawFriendDiscard = True
+  choice = game.chooseCard("Discard", "Return a card from your discard pile to your hand:", "friend")[0][1]
+  # I can skip pending b/c this card is guaranteed to belong to the active player
+  c = discard[choice]
+  discard.remove(c)
+  game.activePlayer.hand.append(c)
 
 def ritual_of_balance (game, card):
   """ Ritual of Balance: If your opponent has 6 or more amber, steal 1 amber.
   """
+  logging.info(f"Using {card.title}'s action.")
+  if game.inactivePlayer.amber > 5:
+    stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
+    logging.info(f"{card.title} stole 1 amber.")
 
 def omni_ritual_of_the_hunt (game, card):
   """ Ritual of the Hunt: Sacrifice Ritual of the Hunt. For the remainder of the turn, you may use friendly Untamed creatures.
   """
+  logging.info(f"Using {card.title}'s action, adding Untamed to extraUseHouses.")
+  game.extraUseHouses.append("Untamed")
 
 def world_tree (game, card):
   """ World Tree: Return a creature from your discard pile to the top of your deck.
   """
+  logging.info(f"Using {card.title}'s action.")
+  discard = game.activePlayer.discard
+
+  if not discard:
+    logging.info("No cards in your discard.")
+    return
+
+  game.drawFriendDiscard = True
+  choice = game.chooseCard("Discard", "Return a creature from your discard pile to the top of your deck:", "friend", condition = lambda x: x.type == "Creature", con_message = "That's not a creature.")[0][1]
+  # I can skip pending b/c this card is guaranteed to belong to the active player
+  c = discard[choice]
+  discard.remove(c)
+  game.activePlayer.deck.append(c)
 
 def giant_sloth (game, card):
   """ Giant Sloth: Gain 3 amber.
   """
+  logging.info(f"Using {card.title}'s action.")
+  game.activePlayer.gainAmber(3, game)

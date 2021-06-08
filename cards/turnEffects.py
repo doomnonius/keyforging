@@ -14,11 +14,21 @@ def basic_eot (game, card):
 ###########
 
 def eot_rogue_ogre (game, card):
-  """ card text goes here
+  """ Rogue Ogre: If you only played one card this turn, Rogue Ogre heals 2 damage and captures 1 amber.
   """
   basic_eot(game, card)
   if len(game.playedThisTurn) == 1:
-    card.damage -= 2
-    if card.damage < 0:
-      card.damage = 0
+    logging.info(f"{card.title}'s eot effect has triggered.")
+    card.damage -= min(2, card.damage)
     card.capture(game, 1)
+
+#######
+# Dis #
+#######
+
+def eot_shaffles (game, card):
+  """ Shaffles: Your opponent loses 1 amber.
+  """
+  logging.info(f"{card.title}'s eot effect has triggered.")
+  game.inactivePlayer.amber -= min(1, game.inactivePlayer.amber)
+

@@ -4,6 +4,8 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
+ <li>If collar of subordination leaves play, the creature should return to its owner.</li>
+ <li>If autocannon (or pingle) kills a creature, its play ability will not resolve - but activePlayer should decide the order of those things, since they are in the same timing window, so they could choose the proper order. - This is related to the whole library access trigger/card play effect trigger I have noted elsewhere.</li>
  <li>Update choose flank to choose which side an opponent's creature entering will go on.</li>
  <li>A function for ordering simultaneous things or choosing a number of items from the list of abilities.</li>
  <li>implement the rule of six: change playedThisTurn, etc into dictionaries?</li>
