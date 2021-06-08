@@ -4,6 +4,8 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
+ <li>Update choose flank to choose which side an opponent's creature entering will go on.</li>
+ <li>A function for ordering simultaneous things or choosing a number of items from the list of abilities.</li>
  <li>implement the rule of six: change playedThisTurn, etc into dictionaries?</li>
  <li>Code reap, fight, action, abilities with knowledge that there might be more than one</li>
  <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves. Actually, I think I'll have basic dest, but I'll call it from pending, not tied to the card. Potentially the same with basicReap and basicFight</li>
@@ -36,6 +38,12 @@
  <li>Scale cards in hand too.</li>
  <li>Handle if chooseHouse or chooseCards get called with no valid options.</li>
  <li>While resolving the effect of an action card, have it displaying in the top left corner, but also allow it to be minimized and maximized.</li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
+ <li></li>
  <li></li>
  <li></li>
  <li><s>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</s></li>

@@ -48,6 +48,7 @@ class Card(pygame.sprite.Sprite):
         self.text = self.cardInfo["card_text"]
         if self.cardInfo['traits'] != None:
             self.traits = self.cardInfo['traits']
+            print([x for x in self.traits.split() if len(x) > 2])
         else:
             self.traits = ''
         self.stun = False
