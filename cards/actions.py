@@ -15,7 +15,7 @@ def cannon (game, card):
   pendingDiscard = game.pendingReloc # fine b/c only one side ever affected
 
   if not activeBoard and not inactiveBoard:
-    pyautogui.alert("No valid targets. The card is still played.")
+    logging.info("No valid targets. The card is still played.")
     return
 
   side, choice = game.chooseCards("Creature", "Deal 2 damage to a creature:")[0]
@@ -34,7 +34,7 @@ def gauntlet_of_command (game, card):
   """
   logging.info(f"Using {card.title}'s action.")
   if not game.activePlayer.board["Creature"]:
-    pyautogui.alert("No valid targets. The card is still played.")
+    logging.info("No valid targets. The card is still played.")
     return
   
   choice = game.chooseCards("Creature", "Choose a friendly creature:", "friend")[0][1]
@@ -56,7 +56,7 @@ def omni_mighty_javelin (game, card):
     game.pendingReloc.append(card)
   
   if not activeBoard and not inactiveBoard:
-    pyautogui.alert("No valid targets.")
+    logging.info("No valid targets.")
     return
 
   side, choice = game.chooseCards("Creature", "Deal 4 damage to a creature:")[0]
@@ -97,13 +97,13 @@ def dominator_bauble (game, card):
   active = game.activePlayer.board["Creature"]
 
   if not active:
-    pyautogui.alert("No valid targets.")
+    logging.info("No valid targets.")
     return
 
   choice = active[game.chooseCards("Creature", "Use a friendly creature:", "friend")[0][1]]
   
   if not choice.ready:
-    pyautogui.alert("Card isn't ready, so can't be used.")
+    logging.info("Card isn't ready, so can't be used.")
     return
 
   uses =  []
@@ -176,10 +176,10 @@ def sacrificial_altar (game, card):
   count = sum("Human" in x.traits for x in active)
 
   if not count:
-    pyautogui.alert("No valid targets.")
+    logging.info("No valid targets.")
     return
   if not sum(x.type == "Creature" and game.canPlay(x, reset = False, cheat = True) for x in discard):
-    pyautogui.alert("No playable creatures in your discard.")
+    logging.info("No playable creatures in your discard.")
     return
   
   c = active[game.chooseCards("Creature", "Purge a friendly human creature:", "friend", condition = lambda x: "Human" in x.traits, con_message = "That's not a human.")[0][1]]
@@ -228,7 +228,7 @@ def anomaly_exploiter (game, card):
   inactive = game.inactivePlayer.board["Creature"]
 
   if not sum(x.damage > 0 for x in active + inactive):
-    pyautogui.alert("No damaged creatures.")
+    logging.info("No damaged creatures.")
     return
 
   side, choice = game.chooseCards("Creature", "Destroy a damaged creature:", condition = lambda x: x.damage > 0, con_message = "That creature is not damaged.")[0]
@@ -254,7 +254,7 @@ def chaos_portal (game, card):
     game.activePlayer.hand.append(deck.pop())
     game.playCard(-1, cheat = True)
   else:
-    pyautogui.alert(f"{deck[-1].title.replace('_', ' ').title()} is not of house {house}, and is not played.")
+    logging.info(f"{deck[-1].title.replace('_', ' ').title()} is not of house {house}, and is not played.")
 
 def crazy_killing_machine (game, card):
   """ Crazy Killing Machine: Discard the top card of each player’s deck. For each of those cards, destroy a creature or artifact of that card’s house, if able. If 2 cards are not destroyed as a result of this, destroy Crazy Killing Machine.
@@ -268,17 +268,17 @@ def crazy_killing_machine (game, card):
 
   if activeD:
     game.activePlayer.discard.append(activeD.pop())
-    pyautogui.alert(f"Discarded {game.activePlayer.discard[-1].title.replace('_', ' ').title()}")
+    logging.info(f"Discarded {game.activePlayer.discard[-1].title.replace('_', ' ').title()}")
     aDiscard = game.activePlayer.discard[-1].title
   else:
-    pyautogui.alert(f"Your deck is empty, no card is discarded.")
+    logging.info(f"Your deck is empty, no card is discarded.")
     aDiscard = False
   if inactiveD:
     game.inactivePlayer.discard.append(inactiveD.pop())
-    pyautogui.alert(f"Discarded {game.inactivePlayer.discard[-1].title.replace('_', ' ').title()}")
+    logging.info(f"Discarded {game.inactivePlayer.discard[-1].title.replace('_', ' ').title()}")
     iDiscard = game.inactivePlayer.discard[-1].title
   else:
-    pyautogui.alert(f"Your opponent's deck is empty, no card is discarded.")
+    logging.info(f"Your opponent's deck is empty, no card is discarded.")
     iDiscard = False
 
   if inactive and iDiscard:
@@ -354,7 +354,7 @@ def spangler_box (game, card):
   inactive = game.inactivePlayer.board["Creature"]
   
   if not active + inactive:
-    pyautogui.alert("No valid targets.")
+    logging.info("No valid targets.")
     return
 
   side, choice = game.chooseCards("Creature", "Purge a creature in play:")[0]
@@ -420,7 +420,7 @@ def transposition_sandals (game, card):
   active = game.activePlayer.board["Creature"]
 
   if len(active) < 2:
-    pyautogui.alert("No creatures to swap with.")
+    logging.info("No creatures to swap with.")
     return
   
   choice = active[game.chooseCards("Creature", "Swap positions with another friendly creature in your battleline. You can use that card this turn.", "friend", condition = lambda x: x != card)[0][1]]
@@ -459,7 +459,7 @@ def commpod (game, card):
   revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
   count = len(revealed)
   if count == 0:
-    pyautogui.alert("You revealed no Mars cards, so no damage is dealt. The card is still played.")
+    logging.info("You revealed no Mars cards, so no damage is dealt. The card is still played.")
     return
   readied = game.chooseCards("Creature", f"Ready up to {count} Mars creatures:", count = count, full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")
   for side, choice in readied:
@@ -489,7 +489,7 @@ def omni_custom_virus (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   if not sum(x.type == "Creature" for x in hand):
-    pyautogui.alert("No creatures in your hand")
+    logging.info("No creatures in your hand")
     return
 
   choice = hand[game.chooseCards("Hand", "Purge a creature from your hand:", condition = lambda x: x.type == "Creature", con_message = "That's not a creature.")[0][1]]
@@ -512,7 +512,7 @@ def feeding_pit (game, card):
   logging.info(f"Using {card.title}'s action.")
   hand = game.activePlayer.hand
   if not sum(x.type == "Creature" for x in hand):
-    pyautogui.alert("No creatures in your hand")
+    logging.info("No creatures in your hand")
     return
 
   choice = hand[game.chooseCards("Hand", "Discard a creature from your hand:", condition = lambda x: x.type == "Creature", con_message = "That's not a creature.")[0][1]]
@@ -527,7 +527,7 @@ def omni_incubation_chamber (game, card):
   hand = game.activePlayer.hand
   
   if not sum(x.type == "Creature" and x.house == "Mars" for x in hand):
-    pyautogui.alert("No Mars creatures in your hand")
+    logging.info("No Mars creatures in your hand")
     return
 
   choice = hand[game.chooseCards("Hand", "Reveal a Mars creature from your hand:", condition = lambda x: x.type == "Creature" and x.house == "Mars", con_message = "That's not a Mars creature.")[0][1]]
@@ -544,7 +544,7 @@ def invasion_portal (game, card):
   while deck and (deck[-1].house != "Mars" or deck[-1].type != "Creature"):
     discard.append(deck.pop())
   if not deck:
-    pyautogui.alert("Your deck is empty, and you found no Mars creatures.")
+    logging.info("Your deck is empty, and you found no Mars creatures.")
   else: # House is mars and type is creature if we get here
     hand.append(deck.pop())
 
@@ -558,11 +558,11 @@ def mothergun (game, card):
   revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
   damage = len(revealed)
   if damage == 0:
-    pyautogui.alert("You revealed no Mars cards, so no damage is dealt.")
+    logging.info("You revealed no Mars cards, so no damage is dealt.")
     return
 
   if not active + inactive:
-    pyautogui.alert("No valid targets.")
+    logging.info("No valid targets.")
     return
   side, choice = game.chooseCards("Creature", f"Deal {damage} damage to a creature:")[0]
   if side == "fr":
@@ -827,7 +827,7 @@ def omni_special_delivery (game, card):
   inactive = game.inactivePlayer.board["Creature"]
 
   if not active and not inactive:
-    pyautogui.alert("No valid targets.")
+    logging.info("No valid targets.")
     return
 
   side, choice = game.chooseCards("Creature", "Deal 3 damage to a flank creature. If this damage destroys the creature, purge it:", condition = lambda x: x.isFlank(game), con_message = "That's not a flank creature.")[0]

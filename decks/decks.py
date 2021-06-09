@@ -62,19 +62,19 @@ class Deck:
         """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have.
         """
         draw = self.handSize
-        # howling pit
         activeA = [x.title for x in game.activePlayer.board["Artifact"]]
         inactiveA = [x.title for x in game.inactivePlayer.board["Artifact"]]
         activeC = [x.title for x in game.activePlayer.board["Creature"]]
         inactiveC = [x.title for x in game.inactivePlayer.board["Creature"]]
+        # howling pit
         if "howling_pit" in activeA + inactiveA:
-            draw += sum("howling_pit" == x for x in activeA + inactiveA)
+            draw += sum("howling_pit" == x.title for x in activeA + inactiveA)
         # mother
         if "mother" in activeC:
-            draw += sum("mother" == x for x in activeC)
+            draw += sum("mother" == x.title for x in activeC)
         # succubus
         if "succubus" in inactiveC:
-            draw -= sum("succubus" == x for x in inactiveC)
+            draw -= sum("succubus" == x.title for x in inactiveC)
         # etc.
         if self.chains > 0:
             reduced = self.chains // 6

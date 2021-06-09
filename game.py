@@ -48,9 +48,9 @@ class Board():
     self.activeHouse = []
     self.extraFightHouses = []
     self.extraUseHouses = []
-    self.playedThisTurn = []
+    self.playedThisTurn = {}
     self.discardedThisTurn = []
-    self.usedThisTurn = []
+    self.usedThisTurn = {}
     self.playedLastTurn = []
     self.discardLastTurn = []
     self.usedLastTurn = []
@@ -457,7 +457,6 @@ class Board():
         #####################
         if not self.do:
           logging.info(f"{self.activePlayer.name} is going first.")
-          pyautogui.alert(f"\n{self.activePlayer.name} is going first.\n")
           self.activePlayer += 7
           self.activePlayer.hand.sort(key = lambda x: x.house)
         else:
@@ -517,7 +516,9 @@ class Board():
 
       elif self.turnStage == 2: # choose a house, optionally pick up archive
         archive = self.activePlayer.archive
-        self.activeHouse.append(self.chooseHouse("activeHouse")[0]) # this allows something to belong to all houses
+        self.activeHouse = self.chooseHouse("activeHouse")[0]
+        if "jehu_the_bureaucrat" in self.activePlayer.board["Creature"] and "Sanctum" in self.activeHouse:
+          self.activePlayer.gainAmber(2, self)
         highSurf = Surface(self.house1a.get_size())
         highSurf.convert()
         highSurf.fill(COLORS["LIGHT_GREEN"])
@@ -671,11 +672,11 @@ class Board():
         self.extraFightHouses = []
         self.extraUseHouses = []
         self.playedLastTurn = self.playedThisTurn.copy()
-        self.playedThisTurn = []
+        self.playedThisTurn = {}
         self.discardedLastTurn = self.discardedThisTurn.copy()
         self.discardedThisTurn = []
         self.usedLastTurn = self.usedThisTurn.copy()
-        self.usedThisTurn = []
+        self.usedThisTurn = {}
         self.destInFight = []
         self.remaining = True
         if self.resetStates:
@@ -1112,6 +1113,13 @@ class Board():
           cost += 2
         if c.title == "grabber_jammer":
           cost += 1
+        elif c.title == "titan_mechanic" and c.isFlank(self):
+          cost -= 1
+        elif c.title == "murmook":
+          cost += 1
+      for c in active:
+        if c.title == "titan_mechanic" and c.isFlank(self):
+          cost -= 1
     else:
       for c in activeA:
         if c.title == "iron_obelisk":
@@ -1123,6 +1131,13 @@ class Board():
           cost += 2
         if c.title == "grabber_jammer":
           cost += 1
+        elif c.title == "titan_mechanic" and c.isFlank(self):
+          cost -= 1
+        elif c.title == "murmook":
+          cost += 1
+      for c in inactive:
+        if c.title == "titan_mechanic" and c.isFlank(self):
+          cost -= 1
     
     # Things to check: That annoying Dis artifact, Murmook, Grabber Jammer, Jammer Pack, Titan Mechanic, Iron Obelisk
     # Need to add a tag for affecting amber cost?
@@ -1173,12 +1188,13 @@ class Board():
       logging.info(f"{card.title} can't use action/omni right now")
       return
     if card.type == "Creature" and card.stun:
-      pyautogui.alert("Creature is stunned and unable to act. Unstunning creature instead.")
       logging.info("Creature is stunned and unable to act. Unstunning creature instead.")
       card.stun = False
       card.ready = False
       if card not in self.usedThisTurn:
-        self.usedThisTurn.append(card)
+        self.usedThisTurn[card] = 1
+      else:
+        self.usedThisTurn[card] += 1
       self.cardChanged()
       return
     if len(card.action) > 1:
@@ -1186,8 +1202,12 @@ class Board():
     else:
       card.action(self, card)
     card.ready = False
+    if card.type == "Artifact" and "veylan_analyst" in self.activePlayer.board["Creature"]:
+      logging.info("Veylan Analyst gives you 1 amber for using an artifact.")
     if card not in self.usedThisTurn:
-      self.usedThisTurn.append(card)
+      self.usedThisTurn[card] = 1
+    else:
+      self.usedThisTurn[card] += 1
     self.cardChanged(True)
   
   def discardCard(self, cardNum: int, cheat: bool = False):
@@ -1227,18 +1247,19 @@ class Board():
     card = self.activePlayer.board["Creature"][attacker]
     # this check is also in cardOptions, but sometimes things let you trigger a fight other ways
     if len(self.inactivePlayer.board["Creature"]) == 0:
-      pyautogui.alert("Your opponent has no creatures for you to attack. Fight canceled.")
       logging.info("Fight canceled because no opposing creatures.")
       return self
     if not self.canFight(card, cheat=cheat, r_click = True):
-      pyautogui.alert("This card can't fight right now.")
+      logging.info("This card can't fight right now.")
     if card.stun:
-      pyautogui.alert("Creature is stunned and unable to fight. Unstunning creature instead.")
+      logging.info("Creature is stunned and unable to fight. Unstunning creature instead.")
       logging.info(f"Unstunning {card.title}.")
       card.stun = False
       card.ready = False
       if card not in self.usedThisTurn:
-        self.usedThisTurn.append(card)
+        self.usedThisTurn[card] = 1
+      else:
+        self.usedThisTurn[card] += 1
       self.cardChanged()
       return
     if defender == None:
@@ -1256,7 +1277,9 @@ class Board():
       card.fightCard(defenderCard, self)
     except: logging.info("Fight failed.")
     if card not in self.usedThisTurn:
-      self.usedThisTurn.append(card)
+      self.usedThisTurn[card] = 1
+    else:
+      self.usedThisTurn[card] += 1
     self.cardChanged(True)
 
   def omniCard(self, chosen: int, location: str):
@@ -1270,18 +1293,23 @@ class Board():
       card.stun = False
       card.ready = False
       if card not in self.usedThisTurn:
-        self.usedThisTurn.append(card)
+        self.usedThisTurn[card] = 1
+      else:
+        self.usedThisTurn[card] += 1
       self.cardChanged()
       return
     if len(card.omni) > 1:
       pass # TODO: choose which omni to do
     else:
       card.omni(self, card)
+    card.ready = False
+    if card.type == "Artifact" and "veylan_analyst" in self.activePlayer.board["Creature"]:
+      logging.info("Veylan Analyst gives you 1 amber for using an artifact.")
   
   def playCard(self, chosen: int, cheat: str = "Hand", flank = "Right", ask = True):
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
-    logging.info(f"numPlays: {len(self.playedThisTurn)}")
+    logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
     if cheat == "Deck":
       source = self.activePlayer.deck
     elif cheat == "Discard":
@@ -1303,24 +1331,27 @@ class Board():
     # left flank
     if card.type != "Upgrade" and flank == "Left":
       self.activePlayer.board[card.type].insert(0, source.pop(chosen))
-      logging.info(f"numPlays: {len(self.playedThisTurn)}")
+      logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
     # default case: right flank
     elif card.type != "Upgrade":
       self.activePlayer.board[card.type].append(source.pop(chosen))
-      logging.info(f"numPlays: {len(self.playedThisTurn)}")
+      logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
     else:
       targeted = self.chooseCards("Creature", "Choose a creature to attach the upgrade to:")[0]
       self.playUpgrade(card, targeted)
       self.cardChanged()
       return
     #once the card has been added, then we trigger any play effects (eg smaaash will target himself if played on an empty board), use stored new position
-    self.playedThisTurn.append(card)
+    if card not in self.playedThisTurn:
+      self.playedThisTurn[card] = 1
+    else:
+      self.playedThisTurn[card] += 1
     self.cardChanged(True) # definitely need to recalc power here, in case we play something next to a staunch knight so now it is dead
     self.draw()
     pygame.display.update()
     card.play(self, card)
     logging.info(f"{card.title} play ability resolved.")
-    logging.info(f"numPlays: {len(self.playedThisTurn)}")
+    logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
     # if the card is an action, now add it to the discard pile - remote access or poltergeist or nexuss on masterplan can potentially play cards that belong to the other player
     if card.type == "Action":
       if card.title == "library_access":
@@ -1341,15 +1372,16 @@ class Board():
     card = self.activePlayer.board["Creature"][cardNum]
     # check reap states when building cardOptions
     if not self.canReap(card, r_click = True, cheat=cheat):
-      # pyautogui.alert("{card.title} can't reap right now.")
+      logging.info("{card.title} can't reap right now.")
       return
     if card.stun:
-      pyautogui.alert("Creature is stunned and unable to reap. Unstunning creature instead.")
       logging.info(f"Unstunning {card.title}.")
       card.stun = False
       card.ready = False
       if card not in self.usedThisTurn:
-        self.usedThisTurn.append(card)
+        self.usedThisTurn[card] = 1
+      else:
+        self.usedThisTurn[card] += 1
       self.cardChanged()
       return
     basicReap(self, card)
@@ -1359,7 +1391,9 @@ class Board():
         r(self, card)
     card.ready = False # commented out for testing
     if card not in self.usedThisTurn:
-      self.usedThisTurn.append(card)
+      self.usedThisTurn[card] = 1
+    else:
+      self.usedThisTurn[card] += 1
     self.cardChanged(True)
 
   def forgeKey(self, player: str, cost: int):
@@ -1435,7 +1469,6 @@ class Board():
       if player == "active" and "interdimensional_graft" in other.states and other.states["interdimensional_graft"] and forger.amber > 0:
         other.gainAmber(forger.amber, self) # setKeys is called in here
         forger.amber = 0
-        # pyautogui.alert(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber. They now have {other.amber} amber.")
         logging.info(f"Your opponent played 'Interdimensional Graft' last turn, so they gain your {forger.amber} leftover amber. They now have {other.amber} amber.")
         # can't use play.stealAmber b/c this isn't technically stealing so Vaultkeeper shouldn't be able to stop it
       if "bilgum_avalanche" in [x.title for x in forger.board["Creature"]]:
@@ -1454,7 +1487,6 @@ class Board():
           if c.destroyed:
             self.pendingReloc.append(c)
         self.pending()
-      # pyautogui.alert(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
       logging.info(f"{forger.name} now has {forger.keys} keys and {forger.amber} amber.")
       if player == "active":
         self.forgedThisTurn.append(forged)
@@ -1881,6 +1913,8 @@ class Board():
       if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
         logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
         return False
+      if card.title == "mack_the_knife":
+        cheat = True
       if card.house not in self.activeHouse and card.house not in self.extraFightHouses and card.house not in self.extraUseHouses and card.title != "tireless_crocag" and not cheat:
         if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
           pass
@@ -1990,6 +2024,8 @@ class Board():
       cheat = True
     if "deipno_spymaster" in self.activePlayer.states and card in self.activePlayer.states["deipno_spymaster"]:
       cheat = True
+    if card.title == "mack_the_knife":
+      cheat = True
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
       logging.info(f"House: {card.house}, cheat: {cheat}")
       if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
@@ -2011,7 +2047,14 @@ class Board():
   def ruleOfSix(self, card):
     """ Checks a card against the rule of six.
     """
-    if sum(x.title == card.title for x in self.playedThisTurn + self.usedThisTurn) >= 6:
+    count = 0
+    for k,v in self.playedThisTurn.items():
+      if k.title == card.title:
+        count += v
+    for k,v in self.usedThisTurn.items():
+      if k.title == card.title:
+        count += v
+    if count >= 6:
       return False
     return True
 
@@ -2925,7 +2968,7 @@ class Board():
             elif not full:
               incomplete = None
               while not incomplete:
-                incomplete = pyautogui.confirm("Are you sure you want to target less than the full number of targets?", buttons=["Yes", "No"])
+                incomplete = self.chooseHouse("custom", ("Are you sure you want to target less than the full number of targets?", ["Yes", "No"]))
               if incomplete == "Yes":
                 self.cardChanged()
                 return retVal
@@ -2975,7 +3018,7 @@ class Board():
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
                 foe = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
@@ -2991,7 +3034,7 @@ class Board():
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
               elif canHit == "either": # this means I can select multiples, but only all from same side
@@ -3008,7 +3051,7 @@ class Board():
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
                 foe = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
@@ -3024,7 +3067,7 @@ class Board():
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
               elif canHit == "enemy": # this means I can only target unfriendlies
@@ -3041,7 +3084,7 @@ class Board():
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
               elif canHit == "friend": # this means I can only target friendlies
@@ -3058,7 +3101,7 @@ class Board():
                       retVal.remove(toAdd)
                       selected.remove((selectedSurf, card.rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
             else: # Creature or Artifact
@@ -3082,7 +3125,7 @@ class Board():
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
                 foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
@@ -3104,7 +3147,7 @@ class Board():
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
               elif canHit == "either": # this means I can select multiples, but only all from same side
@@ -3127,7 +3170,7 @@ class Board():
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
                 foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
@@ -3149,7 +3192,7 @@ class Board():
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
               elif canHit == "enemy": # this means I can only target unfriendlies
@@ -3172,7 +3215,7 @@ class Board():
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
               elif canHit == "friend": # this means I can only target friendlies
@@ -3195,7 +3238,7 @@ class Board():
                       else:
                         selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
-                    pyautogui.alert(con_message)
+                    logging.info(con_message)
                     self.cardChanged()
                     break
           else:
@@ -3213,7 +3256,7 @@ class Board():
                     retVal.remove(toAdd)
                     selected.remove((selectedSurf, card.rect))
                 else:
-                  pyautogui.alert(con_message)
+                  logging.info(con_message)
                   self.cardChanged()
                   break
             else:
@@ -3230,7 +3273,7 @@ class Board():
                     retVal.remove(toAdd)
                     selected.remove((selectedSurf, card.rect))
                 else:
-                  pyautogui.alert(con_message)
+                  logging.info(con_message)
                   self.cardChanged()
                   break
       if not full or (full and len(retVal) == count):

@@ -90,6 +90,7 @@ class Card(pygame.sprite.Sprite):
             self.ward = False
             self.enrage = False
             self.upgrade = []
+            self.neigh = []
             self.ready = False
             self.harland = None
             self.damagable = True
@@ -253,7 +254,7 @@ class Card(pygame.sprite.Sprite):
                     self.captured += active
                     game.activePlayer.amber = 0
             else:
-                pyautogui.alert("This card wasn't in either board.")
+                logging.info("This card wasn't in either board.")
         else:  # else, aka if own == True
             if inactive > num:
                 self.captured += num
@@ -423,28 +424,29 @@ class Card(pygame.sprite.Sprite):
         if self in active:
             index = active.index(self)
             if index == 0 and len(active) == 1:
-                return []
+                self.neigh = []
             elif index == 0:
-                return [active[1]]
+                self.neigh = [active[1]]
             elif index == len(active) - 1:
-                return [active[index - 1]]
+                self.neigh = [active[index - 1]]
             else:
-                return [active[index - 1], active[index + 1]]
+                self.neigh = [active[index - 1], active[index + 1]]
+            return self.neigh
         elif self in inactive:
             index = inactive.index(self)
             if index == 0 and len(inactive) == 1:
-                return []
+                self.neigh = []
             elif index == 0:
-                return [inactive[1]]
+                self.neigh = [inactive[1]]
             elif index == len(inactive) - 1:
-                return [inactive[index - 1]]
+                self.neigh = [inactive[index - 1]]
             else:
-                return [inactive[index - 1], inactive[index + 1]]
+                self.neigh = [inactive[index - 1], inactive[index + 1]]
+            return self.neigh
         else: 
-            pyautogui.alert("This unit is not on the board, so it has no neighbors.")
+            logging.alert(f"{self.title} is not on the board, so it has no neighbors.")
 
     def isFlank(self, game):
-        # also a logos artifact that makes something temporarily flank, will probably set it up so that the state points to a card
         for player in [game.activePlayer, game.inactivePlayer]:
             if "spectral_tunneler" in player.states and player.states["spectral_tunneler"]:
                 if self in player.states["spectral_tunneler"]:
@@ -458,11 +460,16 @@ class Card(pygame.sprite.Sprite):
         """
     
     def resetArmor(self, game):
-        self.armor = self.base_armor + self.extraArm
+        self.armor = self.base_armor
+        if "shoulder_armor" in [x.title for x in self.upgrade] and self.isFlank(game):
+            self.armor += 2
+        if "grey_monk" in game.activePlayer.board["Creature"]:
+            self.armor += sum(x.title == "grey_monk" for x in game.activePlayer.board["Creature"])
+        if "bulwark" in [x.title for x in self.neighbors(game)]:
+            self.armor += 2
         if "Elusive" in self.text:
             self.elusive = True
         self.temp_skirmish = False
-        # I can change Gray Monk to match this by giving it a play effect and a leaves play effect.
 
     def calcPower(self, owner, other, game):
         self.power = self.base_power + self.extraPow # extraPow is counters
@@ -470,6 +477,17 @@ class Card(pygame.sprite.Sprite):
             self.power += 2
         elif self.title == "yxili_marauder":
             self.power += self.captured
+        elif self.title == "mushroom_man":
+            self.power += 3 * (3 - owner.keys)
+        if "niffle_queen" in owner.board["Creature"]:
+            if "Beast" in self.traits:
+                self.power += sum(x.title == "niffle_queen" for x in owner.board["Creature"])
+                if self.title == "niffle_queen":
+                    self.power -= 1
+            if "Niffle" in self.traits:
+                self.power += sum(x.title == "niffle_queen" for x in owner.board["Creature"])
+                if self.title == "niffle_queen":
+                    self.power -= 1
         if "shoulder_armor" in [x.title for x in self.upgrade] and self.isFlank(game):
             self.power += 2
         if "banner_of_battle" in game.activePlayer.board["Artifact"]:
@@ -478,8 +496,17 @@ class Card(pygame.sprite.Sprite):
             self.power += 5
         if "flame_wreathed" in [x.title for x in self.upgrade]:
             self.power += 2
+        if "round_table" in owner.board["Artifact"] and "Knight" in self.traits:
+            self.power += 1
+            self.taunt = True
         if self.house == "Brobnar" and "king_of_the_crag" in [x.title for x in other.board["Creature"]]:
             self.power -= 2
+        old_neigh = self.neigh.copy()
+        if old_neigh != self.neighbors(game):
+            if "shoulder_armor" in [x.title for x in self.upgrade] and self.isFlank(game) and len(old_neigh) == 2:
+                self.armor += 2
+            if "bulwark" in [x.title for x in self.neighbors(game)]:
+                self.armor += min(0, 2 * (sum(x.title == "bulwark" for x in self.neigh) - sum(x.title == "bulwark" for x in old_neigh)))
 
     def updateHealth(self, player = None) -> None:
         if (self.power - self.damage) <= 0:

@@ -196,6 +196,8 @@ def shoulder_armor (game, card, side: str, choice: int):
   """
   passFunc(game, card)
   logging.info(f"{card.title} has been played.")
+  if card.isFlank(game):
+    card.extraArm += 2
   # this one will be implemented in the cardChanged function
 
 def duskrunner (game, card, side: str, choice: int):

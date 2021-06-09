@@ -34,18 +34,18 @@ def stealAmber(thief, victim, num, game):
   """
   # this will account for edge cases that allow the inactive player to steal amber (namely, Magda leaving play)
   if "The Vaultkeeper" in [x.title for x in victim.board["Creature"]]:
-    print("The steal effect fails because of Vaultkeeper.")
+    logging.info("The steal effect fails because of Vaultkeeper.")
     return
   if victim.amber >= num:
     victim.amber -= num
     thief.gainAmber(num, game)
-    print(f"{thief.name} stole {num} amber from {victim.name}.")
+    logging.info(f"{thief.name} stole {num} amber from {victim.name}.")
   else:
     thief.gainAmber(victim.amber, game)
     if victim.amber == 0:
-      print("Your opponent had no amber to steal.")
+      logging.info("Your opponent had no amber to steal.")
       return
-    print(f"Your opponent only had {victim.amber} amber for you to steal.")
+    logging.info(f"Your opponent only had {victim.amber} amber for you to steal.")
     victim.amber = 0
 
 

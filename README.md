@@ -4,11 +4,11 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
+ <li>Veylan Analyst should give amber for using an opponent's artifact.</li>
  <li>If collar of subordination leaves play, the creature should return to its owner.</li>
- <li>If autocannon (or pingle) kills a creature, its play ability will not resolve - but activePlayer should decide the order of those things, since they are in the same timing window, so they could choose the proper order. - This is related to the whole library access trigger/card play effect trigger I have noted elsewhere.</li>
- <li>Update choose flank to choose which side an opponent's creature entering will go on.</li>
+ <li>If autocannon (or pingle) kills a creature, its play ability will not resolve - but activePlayer should decide the order of those things, since they are in the same timing window, so they could choose the proper order. - This is related to the whole library access trigger/card play effect trigger I have noted immediately below.</li>
  <li>A function for ordering simultaneous things or choosing a number of items from the list of abilities.</li>
- <li>implement the rule of six: change playedThisTurn, etc into dictionaries?</li>
+ <li>Update choose flank to choose which side an opponent's creature entering will go on.</li>
  <li>Code reap, fight, action, abilities with knowledge that there might be more than one</li>
  <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves. Actually, I think I'll have basic dest, but I'll call it from pending, not tied to the card. Potentially the same with basicReap and basicFight</li>
  <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal - everytime a function tries to ref pendingReloc, it needs to check if pendingReloc contains something - if it does, then this is a nested destroy, and secondary needs to be used instead - I think this shouldn't matter for play effects</li>

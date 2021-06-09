@@ -29,7 +29,7 @@ def basicLeaves(game, card):
       elif card in active[t]:
         stealAmber(game.inactivePlayer, game.activePlayer, 2, game)
     # if grey_monk
-    if card.title == "grey_monk":
+    elif card.title == "grey_monk":
       if card in active[t]:
         for c in active[t]:
           c.extraArm -= 1
@@ -38,8 +38,12 @@ def basicLeaves(game, card):
         for c in inactive[t]:
           c.extraArm -= 1
           c.armor -= min(1, c.armor)
+    # if bulwark
+    elif card.title == "bulwark":
+      for c in card.neighbors(game):
+        c.armor -= min(2, c.armor)
     # if banner_of_battle
-    if card.title == "banner_of_battle":
+    elif card.title == "banner_of_battle":
       if card in active[t]:
         for c in active["Creature"]:
           c.calcPower(game)
@@ -90,6 +94,8 @@ def basicLeaves(game, card):
         else:
           flank = len(active)
         active.insert(flank, card)
+    # TODO: handle collar of subordination
+
     # handle spangler_box
     if card.title == "spangler_box":
       logging.info("Returning Spangler Box's minions.")
@@ -357,7 +363,3 @@ def bad_penny (game, card):
 ###########
 # Untamed #
 ###########
-
-
-if __name__ == '__main__':
-  print ('This statement will be executed only if this script is called directly')
