@@ -8,7 +8,7 @@ import json, random, logging, pygame, pyautogui
 from helpers import willEnterReady, destroy
 from cards.destroyed import basicDest, basicLeaves
 from cards.reap import basicReap, spectral_tunneler as st
-from typing import Dict, List, Set, Tuple
+from typing import List, Tuple
 from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW, OB
 
 #####################
@@ -1590,7 +1590,7 @@ class Board():
             self.cardBlits.append((up_image, up_rect))
             y -= 1
         self.cardBlits.append((card_image, card_rect))
-    # card areas
+    # hands
     for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
       l = len(board)
       x = 0
@@ -1626,8 +1626,15 @@ class Board():
         card_image, card_rect = card.image, card.rect
         card.tapped_rect.topleft = OB
         card_rect.topleft = (offset + (x * min(card_w, self.target_cardw)) + self.margin * (x + 1), area.top)
+        if area == self.hand2_rect:
+          card_rect.bottom = area.bottom
         x += 1
         self.cardBlits.append((card_image, card_rect))
+    # actions
+    if self.activePlayer.board["Action"]:
+      self.actionBackSurf = Surface((self.target_cardh + self.margin * 2, self.target_cardw + self.margin * 2)) # actually define this elsewhere, becuase it will be constant
+    # lasting effects
+
     # discards
     l = len(self.activePlayer.discard)
     if l > 0:

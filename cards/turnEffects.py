@@ -1,13 +1,4 @@
-import os
-
-import pygame, logging
-
-def basic_eot (game, card):
-  # card.armor = card.base_armor + card.extraArm
-  # if "Elusive" in card.text:
-  #   card.elusive = True
-  pass
-
+import logging
 
 ###########
 # Brobnar #
@@ -16,7 +7,6 @@ def basic_eot (game, card):
 def eot_rogue_ogre (game, card):
   """ Rogue Ogre: If you only played one card this turn, Rogue Ogre heals 2 damage and captures 1 amber.
   """
-  basic_eot(game, card)
   if len(game.playedThisTurn) == 1:
     logging.info(f"{card.title}'s eot effect has triggered.")
     card.damage -= min(2, card.damage)
@@ -31,4 +21,3 @@ def eot_shaffles (game, card):
   """
   logging.info(f"{card.title}'s eot effect has triggered.")
   game.inactivePlayer.amber -= min(1, game.inactivePlayer.amber)
-

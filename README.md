@@ -17,7 +17,6 @@
  <li>Code not yet implemented to only display valid options for items, instead of all. - in progress, don't think all effects are taken into account</li>
  <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
  <li>The game usually doesn't tell you if an attempt to play a card failed, or why it failed. - in progress</li>
- <li>Get rid of remaining print statements/turn into log statements.</li>
  <li>I really need to throw in a whole bunch of logging all over the place.</li>
  <li>A whole lot more game assets, for stun, enrage, damage, card backs, house symbols, etc.</li>
  <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor.</li>
@@ -48,6 +47,7 @@
  <li></li>
  <li></li>
  <li></li>
+<li><s>Get rid of remaining print statements/turn into log statements.</s></li>
  <li><s>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</s></li>
  <li><s>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</s> - Yes</li>
  <li><s>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</s></li>
