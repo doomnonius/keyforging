@@ -130,7 +130,7 @@ class Deck:
                     if c.title == "ether_spider" and not c.destroyed and not c.returned:
                         c.capture(game, count)
                         logging.info(f"Ether Spider captured the {count} amber that was gained.")
-        logging.info(f"{self.activePlayer.deck.name} gained {count} amber. {self.activePlayer.deck.name} now has {self.activePlayer.amber} amber.")
+        logging.info(f"{self.name} gained {count} amber. {self.name} now has {self.amber} amber.")
         game.setKeys()
 
     def __iadd__(self, num):

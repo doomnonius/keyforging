@@ -516,7 +516,8 @@ class Board():
 
       elif self.turnStage == 2: # choose a house, optionally pick up archive
         archive = self.activePlayer.archive
-        self.activeHouse = self.chooseHouse("activeHouse")[0]
+        self.activeHouse = self.chooseHouse("activeHouse")
+        print(self.activeHouse)
         if "jehu_the_bureaucrat" in self.activePlayer.board["Creature"] and "Sanctum" in self.activeHouse:
           self.activePlayer.gainAmber(2, self)
         highSurf = Surface(self.house1a.get_size())
@@ -1200,7 +1201,8 @@ class Board():
     if len(card.action) > 1:
       pass # TODO: choose which action to do
     else:
-      card.action(self, card)
+      for a in card.action:
+        a(self, card)
     card.ready = False
     if card.type == "Artifact" and "veylan_analyst" in self.activePlayer.board["Creature"]:
       logging.info("Veylan Analyst gives you 1 amber for using an artifact.")
@@ -1572,7 +1574,6 @@ class Board():
           card_rect.bottom = area[1] + area[3] - self.margin
         x += 1
         if card.upgrade:
-          # deliberately not scaling upgrades at this point
           y = len(card.upgrade)
           x += 0.25 * y
           card_rect.left += 0.25 * self.target_cardh * y
@@ -1618,13 +1619,13 @@ class Board():
         ratio = CARDH / card_h
         card_w = int(CARDW // ratio)
       else:
-        card_w = CARDW
+        card_w = board[0].image.get_width()
       for card in board:
         if rescale:
           card.image, card.rect = card.scale_image(card_w, card_h)
         card_image, card_rect = card.image, card.rect
         card.tapped_rect.topleft = OB
-        card_rect.topleft = (offset + (x * card_w) + self.margin * (x + 1), area.top)
+        card_rect.topleft = (offset + (x * min(card_w, self.target_cardw)) + self.margin * (x + 1), area.top)
         x += 1
         self.cardBlits.append((card_image, card_rect))
     # discards
@@ -2055,8 +2056,8 @@ class Board():
       if k.title == card.title:
         count += v
     if count >= 6:
-      return False
-    return True
+      return True
+    return False
 
   def playUpgrade(self, card, target = None):
     """ Plays an upgrade on a creature.

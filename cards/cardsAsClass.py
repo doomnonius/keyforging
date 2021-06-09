@@ -48,7 +48,7 @@ class Card(pygame.sprite.Sprite):
         self.text = self.cardInfo["card_text"]
         if self.cardInfo['traits'] != None:
             self.traits = self.cardInfo['traits']
-            print([x for x in self.traits.split() if len(x) > 2])
+            # print([x for x in self.traits.split() if len(x) > 2])
         else:
             self.traits = ''
         self.stun = False
@@ -73,9 +73,9 @@ class Card(pygame.sprite.Sprite):
             self.action = []
         # omni abilitiestry:
         if f"omni_{self.title}" in dir(action):
-            self.omni = eval("action.omni" + self.number)
+            self.omni = [eval(f"action.omni_{self.title}")]
         else:
-            self.omni = False
+            self.omni = []
         if self.type == "Upgrade":
             # self.attached = None
             self.play = play.passFunc

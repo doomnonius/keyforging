@@ -6,7 +6,7 @@ import os, sys, logging, pyautogui
 # import cards.cardsAsClass as card
 import decks.decks as deck
 import json, argparse
-from game import Board, logger
+from game import Board
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-a", "--action", help="launch the app, specifiying whether to start a [newgame], [import] a deck", type=str, default="newgame")
