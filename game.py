@@ -67,7 +67,10 @@ class Board():
     self.resetStates = []
     self.resetStatesNext = []
     # draw bools
+    self.ref_image = None
+    self.ref_image_rect = None
     self.remaining = True
+    self.drawAction = True
     self.drawFriendDiscard = False
     self.closeFriendDiscard = None
     self.drawEnemyDiscard = False
@@ -114,6 +117,7 @@ class Board():
     self.SMALLFONT = pygame.font.SysFont("Corbel", max(HEIGHT // 45, 14))
     self.BASICFONT = pygame.font.SysFont("Corbel", HEIGHT // 27)
     self.OTHERFONT = pygame.font.SysFont("Corbel", HEIGHT // 14)
+    self.SYMBOLFONT = pygame.font.SysFont("Corbel", 30)
     self.margin = HEIGHT // 108
     self.CLOCK = pygame.time.Clock()
     self.target_cardh = HEIGHT // 7
@@ -336,11 +340,30 @@ class Board():
     self.neutral_rect.topleft = (self.divider.get_width(), int(mat_third * 2.5))
     self.board_blits.append((self.neutral, self.neutral_rect))
 
+    # action surf
+    self.actionBackSurf = Surface((((mat_third * 2) // 7) * 5), mat_third * 2)
+    self.actionBackSurf.convert_alpha()
+    self.actionBackSurf.set_alpha(150)
+    self.actionBackSurf.fill(COLORS["GREY"])
+    self.actionBackRect = self.actionBackSurf.get_rect()
+    self.actionBackRect.bottomleft = (0, self.divider_rect.top)
+
+    # action close button
+    self.actionMin = self.SYMBOLFONT.render("<", 1, COLORS['RED'])
+    self.actionMinRect = self.actionMin.get_rect()
+    self.actionMinRect.topright = self.actionBackRect.topright
+
+    # action open button
+    self.actionMax = self.SYMBOLFONT.render(">", 1, COLORS["RED"])
+    self.actionMaxRect = self.actionMax.get_rect()
+    self.actionMaxRect.topleft = (0, self.actionBackRect.top)
+
     # end turn
     self.endText = self.OTHERFONT.render(f"  End Turn  ", 1, COLORS['WHITE'])
     self.endRect = self.endText.get_rect()
-    self.endRect.centerx = wid // 2
-    self.endRect.centery = hei // 2
+    self.endRect.topright = (self.neutral.right - self.margin, self.neutral.top + self.margin)
+    # self.endRect.centerx = wid // 2
+    # self.endRect.centery = hei // 2
     self.endBack = Surface((self.endText.get_width() + 10, self.endText.get_height() + 10))
     self.endBack.convert()
     self.endBack.fill(COLORS["GREEN"])
@@ -1632,7 +1655,25 @@ class Board():
         self.cardBlits.append((card_image, card_rect))
     # actions
     if self.activePlayer.board["Action"]:
-      self.actionBackSurf = Surface((self.target_cardh + self.margin * 2, self.target_cardw + self.margin * 2)) # actually define this elsewhere, becuase it will be constant
+      if not self.ref_image:
+        c = self.activePlayer.board["Action"][-1]
+        target_height = self.actionBackSurf.get_height() - (self.margin * 2)
+        target_width = (target_height // 7) * 5
+        self.ref_image = c.scale_image(target_width, target_height)
+        self.ref_image_rect = self.ref_image.get_rect()
+        self.ref_image_rect.center = self.actionBackRect.center
+      if self.drawAction:
+        self.actionBackRect.bottomleft = (0, self.divider_rect.top)
+        self.cardBlits.append((self.actionBackSurf, self.actionBackRect))
+        self.cardBlits.append((self.actionMin, self.actionMinRect))
+      else:
+        self.actionBackRect.bottomright = (30, self.divider_rect.top)
+        self.cardBlits.append((self.actionBackSurf, self.actionBackRect))
+        self.cardBlits.append((self.actionMax, self.actionMaxRect))
+      self.cardBlits.append((self.ref_image, self.ref_image_rect))
+    else:
+      self.ref_image = None
+      self.ref_image_rect = None
     # lasting effects
 
     # discards
@@ -2356,7 +2397,7 @@ class Board():
     discard = self.canDiscard(card, reset = False)
 
     if discard:
-      ## discard stuff here - if you can play it, you can discard it
+      ## discard stuff here
       discSurf = Surface((self.target_cardw, self.target_cardh))
       discSurf.convert_alpha()
       discSurf.set_alpha(80)
@@ -2537,6 +2578,15 @@ class Board():
             card.image.set_alpha(255)
             self.cardChanged()
             return
+          elif True not in self.enemyDraws:
+            if self.drawAction:
+              if Rect.collidepoint(self.actionMinRect, (self.mousex, self.mousey)):
+                self.drawAction = False
+                self.cardChanged()
+            else:
+              if Rect.collidepoint(self.actionMaxRect, (self.mousex, self.mousey)):
+                self.drawAction = True
+                self.cardChanged()
           elif True not in self.friendDraws and True in [Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]:
             if Rect.collidepoint(self.flankRectLeft, (self.mousex, self.mousey)):
               self.extraDraws = []
@@ -2812,6 +2862,15 @@ class Board():
             for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
               card.rect.topleft = OB
             self.cardChanged()
+          elif True not in self.enemyDraws:
+            if self.drawAction:
+              if Rect.collidepoint(self.actionMinRect, (self.mousex, self.mousey)):
+                self.drawAction = False
+                self.cardChanged()
+            else:
+              if Rect.collidepoint(self.actionMaxRect, (self.mousex, self.mousey)):
+                self.drawAction = True
+                self.cardChanged()
           elif True in self.enemyDraws and Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = False
             self.drawEnemyArchive = False
@@ -2991,6 +3050,15 @@ class Board():
             for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
               card.rect.topleft = OB
             self.cardChanged()
+          elif True not in self.enemyDraws:
+            if self.drawAction:
+              if Rect.collidepoint(self.actionMinRect, (self.mousex, self.mousey)):
+                self.drawAction = False
+                self.cardChanged()
+            else:
+              if Rect.collidepoint(self.actionMaxRect, (self.mousex, self.mousey)):
+                self.drawAction = True
+                self.cardChanged()
           elif True in self.enemyDraws and Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
             self.drawEnemyDiscard = False
             self.drawEnemyArchive = False

@@ -3052,11 +3052,11 @@ def masterplan (game, card):
   logging.info(f"{card.title}'s play ability is triggered.")
   hand = game.activePlayer.hand
 
-  if len(hand):
+  if hand:
     choice = game.chooseCards("Hand", "Put a card facedown beneath Masterplan.", "friend")[0][1]
     c = hand[choice]
     hand.remove(c)
-    card.upgrade.append(c) # not going to use pendingReloc for this one, going to cheat and use upgrade
+    card.under.append(c) # not going to use pendingReloc for this one, going to cheat and use upgrade
 
 #############
 # Creatures #

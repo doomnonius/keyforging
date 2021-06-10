@@ -758,9 +758,9 @@ def omni_masterplan (game, card):
   """ Masterplan: Play the card under Masterplan. Destroy Masterplan.
   """
   logging.info(f"Using {card.title}'s action.")
-  # I think it's technically possible to have more than one card under master plan
+  # I think it's technically possible to have more than one card under masterplan?
   # TODO: confirm this possibility, and add functionality for ordering cards
-  for c in card.upgrade:
+  for c in card.under:
     logging.info(f"Playing {c.title} from under {card.title}.")
     card.upgrade.remove(c)
     game.activePlayer.hand.append(c)

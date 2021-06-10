@@ -57,7 +57,8 @@ class Card(pygame.sprite.Sprite):
         self.destroyed = False
         self.returned = False
         self.captured = 0
-        self.upgrade = [] # needs to be on artifacts b/c using for masterplan
+        self.under = []
+        self.selected = False
         # conditionals to add?
         # status effects
         
