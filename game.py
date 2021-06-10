@@ -1580,6 +1580,26 @@ class Board():
       if rescale:  # scale everything down or up
         ratio = CARDH / card_h
         card_w = int(CARDW // ratio)
+      if True in [x.selected for x in board]:
+        selectedSurf = Surface(board[0].image.get_size())
+        selectedSurf.convert_alpha()
+        selectedSurf.set_alpha(80)
+        selectedSurf.fill(COLORS["LIGHT_GREEN"])
+
+        selectedSurfTapped = Surface(board[0].tapped_image.get_size())
+        selectedSurfTapped.convert_alpha()
+        selectedSurfTapped.set_alpha(80)
+        selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
+      if True in [x.invalid for x in board]:
+        invalidSurf = Surface(board[0].image.get_size())
+        invalidSurf.convert_alpha()
+        invalidSurf.set_alpha(80)
+        invalidSurf.fill(COLORS["RED"])
+
+        invalidSurfTapped = Surface(board[0].tapped_image.get_size())
+        invalidSurfTapped.convert_alpha()
+        invalidSurfTapped.set_alpha(80)
+        invalidSurf.fill(COLORS["RED"])
       for card in board:
         if rescale:
           card.image, card.rect = card.scale_image(card_w, card_h)
@@ -1613,6 +1633,16 @@ class Board():
             self.cardBlits.append((up_image, up_rect))
             y -= 1
         self.cardBlits.append((card_image, card_rect))
+        if card.selected:
+          if card.ready:
+            self.cardBlits.append((selectedSurf, card_rect))
+          else:
+            self.cardBlits.append((selectedSurfTapped, card_rect))
+        if card.invalid:
+          if card.ready:
+            self.cardBlits.append((invalidSurf, card_rect))
+          else:
+            self.cardBlits.append((invalidSurfTapped, card_rect))
     # hands
     for board,area in [(self.activePlayer.hand, self.hand1_rect), (self.inactivePlayer.hand, self.hand2_rect)]:
       l = len(board)
@@ -2950,36 +2980,41 @@ class Board():
     cancelBackRect.top = messageRect[1] + messageRect[3] + self.margin
     cancelBackRect.left = (WIDTH // 2)  + (self.margin // 2)
     
-    selectedSurf = Surface((self.target_cardw, self.target_cardh))
-    selectedSurf.convert_alpha()
-    selectedSurf.set_alpha(80)
-    selectedSurf.fill(COLORS["LIGHT_GREEN"])
+    # selectedSurf = Surface((self.target_cardw, self.target_cardh))
+    # selectedSurf.convert_alpha()
+    # selectedSurf.set_alpha(80)
+    # selectedSurf.fill(COLORS["LIGHT_GREEN"])
 
-    selectedSurfTapped = Surface((self.target_cardh, self.target_cardw))
-    selectedSurfTapped.convert_alpha()
-    selectedSurfTapped.set_alpha(80)
-    selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
+    # selectedSurfTapped = Surface((self.target_cardh, self.target_cardw))
+    # selectedSurfTapped.convert_alpha()
+    # selectedSurfTapped.set_alpha(80)
+    # selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
 
-    invalidSurf = Surface((self.target_cardw, self.target_cardh))
-    invalidSurf.convert_alpha()
-    invalidSurf.set_alpha(80)
-    invalidSurf.fill(COLORS["RED"])
+    # invalidSurf = Surface((self.target_cardw, self.target_cardh))
+    # invalidSurf.convert_alpha()
+    # invalidSurf.set_alpha(80)
+    # invalidSurf.fill(COLORS["RED"])
 
-    invalidSurfTapped = Surface((self.target_cardh, self.target_cardw))
-    invalidSurfTapped.convert_alpha()
-    invalidSurfTapped.set_alpha(80)
-    invalidSurf.fill(COLORS["RED"])
+    # invalidSurfTapped = Surface((self.target_cardh, self.target_cardw))
+    # invalidSurfTapped.convert_alpha()
+    # invalidSurfTapped.set_alpha(80)
+    # invalidSurf.fill(COLORS["RED"])
+    
 
     invalid = []
 
     if canHit == "friend":
       target = self.activePlayer
+      other = self.inactivePlayer
     elif canHit == "enemy":
       target = self.inactivePlayer
+      other = self.activePlayer
     elif canHit == "both":
       target = self.activePlayer
+      other = self.inactivePlayer
     elif canHit == "either":
       target = self.activePlayer
+      other = self.inactivePlayer
     else:
       logging.error(f"Invalid canhit: {canHit}")
       raise ValueError
@@ -2987,27 +3022,32 @@ class Board():
     if targetPool == "Hand":
       for card in target.hand:
         if not condition(card):
-          invalid.append((invalidSurf, card.rect))
+          card.invalid = True # invalid.append((invalidSurf, card.rect))
+      for card in target.board["Creature"] + target.board["Artifact"]:
+        card.invalid = True
     elif targetPool == "Discard":
       for card in target.discard:
         if not condition(card):
-          invalid.append((invalidSurf, card.rect))
+          card.invalid = True # invalid.append((invalidSurf, card.rect))
     else: # targetPool == "Artifact" or "Creature"
       if canHit == "both" or canHit == "either":
         target = self.activePlayer.board[targetPool] + self.inactivePlayer.board[targetPool]
         for card in target:
           if not condition(card):
             if card.ready:
-              invalid.append((invalidSurf, card.rect))
+              card.invalid = True # invalid.append((invalidSurf, card.rect))
             else:
-              invalid.append((invalidSurfTapped, card.tapped_rect))
+              card.invalid = True # invalid.append((invalidSurfTapped, card.tapped_rect))
       if canHit == "friend" or canHit == "enemy":
         for card in target.board[targetPool]:
           if not condition(card):
             if card.ready:
-              invalid.append((invalidSurf, card.rect))
+              card.invalid = True # invalid.append((invalidSurf, card.rect))
             else:
-              invalid.append((invalidSurfTapped, card.tapped_rect))  
+              card.invalid = True # invalid.append((invalidSurfTapped, card.tapped_rect))  
+        for card in other.board[targetPool]:
+          if not condition(card):
+            card.invalid = True
         
     selected = []
     retVal = []
@@ -3088,11 +3128,11 @@ class Board():
                   if condition(card):
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
-                      selected.append((selectedSurf, card.rect))
+                      card.selected = True # selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
-                      selected.remove((selectedSurf, card.rect))
+                      card.selected = False # selected.remove((selectedSurf, card.rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3104,11 +3144,11 @@ class Board():
                   if condition(card):
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
-                      selected.append((selectedSurf, card.rect))
+                      card.selected = True # selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
-                      selected.remove((selectedSurf, card.rect))
+                      card.selected = False # selected.remove((selectedSurf, card.rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3121,11 +3161,11 @@ class Board():
                   if condition(card):
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
-                      selected.append((selectedSurf, card.rect))
+                      card.selected = True # selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
-                      selected.remove((selectedSurf, card.rect))
+                      card.selected = False # selected.remove((selectedSurf, card.rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3137,11 +3177,11 @@ class Board():
                   if condition(card):
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
-                      selected.append((selectedSurf, card.rect))
+                      card.selected = True # selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
-                      selected.remove((selectedSurf, card.rect))
+                      card.selected = False # selected.remove((selectedSurf, card.rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3154,11 +3194,11 @@ class Board():
                   if condition(card):
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
-                      selected.append((selectedSurf, card.rect))
+                      card.selected = True # selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
-                      selected.remove((selectedSurf, card.rect))
+                      card.selected = False # selected.remove((selectedSurf, card.rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3171,11 +3211,11 @@ class Board():
                   if condition(card):
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
-                      selected.append((selectedSurf, card.rect))
+                      card.selected = True # selected.append((selectedSurf, card.rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
-                      selected.remove((selectedSurf, card.rect))
+                      card.selected = False # selected.remove((selectedSurf, card.rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3190,16 +3230,16 @@ class Board():
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
                       if card.ready:
-                        selected.append((selectedSurf, card.rect))
+                        card.selected = True # selected.append((selectedSurf, card.rect))
                       else:
-                        selected.append((selectedSurfTapped, card.tapped_rect))
+                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       if card.ready:
-                        selected.remove((selectedSurf, card.rect))
+                        card.selected = False # selected.remove((selectedSurf, card.rect))
                       else:
-                        selected.remove((selectedSurfTapped, card.tapped_rect))
+                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3212,16 +3252,16 @@ class Board():
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
                       if card.ready:
-                        selected.append((selectedSurf, card.rect))
+                        card.selected = True # selected.append((selectedSurf, card.rect))
                       else:
-                        selected.append((selectedSurfTapped, card.tapped_rect))
+                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       if card.ready:
-                        selected.remove((selectedSurf, card.rect))
+                        card.selected = False # selected.remove((selectedSurf, card.rect))
                       else:
-                        selected.remove((selectedSurfTapped, card.tapped_rect))
+                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3235,16 +3275,16 @@ class Board():
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
                       if card.ready:
-                        selected.append((selectedSurf, card.rect))
+                        card.selected = True # selected.append((selectedSurf, card.rect))
                       else:
-                        selected.append((selectedSurfTapped, card.tapped_rect))
+                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       if card.ready:
-                        selected.remove((selectedSurf, card.rect))
+                        card.selected = False # selected.remove((selectedSurf, card.rect))
                       else:
-                        selected.remove((selectedSurfTapped, card.tapped_rect))
+                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3257,16 +3297,16 @@ class Board():
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
                       if card.ready:
-                        selected.append((selectedSurf, card.rect))
+                        card.selected = True # selected.append((selectedSurf, card.rect))
                       else:
-                        selected.append((selectedSurfTapped, card.tapped_rect))
+                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       if card.ready:
-                        selected.remove((selectedSurf, card.rect))
+                        card.selected = False # selected.remove((selectedSurf, card.rect))
                       else:
-                        selected.remove((selectedSurfTapped, card.tapped_rect))
+                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3280,16 +3320,16 @@ class Board():
                     toAdd = ("fo", index)
                     if toAdd not in retVal and len(retVal) < count:
                       if card.ready:
-                        selected.append((selectedSurf, card.rect))
+                        card.selected = True # selected.append((selectedSurf, card.rect))
                       else:
-                        selected.append((selectedSurfTapped, card.tapped_rect))
+                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       if card.ready:
-                        selected.remove((selectedSurf, card.rect))
+                        card.selected = False # selected.remove((selectedSurf, card.rect))
                       else:
-                        selected.remove((selectedSurfTapped, card.tapped_rect))
+                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3303,16 +3343,16 @@ class Board():
                     toAdd = ("fr", index)
                     if toAdd not in retVal and len(retVal) < count:
                       if card.ready:
-                        selected.append((selectedSurf, card.rect))
+                        card.selected = True # selected.append((selectedSurf, card.rect))
                       else:
-                        selected.append((selectedSurfTapped, card.tapped_rect))
+                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
                       retVal.append(toAdd)
                     elif toAdd in retVal:
                       retVal.remove(toAdd)
                       if card.ready:
-                        selected.remove((selectedSurf, card.rect))
+                        card.selected = False # selected.remove((selectedSurf, card.rect))
                       else:
-                        selected.remove((selectedSurfTapped, card.tapped_rect))
+                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
                   else:
                     logging.info(con_message)
                     self.cardChanged()
@@ -3326,11 +3366,11 @@ class Board():
                 if condition(card):
                   toAdd = ("fo", index)
                   if toAdd not in retVal and len(retVal) < count:
-                    selected.append((selectedSurf, card.rect))
+                    card.selected = True # selected.append((selectedSurf, card.rect))
                     retVal.append(toAdd)
                   elif toAdd in retVal:
                     retVal.remove(toAdd)
-                    selected.remove((selectedSurf, card.rect))
+                    card.selected = False # selected.remove((selectedSurf, card.rect))
                 else:
                   logging.info(con_message)
                   self.cardChanged()
@@ -3343,11 +3383,11 @@ class Board():
                 if condition(card):
                   toAdd = ("fr", index)
                   if toAdd not in retVal and len(retVal) < count:
-                    selected.append((selectedSurf, card.rect))
+                    card.selected = True # selected.append((selectedSurf, card.rect))
                     retVal.append(toAdd)
                   elif toAdd in retVal:
                     retVal.remove(toAdd)
-                    selected.remove((selectedSurf, card.rect))
+                    card.selected = False # selected.remove((selectedSurf, card.rect))
                 else:
                   logging.info(con_message)
                   self.cardChanged()

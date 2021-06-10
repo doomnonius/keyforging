@@ -59,6 +59,7 @@ class Card(pygame.sprite.Sprite):
         self.captured = 0
         self.under = []
         self.selected = False
+        self.invalid = False
         # conditionals to add?
         # status effects
         
