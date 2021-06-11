@@ -69,6 +69,8 @@ class Board():
     # draw bools
     self.ref_image = None
     self.ref_image_rect = None
+    self.ref_orig_image = None
+    self.reg_orig_rect = None
     self.remaining = True
     self.drawAction = True
     self.drawFriendDiscard = False
@@ -341,7 +343,7 @@ class Board():
     self.board_blits.append((self.neutral, self.neutral_rect))
 
     # action surf
-    self.actionBackSurf = Surface((((mat_third * 2) // 7) * 5), mat_third * 2)
+    self.actionBackSurf = Surface(((((mat_third * 2) // 7) * 5), mat_third * 2))
     self.actionBackSurf.convert_alpha()
     self.actionBackSurf.set_alpha(150)
     self.actionBackSurf.fill(COLORS["GREY"])
@@ -361,15 +363,16 @@ class Board():
     # end turn
     self.endText = self.OTHERFONT.render(f"  End Turn  ", 1, COLORS['WHITE'])
     self.endRect = self.endText.get_rect()
-    self.endRect.topright = (self.neutral.right - self.margin, self.neutral.top + self.margin)
+    self.endRect.topright = (self.neutral_rect.right - self.margin, self.neutral_rect.top + self.margin)
     # self.endRect.centerx = wid // 2
     # self.endRect.centery = hei // 2
     self.endBack = Surface((self.endText.get_width() + 10, self.endText.get_height() + 10))
     self.endBack.convert()
     self.endBack.fill(COLORS["GREEN"])
     self.endBackRect = self.endBack.get_rect()
-    self.endBackRect.centerx = wid // 2
-    self.endBackRect.centery = hei // 2
+    self.endBackRect.topright = (self.neutral_rect.right - self.margin, self.neutral_rect.top + self.margin)
+    # self.endBackRect.centerx = wid // 2
+    # self.endBackRect.centery = hei // 2
 
     self.setKeys()
 
@@ -769,6 +772,13 @@ class Board():
         self.hovercard = [loc]
         return
 
+    if Rect.collidepoint(self.ref_image_rect, (self.mousex, self.mousey)):
+      self.hovercard = [self.ref_image_rect]
+    elif True in [Rect.collidepoint(x) for x in self.miniRectsFriend]:
+      pass
+    elif True in [Rect.collidepoint(x) for x in self.miniRectsEnemy]:
+      pass
+
   def draw(self, drawEnd: bool = True):
     # self.allsprites.update()
     self.WIN.blits(self.board_blits)
@@ -811,6 +821,7 @@ class Board():
       self.WIN.blit(discardBackSurf, discardBackRect)
       self.WIN.blit(closeBackSurf, self.closeFriendDiscard)
       self.WIN.blit(closeSurf, closeRect)
+      ## TODO: implement selected/invalid over here
       # draw cards
       x = 0
       for card in pool[0:16]:
@@ -818,8 +829,12 @@ class Board():
         x += 1
         self.WIN.blit(card.image, card.rect)
       x = 0
-      for card in pool[16:]:
+      for card in pool[16:32]:
         card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
+        x += 1
+        self.WIN.blit(card.image, card.rect)
+      for card in pool[32:]:
+        card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 3 * self.margin + 2 * self.target_cardh)
         x += 1
         self.WIN.blit(card.image, card.rect)
     if self.drawEnemyDiscard or self.drawEnemyArchive or self.drawEnemyPurge:
@@ -857,13 +872,18 @@ class Board():
         x += 1
         self.WIN.blit(card.image, card.rect)
       x = 0
-      for card in pool[16:]:
+      for card in pool[16:32]:
         card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
         x += 1
         self.WIN.blit(card.image, card.rect)
+      ## This won't work as well for the enemy side, but also it's incredibly less likely to be relevant anyway
+      # for card in pool[32:]:
+      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 3 * self.margin + 2 * self.target_cardh)
+      #   x += 1
+      #   self.WIN.blit(card.image, card.rect)
     if self.extraDraws:
-      for pair in self.extraDraws:
-        self.WIN.blit(pair[0], pair[1])
+      for thing, location in self.extraDraws:
+        self.WIN.blit(thing, location)
     if self.hovercard:
       hover = self.hovercard[0]
       if type(hover) != Rect:
@@ -1162,9 +1182,7 @@ class Board():
       for c in inactive:
         if c.title == "titan_mechanic" and c.isFlank(self):
           cost -= 1
-    
-    # Things to check: That annoying Dis artifact, Murmook, Grabber Jammer, Jammer Pack, Titan Mechanic, Iron Obelisk
-    # Need to add a tag for affecting amber cost?
+
     return cost
 
 
@@ -1673,6 +1691,26 @@ class Board():
         card_w = int(CARDW // ratio)
       else:
         card_w = board[0].image.get_width()
+      if True in [x.selected for x in board]:
+        selectedSurf = Surface(board[0].image.get_size())
+        selectedSurf.convert_alpha()
+        selectedSurf.set_alpha(80)
+        selectedSurf.fill(COLORS["LIGHT_GREEN"])
+
+        selectedSurfTapped = Surface(board[0].tapped_image.get_size())
+        selectedSurfTapped.convert_alpha()
+        selectedSurfTapped.set_alpha(80)
+        selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
+      if True in [x.invalid for x in board]:
+        invalidSurf = Surface(board[0].image.get_size())
+        invalidSurf.convert_alpha()
+        invalidSurf.set_alpha(80)
+        invalidSurf.fill(COLORS["RED"])
+
+        invalidSurfTapped = Surface(board[0].tapped_image.get_size())
+        invalidSurfTapped.convert_alpha()
+        invalidSurfTapped.set_alpha(80)
+        invalidSurf.fill(COLORS["RED"])
       for card in board:
         if rescale:
           card.image, card.rect = card.scale_image(card_w, card_h)
@@ -1683,14 +1721,17 @@ class Board():
           card_rect.bottom = area.bottom
         x += 1
         self.cardBlits.append((card_image, card_rect))
+        if card.selected:
+          self.cardBlits.append((selectedSurf, card_rect))
+        if card.invalid:
+          self.cardBlits.append((invalidSurf, card_rect))
     # actions
     if self.activePlayer.board["Action"]:
       if not self.ref_image:
         c = self.activePlayer.board["Action"][-1]
         target_height = self.actionBackSurf.get_height() - (self.margin * 2)
         target_width = (target_height // 7) * 5
-        self.ref_image = c.scale_image(target_width, target_height)
-        self.ref_image_rect = self.ref_image.get_rect()
+        self.ref_image, self.ref_image_rect = c.scale_image(target_width, target_height)
         self.ref_image_rect.center = self.actionBackRect.center
       if self.drawAction:
         self.actionBackRect.bottomleft = (0, self.divider_rect.top)
@@ -1704,8 +1745,26 @@ class Board():
     else:
       self.ref_image = None
       self.ref_image_rect = None
+      self.ref_orig_image = None
+      self.reg_orig_rect = None
     # lasting effects
-
+    ## TODO: display smaller, hoverable(?) card images of lasting effects
+    self.miniRectsFriend = []
+    for k in self.activePlayer.states:
+      x = 0
+      if self.activePlayer.states[k]:
+        mini_image, mini_rect = self.activePlayer.stateImages[k][1]
+        mini_rect.bottomleft = (x * (mini_image.get_width() + 5), self.neutral_rect.bottom - 5)
+        self.miniRectsFriend.append(mini_rect)
+      x += 1
+    self.miniRectsEnemy = []
+    for k in self.inactivePlayer.states:
+      x = 0
+      if self.inactivePlayer.states[k]:
+        mini_image, mini_rect = self.inactivePlayer.stateImages[k][1]
+        mini_rect.topleft = (x * (mini_image.get_width() + 5), self.neutral_rect.top + 5)
+        self.miniRectsEnemy.append(mini_rect)
+      x += 1
     # discards
     l = len(self.activePlayer.discard)
     if l > 0:
@@ -2852,7 +2911,7 @@ class Board():
       if selected:
         self.extraDraws += [(confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
         if varAsStr == "activeHouse":
-          self.extraDraws += self.previewHouse(lambda x: x.house == self.activePlayer.houses[selected - 1] or "experimental_therapy" in [y.title for y in x.upgrade])
+          self.extraDraws += self.previewHouse(lambda x: x.house == self.activePlayer.houses[selected - 1] or (x.type == "Creature" and "experimental_therapy" in [y.title for y in x.upgrade]))
       else:
         self.extraDraws += [(messageBackSurf, messageBackRect), (messageSurf, messageRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
       for e in pygame.event.get():
@@ -3001,7 +3060,7 @@ class Board():
     # invalidSurf.fill(COLORS["RED"])
     
 
-    invalid = []
+    # invalid = []
 
     if canHit == "friend":
       target = self.activePlayer
@@ -3049,10 +3108,10 @@ class Board():
           if not condition(card):
             card.invalid = True
         
-    selected = []
+    # selected = []
     retVal = []
     while True:
-      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect), (cancelBack, cancelBackRect), (cancelSurf, cancelRect)] + invalid + selected
+      self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect), (cancelBack, cancelBackRect), (cancelSurf, cancelRect)] # + invalid + selected
       for e in pygame.event.get():
         if e.type == QUIT:
           pygame.quit()
@@ -3065,11 +3124,17 @@ class Board():
             self.extraDraws = []
             if retVal and not full:
               if len(retVal) <= count and not full:
+                for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand:
+                  c.selected = False
+                  c.invalid = False
                 self.cardChanged()
                 return retVal
               else:
                 pyautogui.alert("Not enough targets selected!")
             elif retVal and full and len(retVal) == count:
+              for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand:
+                c.selected = False
+                c.invalid = False
               self.cardChanged()
               return retVal
             elif not full:
@@ -3077,11 +3142,14 @@ class Board():
               while not incomplete:
                 incomplete = self.chooseHouse("custom", ("Are you sure you want to target less than the full number of targets?", ["Yes", "No"]))
               if incomplete == "Yes":
+                for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand:
+                  c.selected = False
+                  c.invalid = False
                 self.cardChanged()
                 return retVal
           elif Rect.collidepoint(cancelBackRect, (self.mousex, self.mousey)):
             retVal = []
-            selected = []
+            # selected = []
             confirmBack.fill(COLORS["GREEN"])
           elif True in self.friendDraws and Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
             self.drawFriendDiscard = False

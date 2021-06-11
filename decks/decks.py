@@ -1,7 +1,7 @@
 import random, os, pygame, requests, json, pyautogui, logging
 import cards.cardsAsClass as cards
 import cards.destroyed as dest
-from constants import WIDTH, HEIGHT
+from constants import WIDTH, HEIGHT, CARDH, CARDW
 
 class Deck:
     def __init__(self, name, card_width, card_height, margin):
@@ -32,6 +32,7 @@ class Deck:
         self.blue = False
         self.red = False
         self.states = {card.title:0 for card in self.deck}
+        self.stateImages = {card.title: [self.load_image(card.title, asset = f'cards\\card-fronts\\{self.exp}', w=CARDW, h=CARDH), self.load_image(card.title, asset = f'cards\\card-fronts\\{self.exp}', w=card_width // 2, h=card_height // 2)]}
         # keys
         self.key_forged_y = self.load_image("yellow_key_front")
         self.key_y = self.load_image("yellow_key_back")
@@ -144,16 +145,21 @@ class Deck:
         logging.info(f"{self.name}'s hand is now: {[x.title for x in self.hand]}")
         return self
 
-    def load_image(self, title): # this loads keys and house symbols
-        fullname = os.path.join(f'game_assets', title + '.png')
+    def load_image(self, title, asset = 'game_assets', w = 0, h = 0): # this loads keys and house symbols and some images
+        fullname = os.path.join(asset, title + '.png')
         try:
             image = pygame.image.load(fullname)
+        except FileNotFoundError:
+            logging.error(f"{fullname} not found.")
         except pygame.error as message:
             logging.error(f'Cannot load image: {title}, {message}')
             raise SystemExit(message)
         image = image.convert_alpha()
-        scaled = pygame.transform.scale(image, (HEIGHT // 21, HEIGHT // 21))
-        return scaled, scaled.get_rect()
+        if not w:
+            scaled = pygame.transform.scale(image, (HEIGHT // 21, HEIGHT // 21))
+        else:
+            scaled = pygame.transform.scale(image, (w, h))
+        return scaled, scaled.get_rect() 
 
 url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=1&links=cards&search="
 url2 = "https://www.keyforgegame.com/deck-details/"

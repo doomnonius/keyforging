@@ -154,12 +154,12 @@ class Card(pygame.sprite.Sprite):
         if f"eot_{self.title}" in dir(turnEffects):
             self.eot = eval(f"turnEffects.eot_{self.title}")
         else:
-            self.eot = turnEffects.basic_eot
+            self.eot = []
         # end of turn effects
         if f"sot_{self.title}" in dir(turnEffects):
             self.sot = eval(f"turnEffects.sot_{self.title}")
         else:
-            self.sot = False
+            self.sot = []
         # artifacts need to be able to be readied too, and can capture amber
         if self.type == "Artifact":
             self.ready = False
@@ -556,3 +556,5 @@ class Invisicard():
         self.rect = self.image.get_rect()
         self.tapped_rect = self.image.get_rect()
         self.type = False
+        self.selected = False
+        self.invalid = False
