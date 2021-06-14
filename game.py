@@ -3,9 +3,10 @@ from pygame.constants import MOUSEBUTTONDOWN, MOUSEBUTTONUP, MOUSEMOTION, SRCALP
 from pygame import Rect, Surface
 import decks.decks as deck
 import cards.cardsAsClass as card
+from cards.cardsAsClass import Invisicard
 import cards.upgrades as upgrade # pylinter thinks this isn't used, but it is, just in an eval() statement
 import json, random, logging, pygame, pyautogui
-from helpers import willEnterReady, destroy
+from helpers import return_card, willEnterReady, destroy
 from cards.destroyed import basicDest, basicLeaves
 from cards.reap import basicReap, spectral_tunneler as st
 from typing import List, Tuple
@@ -45,6 +46,8 @@ class Board():
     self.response = []
     self.turnNum = 0
     # reset each turn cycle
+    self.miniRectsEnemy = []
+    self.miniRectsFriend = []
     self.activeHouse = []
     self.extraFightHouses = []
     self.extraUseHouses = []
@@ -67,10 +70,12 @@ class Board():
     self.resetStates = []
     self.resetStatesNext = []
     # draw bools
+    self.mini = False
+    self.act = False
     self.ref_image = None
-    self.ref_image_rect = None
+    self.ref_image_rect = Rect(-500, -500, 1, 1)
     self.ref_orig_image = None
-    self.reg_orig_rect = None
+    self.ref_orig_rect = None
     self.remaining = True
     self.drawAction = True
     self.drawFriendDiscard = False
@@ -363,16 +368,12 @@ class Board():
     # end turn
     self.endText = self.OTHERFONT.render(f"  End Turn  ", 1, COLORS['WHITE'])
     self.endRect = self.endText.get_rect()
-    self.endRect.topright = (self.neutral_rect.right - self.margin, self.neutral_rect.top + self.margin)
-    # self.endRect.centerx = wid // 2
-    # self.endRect.centery = hei // 2
     self.endBack = Surface((self.endText.get_width() + 10, self.endText.get_height() + 10))
     self.endBack.convert()
     self.endBack.fill(COLORS["GREEN"])
     self.endBackRect = self.endBack.get_rect()
     self.endBackRect.topright = (self.neutral_rect.right - self.margin, self.neutral_rect.top + self.margin)
-    # self.endBackRect.centerx = wid // 2
-    # self.endBackRect.centery = hei // 2
+    self.endRect.center = self.endBackRect.center
 
     self.setKeys()
 
@@ -427,6 +428,8 @@ class Board():
             if self.remaining:
               answer = self.chooseHouse("custom", ("Are you sure you want to end your turn?", ["Yes", "No"]), highlight = lambda x: x.house in self.activeHouse and (x in self.activePlayer.hand or x.ready))[0]
               if answer == "No":
+                for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
+                  c.selected = False
                 break
             self.drawEnemyDiscard = False
             self.drawEnemyArchive = False
@@ -544,6 +547,9 @@ class Board():
         archive = self.activePlayer.archive
         self.activeHouse = self.chooseHouse("activeHouse")
         print(self.activeHouse)
+        for c in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"] + self.activePlayer.hand:
+          c.selected = False
+        self.cardChanged()
         if "jehu_the_bureaucrat" in self.activePlayer.board["Creature"] and "Sanctum" in self.activeHouse:
           self.activePlayer.gainAmber(2, self)
         highSurf = Surface(self.house1a.get_size())
@@ -684,9 +690,11 @@ class Board():
         self.checkEOTStates()
 
         for creature in self.activePlayer.board["Creature"]:
-          creature.eot(self, creature)
+          for e in creature.eot:
+            e(self, creature)
         for creature in self.inactivePlayer.board["Creature"]:
-          creature.eot(self, creature)
+          for e in creature.eot:
+            e(self, creature)
         for creature in self.activePlayer.board["Creature"]:
           creature.resetArmor(self)
         for creature in self.inactivePlayer.board["Creature"]:
@@ -746,6 +754,9 @@ class Board():
     if self.dragging:
       return
 
+    self.mini = False
+    self.act = False
+
     hoverable = []
     hoverable2 = []
     if sum(self.friendDraws) == 0:
@@ -772,12 +783,26 @@ class Board():
         self.hovercard = [loc]
         return
 
+    friendMinis = [Rect.collidepoint(x[0], (self.mousex, self.mousey)) for x in self.miniRectsFriend]
+    enemyMinis = [Rect.collidepoint(x[0], (self.mousex, self.mousey)) for x in self.miniRectsEnemy]
     if Rect.collidepoint(self.ref_image_rect, (self.mousex, self.mousey)):
       self.hovercard = [self.ref_image_rect]
-    elif True in [Rect.collidepoint(x) for x in self.miniRectsFriend]:
-      pass
-    elif True in [Rect.collidepoint(x) for x in self.miniRectsEnemy]:
-      pass
+    elif True in friendMinis:
+      i = friendMinis.index(True)
+      self.hovercard = [self.miniRectsFriend[i][1]]
+      self.mini = True
+      return
+    elif True in enemyMinis:
+      i = enemyMinis.index(True)
+      self.hovercard = [self.miniRectsEnemy[i][1]]
+      self.mini = True
+      return
+
+    if self.drawAction and Rect.collidepoint(self.ref_image_rect, (self.mousex, self.mousey)):
+      self.hovercard = [(self.ref_orig_image, self.ref_orig_rect)]
+      self.act = True
+      return
+
 
   def draw(self, drawEnd: bool = True):
     # self.allsprites.update()
@@ -876,17 +901,26 @@ class Board():
         card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
         x += 1
         self.WIN.blit(card.image, card.rect)
-      ## This won't work as well for the enemy side, but also it's incredibly less likely to be relevant anyway
-      # for card in pool[32:]:
-      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 3 * self.margin + 2 * self.target_cardh)
-      #   x += 1
-      #   self.WIN.blit(card.image, card.rect)
     if self.extraDraws:
       for thing, location in self.extraDraws:
         self.WIN.blit(thing, location)
     if self.hovercard:
       hover = self.hovercard[0]
-      if type(hover) != Rect:
+      if self.mini or self.act: # in this case hovercard will be a tuple
+        hover, hover_rect = hover[0], hover[1]
+        if self.mousey > HEIGHT / 2:
+          hover_rect.top = self.mousey - CARDH
+          while hover_rect.top < 0:
+            hover_rect.top += 10
+        else:
+          hover_rect.top = self.mousey
+          while hover_rect.bottom > HEIGHT:
+            hover_rect.bottom -= 10
+        if self.mousex > WIDTH / 2:
+          hover_rect.left = self.mousex - CARDW
+        else:
+          hover_rect.left = self.mousex
+      elif type(hover) != Rect and type(hover) != Invisicard:
         hover, hover_rect = hover.orig_image, hover.orig_rect
         if self.mousey > HEIGHT / 2:
           hover_rect.top = self.mousey - CARDH
@@ -1367,7 +1401,7 @@ class Board():
     # Increases amber, adds the card to the action section of the board, then calls the card's play function
     if card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
-      logging.info(f"{source[chosen].title} gave {self.activePlayer.deck.name} {card.amber} amber. {self.activePlayer.deck.name} now has {self.activePlayer.amber} amber.")
+      logging.info(f"{source[chosen].title} gave {self.activePlayer.name} {card.amber} amber. {self.activePlayer.name} now has {self.activePlayer.amber} amber.")
     if ask:
       if card.type == "Creature" and len(self.activePlayer.board["Creature"]) > 0:
         flank = self.chooseFlank(card)
@@ -1604,7 +1638,7 @@ class Board():
         selectedSurf.set_alpha(80)
         selectedSurf.fill(COLORS["LIGHT_GREEN"])
 
-        selectedSurfTapped = Surface(board[0].tapped_image.get_size())
+        selectedSurfTapped = Surface(board[0].tapped.get_size())
         selectedSurfTapped.convert_alpha()
         selectedSurfTapped.set_alpha(80)
         selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
@@ -1614,7 +1648,7 @@ class Board():
         invalidSurf.set_alpha(80)
         invalidSurf.fill(COLORS["RED"])
 
-        invalidSurfTapped = Surface(board[0].tapped_image.get_size())
+        invalidSurfTapped = Surface(board[0].tapped.get_size())
         invalidSurfTapped.convert_alpha()
         invalidSurfTapped.set_alpha(80)
         invalidSurf.fill(COLORS["RED"])
@@ -1634,7 +1668,7 @@ class Board():
         if card in self.inactivePlayer.board["Creature"] and card.taunt:
           card_rect.bottom = area[1] + area[3] - self.margin
         x += 1
-        if card.upgrade:
+        if card.type == "Creature" and card.upgrade:
           y = len(card.upgrade)
           x += 0.25 * y
           card_rect.left += 0.25 * self.target_cardh * y
@@ -1697,7 +1731,7 @@ class Board():
         selectedSurf.set_alpha(80)
         selectedSurf.fill(COLORS["LIGHT_GREEN"])
 
-        selectedSurfTapped = Surface(board[0].tapped_image.get_size())
+        selectedSurfTapped = Surface(board[0].tapped.get_size())
         selectedSurfTapped.convert_alpha()
         selectedSurfTapped.set_alpha(80)
         selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
@@ -1707,7 +1741,7 @@ class Board():
         invalidSurf.set_alpha(80)
         invalidSurf.fill(COLORS["RED"])
 
-        invalidSurfTapped = Surface(board[0].tapped_image.get_size())
+        invalidSurfTapped = Surface(board[0].tapped.get_size())
         invalidSurfTapped.convert_alpha()
         invalidSurfTapped.set_alpha(80)
         invalidSurf.fill(COLORS["RED"])
@@ -1744,58 +1778,54 @@ class Board():
       self.cardBlits.append((self.ref_image, self.ref_image_rect))
     else:
       self.ref_image = None
-      self.ref_image_rect = None
+      self.ref_image_rect = Rect(-500, -500, 1, 1)
       self.ref_orig_image = None
-      self.reg_orig_rect = None
+      self.ref_orig_rect = None
     # lasting effects
-    ## TODO: display smaller, hoverable(?) card images of lasting effects
+    ## display smaller, hoverable card images of lasting effects
     self.miniRectsFriend = []
     for k in self.activePlayer.states:
       x = 0
       if self.activePlayer.states[k]:
         mini_image, mini_rect = self.activePlayer.stateImages[k][1]
-        mini_rect.bottomleft = (x * (mini_image.get_width() + 5), self.neutral_rect.bottom - 5)
-        self.miniRectsFriend.append(mini_rect)
+        mini_rect.bottomleft = (self.neutral_rect.left + (x * (mini_image.get_width() + 5)), self.neutral_rect.bottom - 5)
+        self.miniRectsFriend.append((mini_rect, self.activePlayer.stateImages[k][0]))
+        self.cardBlits.append((mini_image, mini_rect))
       x += 1
     self.miniRectsEnemy = []
     for k in self.inactivePlayer.states:
       x = 0
       if self.inactivePlayer.states[k]:
         mini_image, mini_rect = self.inactivePlayer.stateImages[k][1]
-        mini_rect.topleft = (x * (mini_image.get_width() + 5), self.neutral_rect.top + 5)
-        self.miniRectsEnemy.append(mini_rect)
+        mini_rect.topleft = (self.neutral_rect.left + (x * (mini_image.get_width() + 5)), self.neutral_rect.top + 5)
+        self.miniRectsFriend.append((mini_rect, self.inactivePlayer.stateImages[k][0]))
+        self.cardBlits.append((mini_image, mini_rect))
       x += 1
     # discards
-    l = len(self.activePlayer.discard)
-    if l > 0:
-      card_image, card_rect = self.activePlayer.discard[l - 1].image, self.activePlayer.discard[l - 1].rect
+    if self.activePlayer.discard:
+      card_image, card_rect = self.activePlayer.discard[-1].image, self.activePlayer.discard[-1].rect
       card_rect.topleft = (self.discard1_rect.left, self.discard1_rect.top)
       self.cardBlits.append((card_image, card_rect))
-    l = len(self.inactivePlayer.discard)
-    if l > 0: 
-      card_image, card_rect = self.inactivePlayer.discard[l - 1].image, self.inactivePlayer.discard[l - 1].rect
+    if self.inactivePlayer.discard: 
+      card_image, card_rect = self.inactivePlayer.discard[-1].image, self.inactivePlayer.discard[-1].rect
       card_rect.topleft = (self.discard2_rect.left, self.discard2_rect.top)
       self.cardBlits.append((card_image, card_rect))
     # archive
-    l = len(self.activePlayer.archive)
-    if l > 0:
-      card_image, card_rect = self.activePlayer.archive[l - 1].image, self.activePlayer.archive[l - 1].rect
+    if self.activePlayer.archive:
+      card_image, card_rect = self.activePlayer.archive[-1].image, self.activePlayer.archive[-1].rect
       card_rect.center = self.archive1_rect.center
       self.cardBlits.append((card_image, card_rect))
-    l = len(self.inactivePlayer.archive)
-    if l > 0: 
-      card_image, card_rect = self.inactivePlayer.archive[l - 1].image, self.inactivePlayer.archive[l - 1].rect
+    if self.inactivePlayer.archive: 
+      card_image, card_rect = self.inactivePlayer.archive[-1].image, self.inactivePlayer.archive[-1].rect
       card_rect.center = self.archive2_rect.center
       self.cardBlits.append((card_image, card_rect))
     # decks
     # going to need a card back of some sort to put here
-    l = len(self.activePlayer.deck)
-    if l > 0:
+    if self.activePlayer.deck:
       card_image, card_rect = self.activePlayer.deck[-1].image, self.activePlayer.deck[-1].rect
       card_rect.topleft = (self.deck1_rect.left, self.deck1_rect.top)
       self.cardBlits.append((card_image, card_rect))
-    l = len(self.inactivePlayer.deck)
-    if l > 0:
+    if self.inactivePlayer.deck:
       card_image, card_rect = self.inactivePlayer.deck[-1].image, self.inactivePlayer.deck[-1].rect
       card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
       self.cardBlits.append((card_image, card_rect))
@@ -1807,9 +1837,9 @@ class Board():
     
   def playsRemaining(self):
     # now, check if we should change the fill on endTurn
-    if True not in [self.canPlay(c, reset = False) for c in self.activePlayer.hand if c.type] + [self.canDiscard(c, reset = False) for c in self.activePlayer.hand if c.type]:
-      if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canFight(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canReap(c, reset = False) for c in self.activePlayer.board["Creature"]] + [self.canOmni(c, reset = False) for c in self.activePlayer.board["Creature"]]:
-        if True not in [self.canAction(c, reset = False) for c in self.activePlayer.board["Artifact"]] + [self.canOmni(c, reset = False) for c in self.activePlayer.board["Artifact"]]:
+    if True not in [self.canPlay(c, reset = False, message = False) for c in self.activePlayer.hand if c.type] + [self.canDiscard(c, reset = False, message = False) for c in self.activePlayer.hand if c.type]:
+      if True not in [self.canAction(c, reset = False, message = False) for c in self.activePlayer.board["Creature"]] + [self.canFight(c, reset = False, message = False) for c in self.activePlayer.board["Creature"]] + [self.canReap(c, reset = False, message = False) for c in self.activePlayer.board["Creature"]] + [self.canOmni(c, reset = False, message = False) for c in self.activePlayer.board["Creature"]]:
+        if True not in [self.canAction(c, reset = False, message = False) for c in self.activePlayer.board["Artifact"]] + [self.canOmni(c, reset = False, message = False) for c in self.activePlayer.board["Artifact"]]:
           logging.info("Nothing left to do!")
           self.endBack.fill(COLORS["LIGHT_GREEN"])
           self.remaining = False
@@ -1838,16 +1868,18 @@ class Board():
       board += self.inactivePlayer.board["Creature"] + self.inactivePlayer.board["Artifact"]
 
     for c in board:
-      if condition(c) or "experimental_therapy" in [x.title for x in c.upgrade]:
-        if c.ready:
-          retVal.append((selectedSurf, c.rect))
-        else:
-          retVal.append((selectedSurfTapped, c.tapped_rect))
+      if condition(c): # or "experimental_therapy" in [x.title for x in c.upgrade]:
+        c.selected = True
+        # if c.ready:
+        #   retVal.append((selectedSurf, c.rect))
+        # else:
+        #   retVal.append((selectedSurfTapped, c.tapped_rect))
     if both:
       return retVal
     for c in self.activePlayer.hand:
       if condition(c):
-        retVal.append((selectedSurf, c.rect))
+        c.selected = True
+        # retVal.append((selectedSurf, c.rect))
     
     return retVal
 
@@ -2019,12 +2051,12 @@ class Board():
     
     return True
   
-  def canDiscard(self, card, reset = True, cheat = True):
+  def canDiscard(self, card, reset = True, cheat = True, message: bool = False):
     if self.turnNum == 1 and (len(self.playedThisTurn) > 0 or len(self.discardedThisTurn) > 0):
-      logging.info("Can't discard, action for first turn already taken.")
+      if message: logging.info("Can't discard, action for first turn already taken.")
       return False
     if card.house not in self.activeHouse or not cheat:
-      logging.info("Can't discard card not in activeHouse.")
+      if message: logging.info("Can't discard card not in activeHouse.")
       return False
     # I don't think anything messes with your ability to discard
     return True
@@ -2033,7 +2065,7 @@ class Board():
     if card.type != "Creature":
       return False
     if self.ruleOfSix(card):
-      logging.info(f"Rule of six prevents using this {card.title}.")
+      if message: logging.info(f"Rule of six prevents using this {card.title}.")
       return False
     if not card.ready or (card.stun and not r_click):
       return False
@@ -2045,11 +2077,11 @@ class Board():
     if "deipno_spymaster" in self.activePlayer.states and card in self.activePlayer.states["deipno_spymaster"]:
       cheat = True
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      logging.info("'Skippy Timehog' is preventing you from using cards")
+      if message: logging.info("'Skippy Timehog' is preventing you from using cards")
       return False
     if card.type == "Creature": # why wouldn't it?
       if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
-        logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+        if message: logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
         return False
       if card.title == "mack_the_knife":
         cheat = True
@@ -2069,24 +2101,24 @@ class Board():
 
   def canOmni(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
     if self.ruleOfSix(card):
-      logging.info(f"Rule of six prevents using this {card.title}.")
+      if message: logging.info(f"Rule of six prevents using this {card.title}.")
       return False
     if not card.ready or not card.omni:
       return False
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      logging.info("'Skippy Timehog' is preventing you from using cards")
+      if message: logging.info("'Skippy Timehog' is preventing you from using cards")
       return False
     if card.type == "Artifact" and "tentacus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
-      logging.info("You must pay one to Tentacus to use this artifact.")
+      if message: logging.info("You must pay one to Tentacus to use this artifact.")
       if not self.activePlayer.amber:
-        logging.info("You can't afford to pay for Tentacus.")
+        if message: logging.info("You can't afford to pay for Tentacus.")
         return False
       else:
         if reset:
           answer = self.chooseHouse('custom', ("Would you like to pay for Tentacus?", ["Yes", "No"]))[0]
           if answer == "Yes":
             self.activePlayer.amber -= 1
-            logging.info(f"You paid for Tentacus to use {card.title}.")
+            if message: logging.info(f"You paid for Tentacus to use {card.title}.")
           else:
             return False
         return True
@@ -2094,16 +2126,16 @@ class Board():
 
   def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
     if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
-      logging.info("You cannot play more than one card on your first turn.")
+      if message: logging.info("You cannot play more than one card on your first turn.")
       return False
     if self.ruleOfSix(card):
-      logging.info(f"Rule of six prevents playing {card.title}.")
+      if message: logging.info(f"Rule of six prevents playing {card.title}.")
       return False
     if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and len(self.playedThisTurn) >= 2: #
-      logging.info(f"'Ember Imp' prevents playing {card.title}")
+      if message: logging.info(f"'Ember Imp' prevents playing {card.title}")
       return False
     if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
-      logging.info("'Treasure Map' prevents playing more cards this turn")
+      if message: logging.info("'Treasure Map' prevents playing more cards this turn")
       return False
     if "witch_of_the_wilds" in [x.title for x in self.activePlayer.board["Creature"]] \
     and "Untamed" not in self.activeHouse \
@@ -2112,48 +2144,48 @@ class Board():
     if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
       if card.type == "Action":
         if "scrambler_storm" in self.inactivePlayer.states and self.inactivePlayer.states["scrambler_storm"]:
-          logging.info("'Scrambler Storm' prevents playing actions this turn, so you can't cheat this card out.")
+          if message: logging.info("'Scrambler Storm' prevents playing actions this turn, so you can't cheat this card out.")
           return False
       elif card.type == "Creature":
         if card.title == "kelifi_dragon" and self.activePlayer.amber < 7:
-          logging.info("You need 7 amber to play 'Kelifi Dragon'")
+          if message: logging.info("You need 7 amber to play 'Kelifi Dragon'")
           return False
         if card.title == "truebaru" and self.activePlayer.amber < 3:
-          logging.info("You must have 3 amber to sacrifice in order to play 'Truebaru'")
+          if message: logging.info("You must have 3 amber to sacrifice in order to play 'Truebaru'")
           return False
         if "grommid" in [x.title for x in self.activePlayer.board["Creature"]]:
-          logging.info("You can't play creatures with 'Grommid' in play")
+          if message: logging.info("You can't play creatures with 'Grommid' in play")
           return False
         if "lifeward" in self.inactivePlayer.states and self.inactivePlayer.states["lifeward"]:
-          logging.info("You can't play creatures because of 'Lifeward'")
+          if message: logging.info("You can't play creatures because of 'Lifeward'")
           return False
       if card.house not in self.activeHouse and not cheat:
         return True
     if card.type == "Artifact":
       # if there are other things that affect playing artifacts, make sure this one is last
       if "customs_office" in [x.title for x in self.inactivePlayer.board["Artifact"]] and self.activePlayer.amber < sum(x.title == "customs_office" for x in self.inactivePlayer.board["Artifact"]):
-        logging.info("You are unable to pay for your opponent's custom office.")
+        if message: logging.info("You are unable to pay for your opponent's custom office.")
         return False
       elif "customs_office" in [x.title for x in self.inactivePlayer.board["Artifact"]] and reset:
         self.activePlayer.amber -= 1
         self.inactivePlayer.gainAmber(1, self)
     if card.type == "Upgrade" and len(self.activePlayer.board["Creature"]) == 0 and len(self.inactivePlayer.board["Creature"]) == 0:
-      logging.info("No valid targets for this upgrade.")
+      if message: logging.info("No valid targets for this upgrade.")
       return False
     if (card.house not in self.activeHouse and card.house != "Logos") and ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] > 0) and not cheat:
       if reset:
         self.activePlayer.states["phase_shift"] -= 1 # reset to false
     elif card.house not in self.activeHouse and not cheat:
-      logging.info("Can't play cards not from the active house.")
+      if message: logging.info("Can't play cards not from the active house.")
       return False
     return True
 
   def canReap(self, card, reset = True, r_click: bool = False, cheat: bool = False, message: bool = False):
     if self.ruleOfSix(card):
-      logging.info(f"Rule of six prevents using {card.title}.")
+      if message: logging.info(f"Rule of six prevents using {card.title}.")
       return False
     if card.type != "Creature" or not card.ready or (card.stun and not r_click):
-      logging.info(f"Type: {card.type}, ready: {card.ready}, stun: {card.stun}")
+      if message: logging.info(f"Type: {card.type}, ready: {card.ready}, stun: {card.stun}")
       return False
     if "transposition_sandals" in self.activePlayer.states and card in self.activePlayer.states["transposition_sandals"]:
       cheat = True
@@ -2165,16 +2197,16 @@ class Board():
     if card.title == "mack_the_knife":
       cheat = True
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
-      logging.info(f"House: {card.house}, cheat: {cheat}")
+      if message: logging.info(f"House: {card.house}, cheat: {cheat}")
       if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
         pass
       else:
         return False
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      logging.info("'Skippy Timehog' is preventing you from using cards")
+      if message: logging.info("'Skippy Timehog' is preventing you from using cards")
       return False
     if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
-      logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+      if message: logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
       return False
     if card.title == "tireless_crocag":
       return False
@@ -2632,7 +2664,7 @@ class Board():
         self.flankRectRight.topright = OB
         drawMe.append((self.flankSurfTapped, self.flankRectRightTapped))
 
-
+    print("About to enter the loop.")
     while True:
       self.extraDraws = drawMe.copy()
       for e in pygame.event.get():
@@ -2641,6 +2673,8 @@ class Board():
         elif e.type == MOUSEMOTION:
           self.mousex, self.mousey = e.pos
         elif e.type == MOUSEBUTTONUP and e.button == 1:
+          print("Button up.")
+          print(f"True not in self.friendDraws: {True not in self.friendDraws}. {[Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]}")
           self.friendDraws = [self.drawFriendDiscard, self.drawFriendArchive, self.drawFriendPurge]
           self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
           if Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
@@ -2653,6 +2687,7 @@ class Board():
                 card.tapped.set_alpha(255)
                 card.image.set_alpha(255)
                 self.cardChanged()
+                print("Returning empty.")
                 return
               elif temp_card.rect.centerx < self.mousex and x < l-1 and self.mousex < hand[x+1].rect.centerx:
                 hand.insert(x + 1, self.dragging.pop())
@@ -2660,12 +2695,14 @@ class Board():
                 card.tapped.set_alpha(255)
                 card.image.set_alpha(255)
                 self.cardChanged()
+                print("Returning empty.")
                 return
             hand.append(self.dragging.pop())
             self.extraDraws = []
             card.tapped.set_alpha(255)
             card.image.set_alpha(255)
             self.cardChanged()
+            print("Returning empty.")
             return
           elif True not in self.enemyDraws:
             if self.drawAction:
@@ -2677,29 +2714,34 @@ class Board():
                 self.drawAction = True
                 self.cardChanged()
           elif True not in self.friendDraws and True in [Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]:
+            print("Am I at least getting here?")
             if Rect.collidepoint(self.flankRectLeft, (self.mousex, self.mousey)):
               self.extraDraws = []
               card.tapped.set_alpha(255)
               card.image.set_alpha(255)
               self.cardChanged()
+              print("Returning left.")
               return "Left"
             elif Rect.collidepoint(self.flankRectLeftTapped, (self.mousex, self.mousey)):
               self.extraDraws = []
               card.tapped.set_alpha(255)
               card.image.set_alpha(255)
               self.cardChanged()
+              print("Returning left.")
               return "Left"
             elif Rect.collidepoint(self.flankRectRight, (self.mousex, self.mousey)):
               self.extraDraws = []
               card.tapped.set_alpha(255)
               card.image.set_alpha(255)
               self.cardChanged()
+              print("Returning right.")
               return "Right"
             elif Rect.collidepoint(self.flankRectRightTapped, (self.mousex, self.mousey)):
               self.extraDraws = []
               card.tapped.set_alpha(255)
               card.image.set_alpha(255)
               self.cardChanged()
+              print("Returning right.")
               return "Right"
           elif discard and Rect.collidepoint(discRect, (self.mousex, self.mousey)):
             card.tapped.set_alpha(255)
@@ -2708,6 +2750,7 @@ class Board():
             self.discardCard(-1)
             self.extraDraws = []
             self.cardChanged()
+            print("Returning empty.")
             return
           elif True not in self.friendDraws and self.dragging:
             card.tapped.set_alpha(255)
@@ -2715,6 +2758,7 @@ class Board():
             self.activePlayer.hand.append(self.dragging.pop())
             self.extraDraws = []
             self.cardChanged()
+            print("Returning empty.")
             return None
           elif not self.dragging:
             if True in self.friendDraws and Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
@@ -2748,6 +2792,7 @@ class Board():
             card.image.set_alpha(255)
             self.extraDraws = []
             self.cardChanged()
+            print("Returning empty.")
             return None
       
       if Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
@@ -2906,14 +2951,21 @@ class Board():
     while True:
       if highlight:
         self.extraDraws = self.previewHouse(highlight)
+        self.cardChanged()
       else:
         self.extraDraws = []
       if selected:
         self.extraDraws += [(confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
         if varAsStr == "activeHouse":
+          for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
+            c.selected = False
           self.extraDraws += self.previewHouse(lambda x: x.house == self.activePlayer.houses[selected - 1] or (x.type == "Creature" and "experimental_therapy" in [y.title for y in x.upgrade]))
+          self.cardChanged()
       else:
         self.extraDraws += [(messageBackSurf, messageBackRect), (messageSurf, messageRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
+        if varAsStr == "activeHouse":
+          for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
+            c.selected = False
       for e in pygame.event.get():
         if e.type == QUIT:
           pygame.quit()
@@ -3090,8 +3142,8 @@ class Board():
           card.invalid = True # invalid.append((invalidSurf, card.rect))
     else: # targetPool == "Artifact" or "Creature"
       if canHit == "both" or canHit == "either":
-        target = self.activePlayer.board[targetPool] + self.inactivePlayer.board[targetPool]
-        for card in target:
+        allowable = self.activePlayer.board[targetPool] + self.inactivePlayer.board[targetPool]
+        for card in allowable:
           if not condition(card):
             if card.ready:
               card.invalid = True # invalid.append((invalidSurf, card.rect))

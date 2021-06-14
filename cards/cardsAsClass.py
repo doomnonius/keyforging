@@ -558,3 +558,7 @@ class Invisicard():
         self.type = False
         self.selected = False
         self.invalid = False
+
+    def scale_image(self, width, height):
+        scaled = pygame.transform.scale(self.image, (width, height))
+        return scaled, scaled.get_rect()

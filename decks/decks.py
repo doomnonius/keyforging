@@ -32,7 +32,7 @@ class Deck:
         self.blue = False
         self.red = False
         self.states = {card.title:0 for card in self.deck}
-        self.stateImages = {card.title: [self.load_image(card.title, asset = f'cards\\card-fronts\\{self.exp}', w=CARDW, h=CARDH), self.load_image(card.title, asset = f'cards\\card-fronts\\{self.exp}', w=card_width // 2, h=card_height // 2)]}
+        self.stateImages = {card.title: [self.load_image(card.title, asset = f'cards\\card-fronts\\{card.exp}', w=CARDW, h=CARDH), self.load_image(card.title, asset = f'cards\\card-fronts\\{card.exp}', w=card_width // 2, h=card_height // 2)] for card in self.deck}
         # keys
         self.key_forged_y = self.load_image("yellow_key_front")
         self.key_y = self.load_image("yellow_key_back")
