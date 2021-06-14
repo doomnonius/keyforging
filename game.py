@@ -2015,12 +2015,12 @@ class Board():
   
   def canAction(self, card, reset = True, r_click: bool = False, cheat: bool = False, message: bool = False):
     if self.ruleOfSix(card):
-      logging.info(f"Rule of six prevents using this {card.title}.")
+      if message: logging.info(f"Rule of six prevents using this {card.title}.")
       return False
     if not card.ready or not card.action:
       return False
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
-      logging.info("'Skippy Timehog' is preventing you from using cards")
+      if message: logging.info("'Skippy Timehog' is preventing you from using cards")
       return False
     if card.house == "Mars" and "combat_pheromones" in self.activePlayer.states and self.activePlayer.states["combat_pheromones"]:
       if reset: self.activePlayer.states["combat_pheromones"] -= 1
@@ -2033,20 +2033,20 @@ class Board():
       else:
         return False
     if card.type == "Artifact" and "tentacus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
-      logging.info("You must pay one to Tentacus to use this artifact.")
+      if message: logging.info("You must pay one to Tentacus to use this artifact.")
       if not self.activePlayer.amber:
-        logging.info("You can't afford to pay for Tentacus.")
+        if message: logging.info("You can't afford to pay for Tentacus.")
         return False
       else:
         if reset:
           self.activePlayer.amber -= 1
-          logging.info(f"You paid for Tentacus to use {card.title}.")
+          if message: logging.info(f"You paid for Tentacus to use {card.title}.")
           return True
     if card.type == "Creature":
       if card.stun and not r_click:
         return False
       if card.title == "giant_sloth" and "Untamed" not in [x.house for x in self.discardedThisTurn]:
-        logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
+        if message: logging.info("You haven't discarded an Untamed card this turn, so you cannot use 'Giant Sloth'.")
         return False
     
     return True
