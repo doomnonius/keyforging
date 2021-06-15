@@ -3056,7 +3056,7 @@ def masterplan (game, card):
     choice = game.chooseCards("Hand", "Put a card facedown beneath Masterplan.", "friend")[0][1]
     c = hand[choice]
     hand.remove(c)
-    card.under.append(c) # not going to use pendingReloc for this one, going to cheat and use upgrade
+    card.under.append(c) # for this and similar cards from future sets
 
 #############
 # Creatures #

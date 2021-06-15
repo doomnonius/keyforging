@@ -810,8 +810,6 @@ class Board():
     if self.highlight:
       self.WIN.blits(self.highlight)
     self.WIN.blits(self.dataBlits)
-    if self.cardBlits:
-      self.WIN.blits(self.cardBlits)
     
     # self.allsprites.draw(self.WIN)
     if drawEnd and self.activeHouse:
@@ -819,12 +817,12 @@ class Board():
       self.WIN.blit(self.endText, self.endRect)
     # draw discards/archive/purges
     if self.drawFriendDiscard or self.drawFriendArchive or self.drawFriendPurge:
-      if self.drawFriendDiscard:
-        pool = self.activePlayer.discard
-      elif self.drawFriendArchive:
-        pool = self.activePlayer.archive
-      else:
-        pool = self.activePlayer.purged
+      # if self.drawFriendDiscard:
+      #   pool = self.activePlayer.discard
+      # elif self.drawFriendArchive:
+      #   pool = self.activePlayer.archive
+      # else:
+      #   pool = self.activePlayer.purged
       # discard back
       discardBackSurf = Surface((self.WIN.get_width(), self.WIN.get_height() * 5 // 12))
       discardBackSurf.convert_alpha()
@@ -848,27 +846,28 @@ class Board():
       self.WIN.blit(closeSurf, closeRect)
       ## TODO: implement selected/invalid over here
       # draw cards
-      x = 0
-      for card in pool[0:16]:
-        card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + self.margin)
-        x += 1
-        self.WIN.blit(card.image, card.rect)
-      x = 0
-      for card in pool[16:32]:
-        card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
-        x += 1
-        self.WIN.blit(card.image, card.rect)
-      for card in pool[32:]:
-        card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 3 * self.margin + 2 * self.target_cardh)
-        x += 1
-        self.WIN.blit(card.image, card.rect)
+      # x = 0
+      # for card in pool[0:16]:
+      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + self.margin)
+      #   x += 1
+      #   self.WIN.blit(card.image, card.rect)
+      # x = 0
+      # for card in pool[16:32]:
+      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
+      #   x += 1
+      #   self.WIN.blit(card.image, card.rect)
+      # for card in pool[32:]:
+      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 3 * self.margin + 2 * self.target_cardh)
+      #   x += 1
+      #   self.WIN.blit(card.image, card.rect)
+    
     if self.drawEnemyDiscard or self.drawEnemyArchive or self.drawEnemyPurge:
-      if self.drawEnemyDiscard:
-        pool = self.inactivePlayer.discard
-      elif self.drawEnemyArchive:
-        pool = self.inactivePlayer.archive
-      else:
-        pool = self.inactivePlayer.purged
+      # if self.drawEnemyDiscard:
+      #   pool = self.inactivePlayer.discard
+      # elif self.drawEnemyArchive:
+      #   pool = self.inactivePlayer.archive
+      # else:
+      #   pool = self.inactivePlayer.purged
       # discard back
       discardBackSurf = Surface((self.WIN.get_width(), self.WIN.get_height() * 5 // 12))
       discardBackSurf.convert_alpha()
@@ -890,20 +889,26 @@ class Board():
       self.WIN.blit(discardBackSurf, discardBackRect)
       self.WIN.blit(closeBackSurf, self.closeEnemyDiscard)
       self.WIN.blit(closeSurf, closeRect)
+      ## TODO: implement selected/invalid over here
       # draw cards
-      x = 0
-      for card in pool[0:16]:
-        card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + self.margin)
-        x += 1
-        self.WIN.blit(card.image, card.rect)
-      x = 0
-      for card in pool[16:32]:
-        card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
-        x += 1
-        self.WIN.blit(card.image, card.rect)
+      # x = 0
+      # for card in pool[0:16]:
+      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + self.margin)
+      #   x += 1
+      #   self.WIN.blit(card.image, card.rect)
+      # x = 0
+      # for card in pool[16:32]:
+      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
+      #   x += 1
+      #   self.WIN.blit(card.image, card.rect)
+    
+    if self.cardBlits:
+      self.WIN.blits(self.cardBlits)
+    
     if self.extraDraws:
       for thing, location in self.extraDraws:
         self.WIN.blit(thing, location)
+    
     if self.hovercard:
       hover = self.hovercard[0]
       if self.mini or self.act: # in this case hovercard will be a tuple
@@ -973,6 +978,7 @@ class Board():
         hover_back_rect.topleft = hover_rect.topleft
         self.WIN.blit(hover_back, hover_back_rect)
       self.WIN.blit(hover, hover_rect)
+    
     if self.dragging:
       drag = self.dragging[0]
       self.WIN.blit(drag.image, (self.mousex, self.mousey))
@@ -1829,6 +1835,106 @@ class Board():
       card_image, card_rect = self.inactivePlayer.deck[-1].image, self.inactivePlayer.deck[-1].rect
       card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
       self.cardBlits.append((card_image, card_rect))
+    # friendly discards/archive/purges when opened
+    if self.drawFriendDiscard or self.drawFriendArchive or self.drawFriendPurge:
+      if self.drawFriendDiscard:
+        pool = self.activePlayer.discard
+      elif self.drawFriendArchive:
+        pool = self.activePlayer.archive
+      else:
+        pool = self.activePlayer.purged
+      if True in [x.selected for x in pool]:
+        selectedSurf = Surface(pool[0].image.get_size())
+        selectedSurf.convert_alpha()
+        selectedSurf.set_alpha(80)
+        selectedSurf.fill(COLORS["LIGHT_GREEN"])
+
+        selectedSurfTapped = Surface(pool[0].tapped.get_size())
+        selectedSurfTapped.convert_alpha()
+        selectedSurfTapped.set_alpha(80)
+        selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
+      if True in [x.invalid for x in pool]:
+        invalidSurf = Surface(pool[0].image.get_size())
+        invalidSurf.convert_alpha()
+        invalidSurf.set_alpha(80)
+        invalidSurf.fill(COLORS["RED"])
+
+        invalidSurfTapped = Surface(pool[0].tapped.get_size())
+        invalidSurfTapped.convert_alpha()
+        invalidSurfTapped.set_alpha(80)
+        invalidSurf.fill(COLORS["RED"])
+      x = 0
+      for card in pool[0:16]:
+        card.rect.topleft = (self.mat1_rect.left + (x * self.target_cardw) + self.margin * (x + 1), self.mat1_rect.top + self.margin)
+        x += 1
+        self.cardBlits.append((card.image, card.rect))
+        if card.selected:
+          self.cardBlits.append((selectedSurf, card.rect))
+        if card.invalid:
+          self.cardBlits.append((invalidSurf, card.rect))
+      x = 0
+      for card in pool[16:32]:
+        card.rect.topleft = (self.mat1_rect.left + (x * self.target_cardw) + self.margin * (x + 1), self.mat1_rect.top + 2 * self.margin + self.target_cardh)
+        x += 1
+        self.cardBlits.append((card.image, card.rect))
+        if card.selected:
+          self.cardBlits.append((selectedSurf, card.rect))
+        if card.invalid:
+          self.cardBlits.append((invalidSurf, card.rect))
+      for card in pool[32:]:
+        card.rect.topleft = (self.mat1_rect.left + (x * self.target_cardw) + self.margin * (x + 1), self.mat1_rect.top + 3 * self.margin + 2 * self.target_cardh)
+        x += 1
+        self.cardBlits.append((card.image, card.rect))
+        if card.selected:
+          self.cardBlits.append((selectedSurf, card.rect))
+        if card.invalid:
+          self.cardBlits.append((invalidSurf, card.rect))
+    # enemy discards/archive/purges when opened
+    if self.drawEnemyDiscard or self.drawEnemyArchive or self.drawEnemyPurge:
+      if self.drawEnemyDiscard:
+        pool = self.inactivePlayer.discard
+      elif self.drawEnemyArchive:
+        pool = self.inactivePlayer.archive
+      else:
+        pool = self.inactivePlayer.purged
+      if True in [x.selected for x in pool]:
+        selectedSurf = Surface(pool[0].image.get_size())
+        selectedSurf.convert_alpha()
+        selectedSurf.set_alpha(80)
+        selectedSurf.fill(COLORS["LIGHT_GREEN"])
+
+        selectedSurfTapped = Surface(pool[0].tapped.get_size())
+        selectedSurfTapped.convert_alpha()
+        selectedSurfTapped.set_alpha(80)
+        selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
+      if True in [x.invalid for x in pool]:
+        invalidSurf = Surface(pool[0].image.get_size())
+        invalidSurf.convert_alpha()
+        invalidSurf.set_alpha(80)
+        invalidSurf.fill(COLORS["RED"])
+
+        invalidSurfTapped = Surface(pool[0].tapped.get_size())
+        invalidSurfTapped.convert_alpha()
+        invalidSurfTapped.set_alpha(80)
+        invalidSurf.fill(COLORS["RED"])
+      x = 0
+      for card in pool[0:16]:
+        card.rect.topleft = (0 + (x * self.target_cardw) + self.margin * (x + 1), 0 + self.margin)
+        x += 1
+        self.cardBlits.append((card.image, card.rect))
+        if card.selected:
+          self.cardBlits.append((selectedSurf, card.rect))
+        if card.invalid:
+          self.cardBlits.append((invalidSurf, card.rect))
+      x = 0
+      for card in pool[16:32]:
+        card.rect.topleft = (0 + (x * self.target_cardw) + self.margin * (x + 1), 0 + 2 * self.margin + self.target_cardh)
+        x += 1
+        self.cardBlits.append((card.image, card.rect))
+        if card.selected:
+          self.cardBlits.append((selectedSurf, card.rect))
+        if card.invalid:
+          self.cardBlits.append((invalidSurf, card.rect))
     
     self.setKeys()
     
@@ -2674,9 +2780,10 @@ class Board():
           self.mousex, self.mousey = e.pos
         elif e.type == MOUSEBUTTONUP and e.button == 1:
           print("Button up.")
-          print(f"True not in self.friendDraws: {True not in self.friendDraws}. {[Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]}")
           self.friendDraws = [self.drawFriendDiscard, self.drawFriendArchive, self.drawFriendPurge]
+          print(f"True not in self.friendDraws: {True not in self.friendDraws}. {[Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]}")
           self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
+          ## DONE: Figure out why this function isn't returning, like ever - REASON: thoughtless use of elif matched something before the check that would return the flank choice
           if Rect.collidepoint(self.hand1_rect, (self.mousex, self.mousey)):
             l = len(hand)
             for x in range(len(hand)):
@@ -2704,15 +2811,6 @@ class Board():
             self.cardChanged()
             print("Returning empty.")
             return
-          elif True not in self.enemyDraws:
-            if self.drawAction:
-              if Rect.collidepoint(self.actionMinRect, (self.mousex, self.mousey)):
-                self.drawAction = False
-                self.cardChanged()
-            else:
-              if Rect.collidepoint(self.actionMaxRect, (self.mousex, self.mousey)):
-                self.drawAction = True
-                self.cardChanged()
           elif True not in self.friendDraws and True in [Rect.collidepoint(x, (self.mousex, self.mousey)) for x in [self.flankRectLeft, self.flankRectLeftTapped, self.flankRectRight, self.flankRectRightTapped]]:
             print("Am I at least getting here?")
             if Rect.collidepoint(self.flankRectLeft, (self.mousex, self.mousey)):
@@ -2768,6 +2866,15 @@ class Board():
               for card in self.activePlayer.discard + self.activePlayer.purged + self.activePlayer.archive:
                 card.rect.topleft = OB
               self.cardChanged()
+            elif True not in self.enemyDraws:
+              if self.drawAction:
+                if Rect.collidepoint(self.actionMinRect, (self.mousex, self.mousey)):
+                  self.drawAction = False
+                  self.cardChanged()
+              else:
+                if Rect.collidepoint(self.actionMaxRect, (self.mousex, self.mousey)):
+                  self.drawAction = True
+                  self.cardChanged()
             elif True in self.enemyDraws and Rect.collidepoint(self.closeEnemyDiscard, (self.mousex, self.mousey)):
               self.drawEnemyDiscard = False
               self.drawEnemyArchive = False
@@ -3045,7 +3152,7 @@ class Board():
 
   def chooseCards(self, targetPool: str, message: str = "Choose a target:", canHit: str = "both", count: int = 1, full: bool = True, condition = lambda x: x == x, con_message: str = "This target does not meet the conditions.") -> List[int]:
     """ This can't deal with something that could target artifacts and creatures simultaneously. Also, the onus is on the caller to handle the results as creatures or artifacts or hand or discard, as appropriate.\n
-        Valid targetPool options: Creature, Artifact, Hand, Discard\n
+        Valid targetPool options: Creature, Artifact, [in progress: Board (ie Creature or Artifact)], Hand, Discard, [future set: Archive]\n
         Valid message: any string
         Valid canHit: either, both, enemy, friend\n
         Count is max number of choices\n
@@ -3054,8 +3161,6 @@ class Board():
         If condition isn't met, the con_message is displayed
     """
     self.cardChanged(True)
-    active = self.activePlayer.board
-    inactive = self.inactivePlayer.board
 
     # message
     messageSurf = self.BASICFONT.render(message, 1, COLORS["WHITE"])
@@ -3117,9 +3222,13 @@ class Board():
     if canHit == "friend":
       target = self.activePlayer
       other = self.inactivePlayer
+      for c in other.board["Creature"] + other.board["Artifact"] + other.hand + other.discard + other.archive:
+        c.invalid = True
     elif canHit == "enemy":
       target = self.inactivePlayer
       other = self.activePlayer
+      for c in other.board["Creature"] + other.board["Artifact"] + other.hand + other.discard + other.archive:
+        c.invalid = True
     elif canHit == "both":
       target = self.activePlayer
       other = self.inactivePlayer
@@ -3133,32 +3242,57 @@ class Board():
     if targetPool == "Hand":
       for card in target.hand:
         if not condition(card):
-          card.invalid = True # invalid.append((invalidSurf, card.rect))
-      for card in target.board["Creature"] + target.board["Artifact"]:
+          card.invalid = True
+      for card in target.board["Creature"] + target.board["Artifact"] + target.discard + target.archive:
         card.invalid = True
     elif targetPool == "Discard":
       for card in target.discard:
         if not condition(card):
-          card.invalid = True # invalid.append((invalidSurf, card.rect))
+          card.invalid = True
+      for card in target.board["Creature"] + target.board["Artifact"] + target.hand + target.archive:
+        card.invalid = True
+    elif targetPool == "Archive":
+      for card in target.archive:
+        if not condition(card):
+          card.invalid = True
+      for card in target.board["Creature"] + target.board["Artifact"] + target.hand + target.discard:
+        card.invalid = True
+    elif targetPool == "Board":
+      targetPool = "Creature"
+      otherPool = "Artifact"
+      for card in target.hand + target.discard + target.archive + other.hand + other.discard + other.archive:
+        card.invalid = True
     else: # targetPool == "Artifact" or "Creature"
+      if targetPool == "Artifact":
+        otherPool = "Creature"
+      elif targetPool == "Creature":
+        otherPool = "Artifact"
+      else:
+        logging.error("Invalid targetPool")
+      for card in target.hand + target.discard + target.archive + other.hand + other.discard + other.archive:
+        card.invalid = True
       if canHit == "both" or canHit == "either":
-        allowable = self.activePlayer.board[targetPool] + self.inactivePlayer.board[targetPool]
+        allowable = target.board[targetPool] + other.board[targetPool]
+        unallowable = target.board[otherPool] + other.board[otherPool]
         for card in allowable:
           if not condition(card):
-            if card.ready:
-              card.invalid = True # invalid.append((invalidSurf, card.rect))
-            else:
-              card.invalid = True # invalid.append((invalidSurfTapped, card.tapped_rect))
+            card.invalid = True
+        for card in unallowable:
+          card.invalid = True
+            # if card.ready:
+            #   card.invalid = True # invalid.append((invalidSurf, card.rect))
+            # else:
+            #   card.invalid = True # invalid.append((invalidSurfTapped, card.tapped_rect))
       if canHit == "friend" or canHit == "enemy":
         for card in target.board[targetPool]:
           if not condition(card):
-            if card.ready:
-              card.invalid = True # invalid.append((invalidSurf, card.rect))
-            else:
-              card.invalid = True # invalid.append((invalidSurfTapped, card.tapped_rect))  
-        for card in other.board[targetPool]:
-          if not condition(card):
             card.invalid = True
+            # if card.ready:
+            #   card.invalid = True # invalid.append((invalidSurf, card.rect))
+            # else:
+            #   card.invalid = True # invalid.append((invalidSurfTapped, card.tapped_rect))  
+        for card in target.board[otherPool] + other.board[targetPool] + other.board[otherPool]:
+          card.invalid = True
         
     # selected = []
     retVal = []
@@ -3176,7 +3310,7 @@ class Board():
             self.extraDraws = []
             if retVal and not full:
               if len(retVal) <= count and not full:
-                for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand:
+                for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive:
                   c.selected = False
                   c.invalid = False
                 self.cardChanged()
@@ -3184,7 +3318,7 @@ class Board():
               else:
                 pyautogui.alert("Not enough targets selected!")
             elif retVal and full and len(retVal) == count:
-              for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand:
+              for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive:
                 c.selected = False
                 c.invalid = False
               self.cardChanged()
@@ -3194,14 +3328,25 @@ class Board():
               while not incomplete:
                 incomplete = self.chooseHouse("custom", ("Are you sure you want to target less than the full number of targets?", ["Yes", "No"]))
               if incomplete == "Yes":
-                for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand:
+                for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive:
                   c.selected = False
                   c.invalid = False
                 self.cardChanged()
                 return retVal
           elif Rect.collidepoint(cancelBackRect, (self.mousex, self.mousey)):
+            for c in retVal:
+              c.selected = False
             retVal = []
-            # selected = []
+            if canHit == "either": # in which case, otherPool and targetPool will be defined
+              allowable = target.board[targetPool] + other.board[targetPool]
+              unallowable = target.board[otherPool] + other.board[otherPool] + target.hand + target.discard + target.archive + other.hand + other.discard + other.archive
+              for card in allowable:
+                if not condition(card):
+                  card.invalid = True
+                else:
+                  card.invalid = False
+              for card in unallowable:
+                card.invalid = True
             confirmBack.fill(COLORS["GREEN"])
           elif True in self.friendDraws and Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
             self.drawFriendDiscard = False
@@ -3238,280 +3383,327 @@ class Board():
             self.drawFriendArchive = True
           elif not self.drawEnemyArchive and Rect.collidepoint(self.archive2_rect, (self.mousex, self.mousey)):
             self.drawEnemyArchive = True
-          if targetPool != "Hand":
-            if targetPool == "Discard":
-              if canHit == "both": # this means I can select from both boards at the same time, eg natures call
-                friend = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
-                if True in friend:
-                  index = friend.index(True)
-                  card = self.activePlayer.discard[index]
-                  if condition(card):
-                    toAdd = ("fr", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      card.selected = True # selected.append((selectedSurf, card.rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      card.selected = False # selected.remove((selectedSurf, card.rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-                foe = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
-                if True in foe:
-                  index = foe.index(True)
-                  card = self.inactivePlayer.discard[index]
-                  if condition(card):
-                    toAdd = ("fo", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      card.selected = True # selected.append((selectedSurf, card.rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      card.selected = False # selected.remove((selectedSurf, card.rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-              elif canHit == "either": # this means I can select multiples, but only all from same side
-                friend = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
-                if True in friend and (not retVal or retVal[0][0] == "fr"):
-                  index = friend.index(True)
-                  card = self.activePlayer.discard[index]
-                  if condition(card):
-                    toAdd = ("fr", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      card.selected = True # selected.append((selectedSurf, card.rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      card.selected = False # selected.remove((selectedSurf, card.rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-                foe = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
-                if True in foe and (not retVal or retVal[0][0] == "fo"):
-                  index = foe.index(True)
-                  card = self.inactivePlayer.discard[index]
-                  if condition(card):
-                    toAdd = ("fo", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      card.selected = True # selected.append((selectedSurf, card.rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      card.selected = False # selected.remove((selectedSurf, card.rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-              elif canHit == "enemy": # this means I can only target unfriendlies
-                foe = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
-                if True in foe:
-                  index = foe.index(True)
-                  card = self.inactivePlayer.discard[index]
-                  if condition(card):
-                    toAdd = ("fo", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      card.selected = True # selected.append((selectedSurf, card.rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      card.selected = False # selected.remove((selectedSurf, card.rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-              elif canHit == "friend": # this means I can only target friendlies
-                friend = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
-                if True in friend:
-                  index = friend.index(True)
-                  card = self.activePlayer.discard[index]
-                  if condition(card):
-                    toAdd = ("fr", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      card.selected = True # selected.append((selectedSurf, card.rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      card.selected = False # selected.remove((selectedSurf, card.rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-            else: # Creature or Artifact
-              if canHit == "both": # this means I can select from both boards at the same time, eg natures call
-                friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
-                if True in friend:
-                  index = friend.index(True)
-                  card = active[targetPool][index]
-                  if condition(card):
-                    toAdd = ("fr", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      if card.ready:
-                        card.selected = True # selected.append((selectedSurf, card.rect))
+          # hypothetically I can hella streamline this due to the selected/invalid changes I made
+          every = target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive
+          if canHit == "either": # in which case, otherPool and targetPool will be defined
+            for c in every:
+              if True in [Rect.collidepoint(c.rect, (self.mousex, self.mousey)), Rect.collidepoint(c.tapped_rect, (self.mousex, self.mousey))]:
+                if not c.invalid:
+                  if len(retVal < count):
+                    if c.selected:
+                      c.selected = False
+                      retVal.remove(c)
+                      if not retVal:
+                        allowable = target.board[targetPool] + other.board[targetPool]
+                        unallowable = target.board[otherPool] + other.board[otherPool] + target.hand + target.discard + target.archive + other.hand + other.discard + other.archive
+                        for card in allowable:
+                          if not condition(card):
+                            card.invalid = True
+                          else:
+                            card.invalid = False
+                        for card in unallowable:
+                          card.invalid = True
+                    else:
+                      c.selected = True
+                      retVal.append(c)
+                      if c in target.board[targetPool] + target.board[otherPool] + target.hand + target.archive + target.discard:
+                        for c2 in other.board[targetPool] + other.board[otherPool] + other.hand + other.archive + other.discard:
+                          c2.invalid = True
                       else:
-                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      if card.ready:
-                        card.selected = False # selected.remove((selectedSurf, card.rect))
-                      else:
-                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
+                        for c2 in target.board[targetPool] + target.board[otherPool] + target.hand + target.archive + target.discard:
+                          c2.invalid = True
                   else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-                foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
-                if True in foe:
-                  index = foe.index(True)
-                  card = inactive[targetPool][index]
-                  if condition(card):
-                    toAdd = ("fo", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      if card.ready:
-                        card.selected = True # selected.append((selectedSurf, card.rect))
-                      else:
-                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      if card.ready:
-                        card.selected = False # selected.remove((selectedSurf, card.rect))
-                      else:
-                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-              elif canHit == "either": # this means I can select multiples, but only all from same side
-                friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
-                if True in friend and (not retVal or retVal[0][0] == "fr"):
-                  index = friend.index(True)
-                  card = active[targetPool][index]
-                  if condition(card):
-                    toAdd = ("fr", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      if card.ready:
-                        card.selected = True # selected.append((selectedSurf, card.rect))
-                      else:
-                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      if card.ready:
-                        card.selected = False # selected.remove((selectedSurf, card.rect))
-                      else:
-                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-                foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
-                if True in foe and (not retVal or retVal[0][0] == "fo"):
-                  index = foe.index(True)
-                  card = inactive[targetPool][index]
-                  if condition(card):
-                    toAdd = ("fo", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      if card.ready:
-                        card.selected = True # selected.append((selectedSurf, card.rect))
-                      else:
-                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      if card.ready:
-                        card.selected = False # selected.remove((selectedSurf, card.rect))
-                      else:
-                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-              elif canHit == "enemy": # this means I can only target unfriendlies
-                foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
-                if True in foe:
-                  index = foe.index(True)
-                  card = inactive[targetPool][index]
-                  if condition(card):
-                    toAdd = ("fo", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      if card.ready:
-                        card.selected = True # selected.append((selectedSurf, card.rect))
-                      else:
-                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      if card.ready:
-                        card.selected = False # selected.remove((selectedSurf, card.rect))
-                      else:
-                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
-              elif canHit == "friend": # this means I can only target friendlies
-                friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
-                if True in friend:
-                  index = friend.index(True)
-                  card = active[targetPool][index]
-                  if condition(card):
-                    toAdd = ("fr", index)
-                    if toAdd not in retVal and len(retVal) < count:
-                      if card.ready:
-                        card.selected = True # selected.append((selectedSurf, card.rect))
-                      else:
-                        card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
-                      retVal.append(toAdd)
-                    elif toAdd in retVal:
-                      retVal.remove(toAdd)
-                      if card.ready:
-                        card.selected = False # selected.remove((selectedSurf, card.rect))
-                      else:
-                        card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
-                  else:
-                    logging.info(con_message)
-                    self.cardChanged()
-                    break
+                    logging.info(f"{c.title} is not a valid target.")
+            # if retVal is empty, figure out which side has been selected and mark the other side as invalid now
+            # now for future selections we'll only need to make sure the target is valid
           else:
-            if canHit == "enemy":
-              hand = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.hand]
-              if True in hand:
-                index = hand.index(True)
-                card = self.activePlayer.hand[index]
-                if condition(card):
-                  toAdd = ("fo", index)
-                  if toAdd not in retVal and len(retVal) < count:
-                    card.selected = True # selected.append((selectedSurf, card.rect))
-                    retVal.append(toAdd)
-                  elif toAdd in retVal:
-                    retVal.remove(toAdd)
-                    card.selected = False # selected.remove((selectedSurf, card.rect))
+            # we can just check if the target is invalid or selected
+            for c in every:
+              if True in [Rect.collidepoint(c.rect, (self.mousex, self.mousey)), Rect.collidepoint(c.tapped_rect, (self.mousex, self.mousey))]:
+                if not c.invalid:
+                  if len(retVal) < count:
+                    if c.selected:
+                      c.selected = False
+                      retVal.remove(c)
+                    else:
+                      c.selected = True
+                      retVal.append(c)
                 else:
-                  logging.info(con_message)
-                  self.cardChanged()
-                  break
-            else:
-              hand = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.hand]
-              if True in hand:
-                index = hand.index(True)
-                card = self.activePlayer.hand[index]
-                if condition(card):
-                  toAdd = ("fr", index)
-                  if toAdd not in retVal and len(retVal) < count:
-                    card.selected = True # selected.append((selectedSurf, card.rect))
-                    retVal.append(toAdd)
-                  elif toAdd in retVal:
-                    retVal.remove(toAdd)
-                    card.selected = False # selected.remove((selectedSurf, card.rect))
-                else:
-                  logging.info(con_message)
-                  self.cardChanged()
-                  break
+                  logging.info(f"{c.title} is not a valid target.")
+          # if targetPool != "Hand":
+          #   if targetPool == "Discard":
+          #     if canHit == "both": # this means I can select from both boards at the same time, eg natures call
+          #       friend = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
+          #       if True in friend:
+          #         index = friend.index(True)
+          #         card = self.activePlayer.discard[index]
+          #         if condition(card):
+          #           toAdd = ("fr", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             card.selected = True # selected.append((selectedSurf, card.rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             card.selected = False # selected.remove((selectedSurf, card.rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #       foe = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
+          #       if True in foe:
+          #         index = foe.index(True)
+          #         card = self.inactivePlayer.discard[index]
+          #         if condition(card):
+          #           toAdd = ("fo", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             card.selected = True # selected.append((selectedSurf, card.rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             card.selected = False # selected.remove((selectedSurf, card.rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #     elif canHit == "either": # this means I can select multiples, but only all from same side
+          #       friend = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
+          #       if True in friend and (not retVal or retVal[0][0] == "fr"):
+          #         index = friend.index(True)
+          #         card = self.activePlayer.discard[index]
+          #         if condition(card):
+          #           toAdd = ("fr", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             card.selected = True # selected.append((selectedSurf, card.rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             card.selected = False # selected.remove((selectedSurf, card.rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #       foe = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
+          #       if True in foe and (not retVal or retVal[0][0] == "fo"):
+          #         index = foe.index(True)
+          #         card = self.inactivePlayer.discard[index]
+          #         if condition(card):
+          #           toAdd = ("fo", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             card.selected = True # selected.append((selectedSurf, card.rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             card.selected = False # selected.remove((selectedSurf, card.rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #     elif canHit == "enemy": # this means I can only target unfriendlies
+          #       foe = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.discard]
+          #       if True in foe:
+          #         index = foe.index(True)
+          #         card = self.inactivePlayer.discard[index]
+          #         if condition(card):
+          #           toAdd = ("fo", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             card.selected = True # selected.append((selectedSurf, card.rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             card.selected = False # selected.remove((selectedSurf, card.rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #     elif canHit == "friend": # this means I can only target friendlies
+          #       friend = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.discard]
+          #       if True in friend:
+          #         index = friend.index(True)
+          #         card = self.activePlayer.discard[index]
+          #         if condition(card):
+          #           toAdd = ("fr", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             card.selected = True # selected.append((selectedSurf, card.rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             card.selected = False # selected.remove((selectedSurf, card.rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #   else: # Creature or Artifact
+          #     if canHit == "both": # this means I can select from both boards at the same time, eg natures call
+          #       friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
+          #       if True in friend:
+          #         index = friend.index(True)
+          #         card = active[targetPool][index]
+          #         if condition(card):
+          #           toAdd = ("fr", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             if card.ready:
+          #               card.selected = True # selected.append((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             if card.ready:
+          #               card.selected = False # selected.remove((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #       foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
+          #       if True in foe:
+          #         index = foe.index(True)
+          #         card = inactive[targetPool][index]
+          #         if condition(card):
+          #           toAdd = ("fo", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             if card.ready:
+          #               card.selected = True # selected.append((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             if card.ready:
+          #               card.selected = False # selected.remove((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #     elif canHit == "either": # this means I can select multiples, but only all from same side
+          #       friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
+          #       if True in friend and (not retVal or retVal[0][0] == "fr"):
+          #         index = friend.index(True)
+          #         card = active[targetPool][index]
+          #         if condition(card):
+          #           toAdd = ("fr", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             if card.ready:
+          #               card.selected = True # selected.append((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             if card.ready:
+          #               card.selected = False # selected.remove((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #       foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
+          #       if True in foe and (not retVal or retVal[0][0] == "fo"):
+          #         index = foe.index(True)
+          #         card = inactive[targetPool][index]
+          #         if condition(card):
+          #           toAdd = ("fo", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             if card.ready:
+          #               card.selected = True # selected.append((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             if card.ready:
+          #               card.selected = False # selected.remove((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #     elif canHit == "enemy": # this means I can only target unfriendlies
+          #       foe = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in inactive[targetPool]]
+          #       if True in foe:
+          #         index = foe.index(True)
+          #         card = inactive[targetPool][index]
+          #         if condition(card):
+          #           toAdd = ("fo", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             if card.ready:
+          #               card.selected = True # selected.append((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             if card.ready:
+          #               card.selected = False # selected.remove((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          #     elif canHit == "friend": # this means I can only target friendlies
+          #       friend = [(Rect.collidepoint(card.rect, (self.mousex, self.mousey)) or Rect.collidepoint(card.tapped_rect, (self.mousex, self.mousey))) for card in active[targetPool]]
+          #       if True in friend:
+          #         index = friend.index(True)
+          #         card = active[targetPool][index]
+          #         if condition(card):
+          #           toAdd = ("fr", index)
+          #           if toAdd not in retVal and len(retVal) < count:
+          #             if card.ready:
+          #               card.selected = True # selected.append((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = True # selected.append((selectedSurfTapped, card.tapped_rect))
+          #             retVal.append(toAdd)
+          #           elif toAdd in retVal:
+          #             retVal.remove(toAdd)
+          #             if card.ready:
+          #               card.selected = False # selected.remove((selectedSurf, card.rect))
+          #             else:
+          #               card.selected = False # selected.remove((selectedSurfTapped, card.tapped_rect))
+          #         else:
+          #           logging.info(con_message)
+          #           self.cardChanged()
+          #           break
+          # else:
+          #   if canHit == "enemy":
+          #     hand = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.inactivePlayer.hand]
+          #     if True in hand:
+          #       index = hand.index(True)
+          #       card = self.activePlayer.hand[index]
+          #       if condition(card):
+          #         toAdd = ("fo", index)
+          #         if toAdd not in retVal and len(retVal) < count:
+          #           card.selected = True # selected.append((selectedSurf, card.rect))
+          #           retVal.append(toAdd)
+          #         elif toAdd in retVal:
+          #           retVal.remove(toAdd)
+          #           card.selected = False # selected.remove((selectedSurf, card.rect))
+          #       else:
+          #         logging.info(con_message)
+          #         self.cardChanged()
+          #         break
+          #   else:
+          #     hand = [Rect.collidepoint(card.rect, (self.mousex, self.mousey)) for card in self.activePlayer.hand]
+          #     if True in hand:
+          #       index = hand.index(True)
+          #       card = self.activePlayer.hand[index]
+          #       if condition(card):
+          #         toAdd = ("fr", index)
+          #         if toAdd not in retVal and len(retVal) < count:
+          #           card.selected = True # selected.append((selectedSurf, card.rect))
+          #           retVal.append(toAdd)
+          #         elif toAdd in retVal:
+          #           retVal.remove(toAdd)
+          #           card.selected = False # selected.remove((selectedSurf, card.rect))
+          #       else:
+          #         logging.info(con_message)
+          #         self.cardChanged()
+          #         break
       if not full or (full and len(retVal) == count):
         confirmBack.fill(COLORS["LIGHT_GREEN"])
       else:
@@ -3522,7 +3714,15 @@ class Board():
       self.draw(False)
       pygame.display.flip()
       self.extraDraws = []
-  
+
+
+  def chooseTriggers(self, triggers: List) -> List:
+    """ Will let the active player order triggers or choose one of a list of triggers (for instances where a card might have gained multiple action triggers).
+    """
+    ## TODO: Figure out how to describe the triggers.
+
+
+
                 #####################
                 # End of Game Class #
                 #####################
