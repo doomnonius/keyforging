@@ -1,4 +1,4 @@
-import random, pyautogui, pygame, logging
+import random, pygame, logging
 from helpers import stealAmber, destroy, return_card
 from cards.reap import spectral_tunneler as st
 
@@ -10,65 +10,41 @@ def cannon (game, card):
   """Cannon: Deal 2 damage to a creature.
   """
   logging.info(f"Using {card.title}'s action.")
-  activeBoard = game.activePlayer.board["Creature"]
-  inactiveBoard = game.inactivePlayer.board["Creature"]
-  pendingDiscard = game.pendingReloc # fine b/c only one side ever affected
 
-  if not activeBoard and not inactiveBoard:
-    logging.info("No valid targets. The card is still played.")
-    return
-
-  side, choice = game.chooseCards("Creature", "Deal 2 damage to a creature:")[0]
-  if side == "fr":
-    c = activeBoard[choice]
-  else:
-    c = inactiveBoard[choice]
-  c.damageCalc(game, 2)
-  c.updateHealth(game.inactivePlayer)
-  if c.destroyed:
-    pendingDiscard.append(c)
-  game.pending()
+  for c in game.chooseCards("Creature", "Deal 2 damage to a creature:"):
+    c.damageCalc(game, 2)
+    c.updateHealth(game.inactivePlayer)
+    if c.destroyed:
+      game.pendingReloc.append(c)
+    game.pending()
 
 def gauntlet_of_command (game, card):
   """Gauntlet of Command: Ready and fight with a friendly creature.
   """
   logging.info(f"Using {card.title}'s action.")
-  if not game.activePlayer.board["Creature"]:
-    logging.info("No valid targets. The card is still played.")
-    return
   
-  choice = game.chooseCards("Creature", "Choose a friendly creature:", "friend")[0][1]
-  if not game.activePlayer.board["Creature"][choice].ready:
-    game.activePlayer.board["Creature"][choice].ready = True
-    game.fightCard(choice, cheat=True)
-  else:
-    game.fightCard(choice, cheat=True)
+  for c in game.chooseCards("Creature", "Choose a friendly creature:", "friend"):
+    if not c.ready:
+      c.ready = True
+      game.fightCard(c, cheat=True)
+    else:
+      game.fightCard(c, cheat=True)
 
 def omni_mighty_javelin (game, card):
   """Might Javelin: Sacrific Mighty Javelin. Deal 4 damage to a creature.
   """
   logging.info(f"Using {card.title}'s action.")
-  activeBoard = game.activePlayer.board["Creature"]
-  inactiveBoard = game.inactivePlayer.board["Creature"]
   
   destroy(card, game.activePlayer, game)
   if card.destroyed:
     game.pendingReloc.append(card)
-  
-  if not activeBoard and not inactiveBoard:
-    logging.info("No valid targets.")
-    return
 
-  side, choice = game.chooseCards("Creature", "Deal 4 damage to a creature:")[0]
-  if side == "fr":
-    c = activeBoard[choice]
-  else:
-    c = inactiveBoard[choice]
-  c.damageCalc(game, 4)
-  c.updateHealth(game.inactivePlayer)
-  if c.destroyed:
-    game.pendingReloc.append(c)
-  game.pending()
+  for c in game.chooseCards("Creature", "Deal 4 damage to a creature:"):
+    c.damageCalc(game, 4)
+    c.updateHealth(game.inactivePlayer)
+    if c.destroyed:
+      game.pendingReloc.append(c)
+    game.pending()
 
 def omni_screechbomb (game, card):
   """Screechbomb: Sacrifice Screechbomb. Your opponent loses 2 amber.
@@ -96,34 +72,34 @@ def dominator_bauble (game, card):
   logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
 
-  if not active:
-    logging.info("No valid targets.")
-    return
+  for c in game.chooseCards("Creature", "Use a friendly creature:", "friend"):
+  
+    if not c.ready:
+      logging.info("Card isn't ready, so can't be used.")
+      return
 
-  choice = active[game.chooseCards("Creature", "Use a friendly creature:", "friend")[0][1]]
-  
-  if not choice.ready:
-    logging.info("Card isn't ready, so can't be used.")
-    return
-
-  uses =  []
-  if game.canReap(card, r_click = True, cheat = True):
-    uses.append("Reap")
-  if game.canFight(card, r_click = True, cheat = True):
-    uses.append("Fight")
-  if game.canAction(card, r_click = True, cheat = True):
-    uses.append("Action/Omni")
-  
-  if not uses:
-    return ("No valid uses for this card.")
-  
-  use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
-  if use[0] == "R":
-    game.reapCard(choice, cheat = True)
-  elif use[0] == "F":
-    game.fightCard(choice, cheat=True)
-  elif use[0] == "A":
-    game.actionCard(choice, cheat = True)
+    uses =  []
+    if game.canReap(c, r_click = True, cheat = True):
+      uses.append("Reap")
+    if game.canFight(c, r_click = True, cheat = True):
+      uses.append("Fight")
+    if game.canAction(c, r_click = True, cheat = True):
+      uses.append("Action")
+    if game.canOmni(c, r_click = True, cheat = True):
+      uses.append("Omni")
+    
+    if not uses:
+      return ("No valid uses for this card.")
+    
+    use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
+    if use[0] == "R":
+      game.reapCard(active.index(c), cheat = True)
+    elif use[0] == "F":
+      game.fightCard(active.index(c), cheat=True)
+    elif use[0] == "A":
+      game.actionCard(active.index(c), cheat = True)
+    elif use[0] == "O":
+      game.omniCard(active.index(c))
 
 def omni_key_to_dis (game, card):
   """ Key to Dis: Destroy each creature.
@@ -131,6 +107,7 @@ def omni_key_to_dis (game, card):
   logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
+
   destroy(card, game.activePlayer, game)
   if card.destroyed:
     game.pendingReloc.append(card)
@@ -153,11 +130,10 @@ def library_of_the_damned (game, card):
   """ Library of the Damned: Archive a card.
   """
   logging.info(f"Using {card.title}'s action.")
-  if game.activePlayer.hand:
-    archive = game.chooseCards("Hand", "Choose a card from your hand to archive:")[0][1]
-    card = game.activePlayer.hand[archive]
-    game.pendingReloc.append(card)
-    game.activePlayer.hand.remove(card)
+
+  for c in game.chooseCards("Hand", "Choose a card from your hand to archive:"):
+    game.pendingReloc.append(c)
+    game.activePlayer.hand.remove(c)
     game.pending("archive", target = game.activePlayer)
 
 def omni_lifeward (game, card):
@@ -171,20 +147,20 @@ def sacrificial_altar (game, card):
   """ Sacrificial Altar: Purge a friendly human creature from play. If you do, play a creature from your discard pile.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
   discard = game.activePlayer.discard
-  count = sum("Human" in x.traits for x in active)
-
-  if not count:
-    logging.info("No valid targets.")
-    return
-  if not sum(x.type == "Creature" and game.canPlay(x, reset = False, cheat = True) for x in discard):
-    logging.info("No playable creatures in your discard.")
-    return
   
-  c = active[game.chooseCards("Creature", "Purge a friendly human creature:", "friend", condition = lambda x: "Human" in x.traits, con_message = "That's not a human.")[0][1]]
+  c = game.chooseCards("Creature", "Purge a friendly human creature:", "friend", condition = lambda x: "Human" in x.traits, con_message = "That's not a human.")
+  if c:
+    c = c[0]
+  else:
+    logging.info("No friendly human to  purge.")
+    return
   game.drawFriendDiscard = True
-  cheat = discard[game.chooseCards("Discard", "Play a creature from your discard:", "friend", lambda x: game.canPlay(x, reset = False, cheat = True) and x.type == "Creature", con_message = "That's not a creature, or it is a creature you can't play right now.")[0][1]]
+  cheat = game.chooseCards("Discard", "Play a creature from your discard:", "friend", lambda x: game.canPlay(x, reset = False, cheat = True) and x.type == "Creature", con_message = "That's not a creature, or it is a creature you can't play right now.")
+  if cheat:
+    cheat = cheat[0]
+  else:
+    logging.info("No creature played from discard.")
 
   return_card(c, game.activePlayer, game)
   if c.returned:
@@ -224,23 +200,12 @@ def anomaly_exploiter (game, card):
   """ Anomaly Exploiter: Destroy a damaged creature.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
 
-  if not sum(x.damage > 0 for x in active + inactive):
-    logging.info("No damaged creatures.")
-    return
-
-  side, choice = game.chooseCards("Creature", "Destroy a damaged creature:", condition = lambda x: x.damage > 0, con_message = "That creature is not damaged.")[0]
-  if side == "fr":
-    c = active[choice]
-  else:
-    c = inactive[choice]
-
-  destroy(c, game.activePlayer, game)
-  if c.destroyed:
-    game.pendingReloc.append(c)
-  game.pending()
+  for c in game.chooseCards("Creature", "Destroy a damaged creature:", condition = lambda x: x.damage > 0, con_message = "That creature is not damaged."):
+    destroy(c, game.activePlayer, game)
+    if c.destroyed:
+      game.pendingReloc.append(c)
+    game.pending()
 
 def chaos_portal (game, card):
   """ Chaos Portal: Choose a house. Reveal the top card of your deck. If it is of that house, play it.
@@ -281,28 +246,18 @@ def crazy_killing_machine (game, card):
     logging.info(f"Your opponent's deck is empty, no card is discarded.")
     iDiscard = False
 
-  if inactive and iDiscard:
-    targetType = game.chooseHouse("custom", (f"Would you like to target an artifact or a creature of house {iDiscard.house}?", ["Artifact", "Creature"]))[0]
-    side, choice = game.chooseCards(targetType, f"Choose a(n) {iDiscard.house} {targetType.lower()} to destroy:", condition = lambda x: x.house == iDiscard.house, con_message = "That's not of the right house.")[0]
-    if side == "fr":
-      card1 = active[choice]
-    else:
-      card1 = inactive[choice]
-    destroy(card1, game.inactivePlayer, game)
-    if card1.destroyed:
-      game.pendingReloc.append(card1)
-      count += 1
-  if active and aDiscard:
-    targetType2 = game.chooseHouse("custom", (f"Would you like to target an artifact or a creature of house {aDiscard.house}?", ["Artifact", "Creature"]))[0]
-    side, choice = game.chooseCards(targetType2, f"Choose a(n) {aDiscard.house} {targetType2.lower()} to destroy:", condition = lambda x: x.house == aDiscard.house, con_message = "That's not of the right house.")[0][1]
-    if side == "fr":
-      card2 = active[choice]
-    else:
-      card2 = inactive[choice]
-    destroy(card2, game.inactivePlayer, game)
-    if card2.destroyed:
-      game.pendingReloc.append(card2)
-      count += 1
+  if iDiscard:
+    for c in game.chooseCards("Board", f"Choose a(n) {iDiscard.house} card to destroy:", condition = lambda x: x.house == iDiscard.house, con_message = "That's not of the right house."):
+      destroy(c, game.inactivePlayer, game)
+      if c.destroyed:
+        game.pendingReloc.append(c)
+        count += 1
+  if aDiscard:
+    for c in game.chooseCards("Board", f"Choose a(n) {aDiscard.house} card to destroy:", condition = lambda x: x.house == aDiscard.house and not x.destroyed, con_message = "That's not of the right house."):
+      destroy(c, game.inactivePlayer, game)
+      if c.destroyed:
+        game.pendingReloc.append(c)
+        count += 1
   game.pending()
 
   if count < 2:
@@ -322,17 +277,13 @@ def mobius_scroll (game, card):
   """ Mobius Scroll: Archive Mobius Scroll and up to 2 cards from your hand.
   """
   logging.info(f"Using {card.title}'s action.")
-  hand = game.activePlayer.hand
   return_card(card)
   if card.returned:
     game.pendingReloc.append(card)
 
-  if hand:
-    archive = [x[1] for x in game.chooseCards("Hand", "Choose up to 2 cards from your hand to archive:", count = 2, full = False)[0]]
-    for a in archive:
-      c = game.activePlayer.hand[a]
-      game.pendingReloc.append(c)
-      game.activePlayer.hand.remove(c)
+  for c in game.chooseCards("Hand", "Choose up to 2 cards from your hand to archive:", count = 2, full = False):
+    game.pendingReloc.append(c)
+    game.activePlayer.hand.remove(c)
 
   game.pending("archive", target = game.activePlayer)
 
@@ -350,42 +301,26 @@ def spangler_box (game, card):
   """
   logging.info(f"Using {card.title}'s action.")
   # card.spangler will exist
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
-  
-  if not active + inactive:
-    logging.info("No valid targets.")
-    return
 
-  side, choice = game.chooseCards("Creature", "Purge a creature in play:")[0]
-  if side == "fr":
-    c = active[choice]
-  else:
-    c = inactive[choice]
-  return_card(c, game)
-  if c.returned:
-    game.pendingReloc.append(c)
-    card.spangler.append(c)
-  game.pending("purge")
+  for c in game.chooseCards("Creature", "Purge a creature in play:"):
+    return_card(c, game)
+    if c.returned:
+      game.pendingReloc.append(c)
+      card.spangler.append(c)
+    game.pending("purge")
   
 def spectral_tunneler (game, card):
   """ Spectral Tunneler: Choose a creature. For the remainder of the turn, that creature is considered a flank creature and gains, “Reap: Draw a card.”
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
 
-  side, choice = game.chooseCards("Creature", "Purge a creature in play:")[0]
-  if side == "fr":
-    c = active[choice]
-  else:
-    c = inactive[choice]
-  if not game.activePlayer.states[card.title]:
-    game.activePlayer.states[card.title] = [c]
-  else:
-    game.activePlayer.states[card.title].append(c)
-  c.reap.append(st)
-  game.resetCard.append((c, "st"))
+  for c in game.chooseCards("Creature", "Purge a creature in play:"):
+    if not game.activePlayer.states[card.title]:
+      game.activePlayer.states[card.title] = [c]
+    else:
+      game.activePlayer.states[card.title].append(c)
+    c.reap.append(st)
+    game.resetCard.append((c, "st"))
 
 def novu_archaeologist (game, card):
   """ Novu Archaeologist: Archive a card from your discard pile.
@@ -393,11 +328,9 @@ def novu_archaeologist (game, card):
   logging.info(f"Using {card.title}'s action.")
   discard = game.activePlayer.discard
 
-  if discard:
-    archive = game.chooseCards("Discard", "Choose a card from your hand to archive:", "friend")[0][1]
-    card = discard[archive]
-    game.activePlayer.archive.append(card)
-    discard.remove(card) # not using pending because no need to reset card in any way
+  for c in game.chooseCards("Discard", "Choose a card from your hand to archive:", "friend"):
+    game.activePlayer.archive.append(c)
+    discard.remove(c) # not using pending because no need to reset card in any way
 
 def timetraveller (game, card):
   """ Timetraveller: Shuffle Timetraveller into your deck.
@@ -423,16 +356,16 @@ def transposition_sandals (game, card):
     logging.info("No creatures to swap with.")
     return
   
-  choice = active[game.chooseCards("Creature", "Swap positions with another friendly creature in your battleline. You can use that card this turn.", "friend", condition = lambda x: x != card)[0][1]]
-  sg_i = active.index(card)
-  other_i = active.index(choice)
-  active[sg_i], active[other_i] = active[other_i], active[sg_i]
+  for c in game.chooseCards("Creature", "Swap positions with another friendly creature in your battleline. You can use that card this turn.", "friend", condition = lambda x: x != card):
+    sg_i = active.index(card)
+    other_i = active.index(c)
+    active[sg_i], active[other_i] = active[other_i], active[sg_i]
 
-  if not game.activePlayer.states[card.title]:
-    game.activePlayer.states[card.title] = [choice]
-  else:
-    game.activePlayer.states[card.title].append(choice)
-  game.resetStates(("a", card.title))
+    if not game.activePlayer.states[card.title]:
+      game.activePlayer.states[card.title] = [c]
+    else:
+      game.activePlayer.states[card.title].append(c)
+    game.resetStates(("a", card.title))
 
 ########
 # Mars #
@@ -453,20 +386,14 @@ def commpod (game, card):
   """ Reveal any number of Mars cards from your hand. For each card revealed this way, you may ready one Mars creature.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
+  count = 0
 
-  revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
-  count = len(revealed)
+  for c in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card."):
+    count += 1
   if count == 0:
-    logging.info("You revealed no Mars cards, so no damage is dealt. The card is still played.")
+    logging.info("You revealed no Mars cards, so no damage is dealt.")
     return
-  readied = game.chooseCards("Creature", f"Ready up to {count} Mars creatures:", count = count, full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")
-  for side, choice in readied:
-    if side == "fr":
-      c = active[choice]
-    else:
-      c = inactive[choice]
+  for c in game.chooseCards("Creature", f"Ready up to {count} Mars creatures:", count = count, full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars creature."):
     c.ready = True
 
 def crystal_hive (game, card):
@@ -488,51 +415,41 @@ def omni_custom_virus (game, card):
   hand = game.activePlayer.hand
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  if not sum(x.type == "Creature" for x in hand):
-    logging.info("No creatures in your hand")
-    return
 
-  choice = hand[game.chooseCards("Hand", "Purge a creature from your hand:", condition = lambda x: x.type == "Creature", con_message = "That's not a creature.")[0][1]]
-  game.activePlayer.purged.append(choice)
-  hand.remove(choice) # no need for pending b/c don't need it reset
-  traits = [x for x in choice.traits.split() if len(x) > 2]
+  for c1 in game.chooseCards("Hand", "Purge a creature from your hand:", condition = lambda x: x.type == "Creature", con_message = "That's not a creature."):
+    game.activePlayer.purged.append(c1)
+    hand.remove(c1) # no need for pending b/c don't need it reset
+    traits = [x for x in c1.traits.split() if len(x) > 2]
   
-  for c in active + inactive:
-    for tr in traits:
-      if tr in c.traits:
-        destroy(c, game.activePlayer, game)
-        if c.destroyed:
-          game.pendingReloc.append(c)
-        break # if it matches two traits, we don't destroy it twice (ie ward)
-  game.pending()
+    for c in active + inactive:
+      for tr in traits:
+        if tr in c.traits:
+          destroy(c, game.activePlayer, game)
+          if c.destroyed:
+            game.pendingReloc.append(c)
+          break # if it matches two traits, we don't destroy it twice (ie ward)
+    game.pending()
 
 def feeding_pit (game, card):
   """ Feeding Pit: Discard a creature card from your hand. If you do, gain 1 amber.
   """
   logging.info(f"Using {card.title}'s action.")
   hand = game.activePlayer.hand
-  if not sum(x.type == "Creature" for x in hand):
-    logging.info("No creatures in your hand")
-    return
 
-  choice = hand[game.chooseCards("Hand", "Discard a creature from your hand:", condition = lambda x: x.type == "Creature", con_message = "That's not a creature.")[0][1]]
-  game.activePlayer.discard.append(choice)
-  hand.remove(choice)
-  game.activePlayer.gainAmber(1, game)
+  for c in game.chooseCards("Hand", "Discard a creature from your hand:", condition = lambda x: x.type == "Creature", con_message = "That's not a creature."):
+    game.activePlayer.discard.append(c)
+    hand.remove(c)
+    game.activePlayer.gainAmber(1, game)
 
 def omni_incubation_chamber (game, card):
   """ Incubation Chamber: Reveal a Mars creature from your hand. If you do, archive it.
   """
   logging.info(f"Using {card.title}'s action.")
   hand = game.activePlayer.hand
-  
-  if not sum(x.type == "Creature" and x.house == "Mars" for x in hand):
-    logging.info("No Mars creatures in your hand")
-    return
 
-  choice = hand[game.chooseCards("Hand", "Reveal a Mars creature from your hand:", condition = lambda x: x.type == "Creature" and x.house == "Mars", con_message = "That's not a Mars creature.")[0][1]]
-  game.activePlayer.archive.append(choice)
-  hand.remove(choice) # no need to use pending because no need to reset
+  for c in game.chooseCards("Hand", "Reveal a Mars creature from your hand:", condition = lambda x: x.type == "Creature" and x.house == "Mars", con_message = "That's not a Mars creature."):
+    game.activePlayer.archive.append(c)
+    hand.remove(c) # no need to use pending because no need to reset
 
 def invasion_portal (game, card):
   """ Invastion Portal: Discard cards from the top of your deck until you discard a Mars creature or run out of cards. If you discard a Mars creature this way, put it into your hand.
@@ -555,25 +472,19 @@ def mothergun (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
-  revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
-  damage = len(revealed)
+  damage = 0
+  for c in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again."):
+    damage += 1
   if damage == 0:
     logging.info("You revealed no Mars cards, so no damage is dealt.")
     return
 
-  if not active + inactive:
-    logging.info("No valid targets.")
-    return
-  side, choice = game.chooseCards("Creature", f"Deal {damage} damage to a creature:")[0]
-  if side == "fr":
-    c = active[choice]
-  else:
-    c = inactive[choice]
-  c.damageCalc(game, damage)
-  c.updateHealth()
-  if c.destroyed:
-    game.pendingReloc.append(c)
-  game.pending()
+  for c in game.chooseCards("Creature", f"Deal {damage} damage to a creature:"):
+    c.damageCalc(game, damage)
+    c.updateHealth()
+    if c.destroyed:
+      game.pendingReloc.append(c)
+    game.pending()
 
 def sniffer (game, card):
   """ Sniffer: For the remainder of the turn, each creature loses elusive.
@@ -590,31 +501,30 @@ def swap_widget (game, card):
   """
   logging.info(f"Using {card.title}'s action.")
   active = game.activePlayer.board["Creature"]
-  hand = game.activePlayer.hand
-  initial = len(hand)
-  choice = active[game.chooseCards("Creature", "Return a ready friendly Mars creature to your hand", "friend", condition = lambda x: x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]), con_message = "That's not ready and/or not Mars.")[0][1]]
-  return_card(choice, game)
-  if choice.returned:
-    game.pendingReloc.append(choice)
-  game.pending("hand")
-  if len(hand) > initial:
-    replace = hand[game.chooseCards("Hand", f"Put a Mars creature not named {choice.title.replace('_', ' ').title()} into play:")[0][1]]
-    game.activePlayer.states[card.title] = 1
-    flank = game.chooseFlank(replace)
-    if flank == "Left":
-      flank = 0
-    else:
-      flank = len(active)
-    active.insert(flank, replace)
-    game.activePlayer.states[card.title] = 0
+
+  for c in game.chooseCards("Creature", "Return a ready friendly Mars creature to your hand", "friend", condition = lambda x: x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]), con_message = "That's not ready and/or not Mars."):
+    return_card(c, game)
+    if c.returned:
+      game.pendingReloc.append(c)
+      ret = True
+    game.pending("hand")
+    if ret:
+      for c2 in game.chooseCards("Hand", f"Put a Mars creature not named {c.title.replace('_', ' ').title()} into play:"):
+        game.activePlayer.states[card.title] = 1
+        flank = game.chooseFlank(c2)
+        if flank == "Left":
+          flank = 0
+        else:
+          flank = len(active)
+        active.insert(flank, c2)
+        game.activePlayer.states[card.title] = 0
 
 def mindwarper (game, card):
   """ Mindwarper: Choose an enemy creature. It captures 1 amber from its own side.
   """
   logging.info(f"Using {card.title}'s action.")
-  inactive = game.inactivePlayer.board["Creature"]
-  choice = inactive[game.chooseCards("Creature", "Choose an enemy creature to capture 1 amber from it's own side:", "enemy")[0][1]]
-  choice.capture(game, 1, True)
+  for c in game.chooseCards("Creature", "Choose an enemy creature to capture 1 amber from its own side:", "enemy"):
+    c.capture(game, 1, True)
 
 def phylyx_the_disintegrator (game, card):
   """ Phylyx the Disintegrator: Your opponent loses 1 amber for each other friendly Mars creature.
@@ -645,43 +555,29 @@ def omni_gorm_of_omm (game, card):
   """ Gorm of Omm: Destroy Gorm of Omm. Destroy an artifact.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Artifact"]
-  inactive = game.inactivePlayer.board["Artifact"]
+
   destroy(card, game.activePlayer, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending() # pending calls cardChanged
   game.draw()
   pygame.display.update()
-  side, choice = game.chooseCards("Artifact", "Destroy an artifact:")[0]
-  if side == "fr":
-    d = active[choice]
-  else:
-    d = inactive[choice]
-  destroy(d, game.activePlayer, game)
-  if d.destroyed:
-    game.pendingReloc.append(d)
-  game.pending()
+
+  for d in game.chooseCards("Artifact", "Destroy an artifact:"):
+    destroy(d, game.activePlayer, game)
+    if d.destroyed:
+      game.pendingReloc.append(d)
+    game.pending()
   
 
 def hallowed_blaster (game, card):
   """ Hallowed Blaster: Heal 3 damage from a creature.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
   
-  if not active + inactive:
-    logging.info("No valid targets.")
-    return
-  
-  side, choice = game.chooseCards("Creature", "Heal 3 damage from a creature:")[0]
-  if side == "fr":
-    c = active[choice]
-  else:
-    c = inactive[choice]
-  logging.info(f"Healing {min(c.damage, 3)} from {c.title}")
-  c.damage -= min(c.damage, 3)
+  for c in game.chooseCards("Creature", "Heal 3 damage from a creature:"):
+    logging.info(f"Healing {min(c.damage, 3)} from {c.title}")
+    c.damage -= min(c.damage, 3)
 
 def omni_potion_of_invulnerability (game, card):
   """ Potion of Invulnerability: Destroy Potion of Invulnerability. For the remainder of the turn, each friendly creature cannot be dealt damage.
@@ -710,18 +606,12 @@ def whispering_reliquary (game, card):
   """ Whispering Reliquary: Return an artifact to its owner's hand.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Artifact"]
-  inactive = game.inactivePlayer.board["Artifact"]
-  side, choice = game.chooseCards("Artifact", "Return an artifact to it's owner's hand:")[0]
-  if side == "fr":
-    c = active[choice]
-  else:
-    c = inactive[choice]
-  return_card(c, game)
-  if c.returned:
-    game.pendingReloc.append(c)
-    logging.info(f"{c.title} will be returned to it's owner's hand.")
-  game.pending('hand')
+  for c in game.chooseCards("Artifact", "Return an artifact to it's owner's hand:"):
+    return_card(c, game)
+    if c.returned:
+      game.pendingReloc.append(c)
+      logging.info(f"{c.title} will be returned to it's owner's hand.")
+    game.pending('hand')
 
 def lady_maxena (game, card):
   """ Lady Maxena: Return Lady Maxena to its owner's hand.
@@ -783,35 +673,24 @@ def seeker_needle (game, card):
   """ Seeker Needle: Deal 1 damage to a creature. If this damage destroys that creature, gain 1 amber.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
-  
-  if not active + inactive:
-    logging.info("No valid targets.")
-    return
 
-  side, choice = game.chooseCards("Creature", "Deal 1 damage to a creature:")[0]
-  if side == "fr":
-    c = active[choice]
-  else:
-    c = inactive[choice]
-  c.damageCalc(game, 1)
-  c.updateHealth()
-  if c.destroyed:
-    logging.info(f"{card.title} destroyed {c.title}, gaining 1 amber.")
-    game.activePlayer.gainAmber(1, game)
-    game.pendingReloc.append(c)
-  game.pending()
+  for c in game.chooseCards("Creature", "Deal 1 damage to a creature:"):
+    c.damageCalc(game, 1)
+    c.updateHealth()
+    if c.destroyed:
+      logging.info(f"{card.title} destroyed {c.title}, gaining 1 amber.")
+      game.activePlayer.gainAmber(1, game)
+      game.pendingReloc.append(c)
+    game.pending()
 
 
 def skeleton_key (game, card):
   """ Skeleton Key: A friendly creature captures 1 amber.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
-  c = active[game.chooseCards("Creature", "Choose a friendly creature to capture 1 amber:", "friend")[0][1]]
-  logging.info(f"{c.title} targeted with {card.title}")
-  c.capture(game, 1)
+  for c in game.chooseCards("Creature", "Choose a friendly creature to capture 1 amber:", "friend"):
+    logging.info(f"{c.title} targeted with {card.title}")
+    c.capture(game, 1)
 
 def omni_special_delivery (game, card):
   """ Special Delivery: Sacrifice Special Delivery. Deal 3 damage to a flank creature. If this damage destroys that creature, purge it.
@@ -823,23 +702,12 @@ def omni_special_delivery (game, card):
     pending.append(card)
   game.pending()
 
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
-
-  if not active and not inactive:
-    logging.info("No valid targets.")
-    return
-
-  side, choice = game.chooseCards("Creature", "Deal 3 damage to a flank creature. If this damage destroys the creature, purge it:", condition = lambda x: x.isFlank(game), con_message = "That's not a flank creature.")[0]
-  if side == "fr":
-    c = active[choice]
-  else:
-    c = inactive[choice]
-  c.damageCalc(3, game)
-  c.updateHealth()
-  if c.destroyed:
-    pending.append(c)
-    game.pending('purge')
+  for c in game.chooseCards("Creature", "Deal 3 damage to a flank creature. If this damage destroys the creature, purge it:", condition = lambda x: x.isFlank(game), con_message = "That's not a flank creature."):
+    c.damageCalc(3, game)
+    c.updateHealth()
+    if c.destroyed:
+      pending.append(c)
+      game.pending('purge')
 
 def subtle_maul (game, card):
   """ Subtle Maul: Your opponent discards a random card from their hand.
@@ -864,39 +732,26 @@ def omni_deipno_spymaster (game, card):
   """ Deipno Spymaster: Choose a friendly creature. You may use that creature this turn.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
-  c = active[game.chooseCards("Creature", "Choose a friendly creature to be able to use this turn:", "friend")[0][1]]
-  logging.info(f"{c.title} was added to Deipno Spymaster's state.")
-  if not game.activePlayer.states[card.title]:
-    game.activePlayer.states[card.title] = [c]
-  else:
-    game.activePlayer.states[card.title].append(c)
+  for c in game.chooseCards("Creature", "Choose a friendly creature to be able to use this turn:", "friend"):
+    logging.info(f"{c.title} was added to Deipno Spymaster's state.")
+    if not game.activePlayer.states[card.title]:
+      game.activePlayer.states[card.title] = [c]
+    else:
+      game.activePlayer.states[card.title].append(c)
 
 def mack_the_knife (game, card):
   """ Mack the Knife: Deal 1 damage to a creature. If this damage destroys that creature, gain 1 amber.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
-  
-  if not active + inactive:
-    logging.info("No valid targets.")
-    return
 
-  side, choice = game.chooseCards("Creature", "Deal 1 damage to a creature:")[0]
-  if side == "fr":
-    c = active[choice]
-  else:
-    c = inactive[choice]
-  c.damageCalc(game, 1)
-  c.updateHealth()
-  if c.destroyed:
-    logging.info(f"{card.title} destroyed {c.title}, gaining 1 amber.")
-    game.activePlayer.gainAmber(1, game)
-    game.pendingReloc.append(c)
-  game.pending()
-
-
+  for c in game.chooseCards("Creature", "Deal 1 damage to a creature:"):
+    c.damageCalc(game, 1)
+    c.updateHealth()
+    if c.destroyed:
+      logging.info(f"{card.title} destroyed {c.title}, gaining 1 amber.")
+      game.activePlayer.gainAmber(1, game)
+      game.pendingReloc.append(c)
+    game.pending()
 
 def noddy_the_thief (game, card):
   """ Noddy the Thief: Steal 1 amber.
@@ -913,29 +768,24 @@ def bear_flute (game, card):
   """ Bear Flute: Fully heal an Ancient Bear. If there are no Ancient Bears in play, search your deck and discard pile and put each Ancient Bear from them into your hand. If you do, shuffle your discard pile into your deck.
   """
   logging.info(f"Using {card.title}'s action.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
   
-  if sum(x.title == "ancient_bear" for x in active + inactive):
-    side, choice = game.chooseCards("Creature", "Fully heal an Ancient Bear:", condition = lambda x: x.title == "ancient_bear", con_message = "That's not an Ancient Bear.")[0]
-    if side == "fr":
-      c = active[choice]
-    else:
-      c = inactive[choice]
+  done = False
+  for c in game.chooseCards("Creature", "Fully heal an Ancient Bear:", condition = lambda x: x.title == "ancient_bear", con_message = "That's not an Ancient Bear."):
     c.damage = 0
+    done = True
     return
-  # otherwise:
-  for c in game.activePlayer.deck:
-    if c.title == "ancient_bear":
-      logging.info("Adding an Ancient Bear to hand from deck.")
-      game.activePlayer.hand.append(c)
-      game.activePlayer.deck.remove(c)
-  for c in game.activePlayer.discard:
-    if c.title == "ancient_bear":
-      logging.info("Adding an Ancient Bear to hand from discard.")
-      game.activePlayer.hand.append(c)
-      game.activePlayer.discard.remove(c)
-  game.activePlayer.shuffleDiscard()
+  if not done:
+    for c in game.activePlayer.deck:
+      if c.title == "ancient_bear":
+        logging.info("Adding an Ancient Bear to hand from deck.")
+        game.activePlayer.hand.append(c)
+        game.activePlayer.deck.remove(c)
+    for c in game.activePlayer.discard:
+      if c.title == "ancient_bear":
+        logging.info("Adding an Ancient Bear to hand from discard.")
+        game.activePlayer.hand.append(c)
+        game.activePlayer.discard.remove(c)
+    game.activePlayer.shuffleDiscard()
 
 def omni_nepenthe_seed (game, card):
   """ Sacrifice Nepenthe Seed. Return a card from your discard pile to your hand.
@@ -948,16 +798,10 @@ def omni_nepenthe_seed (game, card):
 
   discard = game.activePlayer.discard
 
-  if not discard:
-    logging.info("No cardss in your discard.")
-    return
-
   game.drawFriendDiscard = True
-  choice = game.chooseCard("Discard", "Return a card from your discard pile to your hand:", "friend")[0][1]
-  # I can skip pending b/c this card is guaranteed to belong to the active player
-  c = discard[choice]
-  discard.remove(c)
-  game.activePlayer.hand.append(c)
+  for c in game.chooseCards("Discard", "Return a card from your discard pile to your hand:", "friend"):
+    discard.remove(c)
+    game.activePlayer.hand.append(c)
 
 def ritual_of_balance (game, card):
   """ Ritual of Balance: If your opponent has 6 or more amber, steal 1 amber.
@@ -984,11 +828,9 @@ def world_tree (game, card):
     return
 
   game.drawFriendDiscard = True
-  choice = game.chooseCard("Discard", "Return a creature from your discard pile to the top of your deck:", "friend", condition = lambda x: x.type == "Creature", con_message = "That's not a creature.")[0][1]
-  # I can skip pending b/c this card is guaranteed to belong to the active player
-  c = discard[choice]
-  discard.remove(c)
-  game.activePlayer.deck.append(c)
+  for c in game.chooseCards("Discard", "Return a creature from your discard pile to the top of your deck:", "friend", condition = lambda x: x.type == "Creature", con_message = "That's not a creature."):
+    discard.remove(c)
+    game.activePlayer.deck.append(c)
 
 def giant_sloth (game, card):
   """ Giant Sloth: Gain 3 amber.

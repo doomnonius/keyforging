@@ -4,7 +4,10 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
- <li>Veylan Analyst should give amber for using an opponent's artifact.</li>
+ <li>Capture is wrong in a number of instances (order of variables).</li>
+ <li>Phase shift allows extra plays on turn 1 - partially implemented (needs to be a non Logos card played).</li>
+ <li>If a state thing targets something specific, that should also be shown in the hover.</li>
+ <li>Veylan Analyst should give amber for using an opponent's artifact - need to create an option in use artifact to use an opponent's artifact, or alternatively temporarily copy it into active board then delete it - this second option won't work because it will end up getting drawn, unless we create something a bool that prevents cards from being drawn..</li>
  <li>If collar of subordination leaves play, the creature should return to its owner.</li>
  <li>If autocannon (or pingle) kills a creature, its play ability will not resolve - but activePlayer should decide the order of those things, since they are in the same timing window, so they could choose the proper order. - This is related to the whole library access trigger/card play effect trigger I have noted immediately below.</li>
  <li>A function for ordering simultaneous things or choosing a number of items from the list of abilities.</li>

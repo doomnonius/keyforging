@@ -149,8 +149,8 @@ def basicDest(game, card):
         game.activePlayer.gainAmber(activeS["looter_goblin"], game)
       # pile of skulls
       if "pile_of_skulls" in activeA and card in inactive:
-        choice = active[game.chooseCards("Creature", "Pile of Skulls: Choose a friendly creature to capture 1 amber:", "friend")[0][1]]
-        choice.capture(1, game)
+        for c in game.chooseCards("Creature", "Pile of Skulls: Choose a friendly creature to capture 1 amber:", "friend"):
+          c.capture(1, game)
       # soul snatcher
       if "soul_snatcher" in [x.title for x in activeA + inactiveA]:
         logging.info("Soul Snatcher triggered")

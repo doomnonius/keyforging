@@ -300,13 +300,12 @@ class Card(pygame.sprite.Sprite):
             elif shadows == 2:
                 self.damage += 0
                 if self == game.activePlayer:
-                    active = game.activePlayer.board["Creature"]
-                    choice = active[game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "friend", condition = lambda x: x in self.neighbors(game))[0][1]]
+                    choice = game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "friend", condition = lambda x: x in self.neighbors(game))
                 else:
-                    inactive = game.inactivePlayer.board["Creature"]
-                    choice = inactive[game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "enemy", condition = lambda x: x in self.neighbors(game))[0][1]]
-                choice.damageCalc(game, damage)
-                logging.info(f"{choice.title} took {self.title}'s {num} damage, and now has {choice.damage} damage.")
+                    choice = game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "enemy", condition = lambda x: x in self.neighbors(game))
+                for c in choice:
+                    c.damageCalc(game, damage)
+                    logging.info(f"{choice.title} took {self.title}'s {num} damage, and now has {choice.damage} damage.")
         else:
             self.armor -= num
             logging.info(f"{self.title}'s armor was dealt {num} damage. {self.armor} armor remains.")
@@ -414,8 +413,9 @@ class Card(pygame.sprite.Sprite):
                 f(game, self, other)
         logging.info("Pending and fight abilities completed.")
 
-    # def health(self) -> int:
-    #     return (self.power + self.extraPow) - self.damage
+    def heal(self, health) -> None:
+        self.damage -= min(health, self.damage)
+        return
 
     def neighbors(self, game) -> List[int]:
         """ Returns a list of the indexes of a card's neighbors.

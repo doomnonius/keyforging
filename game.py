@@ -844,7 +844,6 @@ class Board():
       self.WIN.blit(discardBackSurf, discardBackRect)
       self.WIN.blit(closeBackSurf, self.closeFriendDiscard)
       self.WIN.blit(closeSurf, closeRect)
-      ## TODO: implement selected/invalid over here
       # draw cards
       # x = 0
       # for card in pool[0:16]:
@@ -889,7 +888,6 @@ class Board():
       self.WIN.blit(discardBackSurf, discardBackRect)
       self.WIN.blit(closeBackSurf, self.closeEnemyDiscard)
       self.WIN.blit(closeSurf, closeRect)
-      ## TODO: implement selected/invalid over here
       # draw cards
       # x = 0
       # for card in pool[0:16]:
@@ -1307,15 +1305,11 @@ class Board():
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       self.cardChanged()
       if "rock_hurling_giant" in [x.title for x in active] and card.house == "Brobnar":
-        targeting = self.chooseCards("Creature", "Deal 4 damage to:")[0]
-        if targeting[0] == "fr":
-          target = active[targeting[1]]
-          target.damageCalc(self, 4)
-          target.updateHealth(self.activePlayer)
-        else:
-          target = inactive[targeting[1]]
-          target.damageCalc(self, 4)
-          target.updateHealth(self.inactivePlayer)
+        target = self.chooseCards("Creature", "Deal 4 damage to:")
+        if target:
+          target = target[0]
+        target.damageCalc(self, 4)
+        target.updateHealth()
         if target.destroyed:
           pending.append(target)
         self.pending()
@@ -1346,18 +1340,18 @@ class Board():
       self.cardChanged()
       return
     if defender == None:
-      if card.title != "niffle_ape":
-        defender = self.chooseCards("Creature", "Choose an enemy creature to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors(self)]), con_message = "This minion is protected by taunt.")[0][1]
-      elif card.title == "bigtwig":
-        defender = self.chooseCards("Creature", "Choose an enemy creature to attack:", "enemy", condition = lambda x: (x.taunt or not (True in [y.taunt for y in x.neighbors(self)])) and x.stun, con_message = "This minion is protected by taunt and/or is not stunned.")[0][1]
+      if card.title == "bigtwig":
+        defender = self.chooseCards("Creature", "Choose an enemy creature to attack:", "enemy", condition = lambda x: (x.taunt or not (True in [y.taunt for y in x.neighbors(self)])) and x.stun, con_message = "This minion is protected by taunt and/or is not stunned.")[0]#[1]
+      elif card.title == "niffle_ape":
+        defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0]#[1]
       else:
-        defender = self.chooseCards("Creature", "Choose an enemy minion to attack:", "enemy")[0][1]
+        defender = self.chooseCards("Creature", "Choose an enemy creature to attack:", "enemy", condition = lambda x: x.taunt or not (True in [y.taunt for y in x.neighbors(self)]), con_message = "This minion is protected by taunt.")[0]#[1]
     if defender == None:
       return
-    defenderCard = self.inactivePlayer.board["Creature"][defender]
+    # defenderCard = self.inactivePlayer.board["Creature"][defender]
     try:
       logging.info("Trying to fight.")
-      card.fightCard(defenderCard, self)
+      card.fightCard(defender, self)
     except: logging.info("Fight failed.")
     if card not in self.usedThisTurn:
       self.usedThisTurn[card] = 1
@@ -1420,7 +1414,9 @@ class Board():
       self.activePlayer.board[card.type].append(source.pop(chosen))
       logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
     else:
-      targeted = self.chooseCards("Creature", "Choose a creature to attach the upgrade to:")[0]
+      targeted = self.chooseCards("Creature", "Choose a creature to attach the upgrade to:")
+      if targeted:
+        targeted = targeted[0]
       self.playUpgrade(card, targeted)
       self.cardChanged()
       return
@@ -2205,11 +2201,11 @@ class Board():
 
     return True
 
-  def canOmni(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
+  def canOmni(self, card, r_click: bool = False, reset: bool = True, message: bool = False, cheat: bool = False):
     if self.ruleOfSix(card):
       if message: logging.info(f"Rule of six prevents using this {card.title}.")
       return False
-    if not card.ready or not card.omni:
+    if not card.ready or not card.omni or (card.stun and not r_click):
       return False
     if "skippy_timehog" in self.inactivePlayer.states and self.inactivePlayer.states["skippy_timehog"]:
       if message: logging.info("'Skippy Timehog' is preventing you from using cards")
@@ -2231,7 +2227,7 @@ class Board():
     return True
 
   def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
-    if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]]:
+    if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]] and not ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] and card.house != "Logos"):
       if message: logging.info("You cannot play more than one card on your first turn.")
       return False
     if self.ruleOfSix(card):
@@ -3296,6 +3292,15 @@ class Board():
         
     # selected = []
     retVal = []
+    every = target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive
+    if sum(c.invalid for c in every) == len(every):
+      logging.info("No valid targets.")
+      for c in every:
+        c.invalid = False
+      self.cardChanged()
+      logging.info(f"Nothing targeted.")
+      return retVal
+    self.cardChanged()
     while True:
       self.extraDraws = [(backgroundSurf, backgroundRect), (messageSurf, messageRect), (confirmBack, confirmBackRect), (confirmSurf, confirmRect), (cancelBack, cancelBackRect), (cancelSurf, cancelRect)] # + invalid + selected
       for e in pygame.event.get():
@@ -3310,28 +3315,31 @@ class Board():
             self.extraDraws = []
             if retVal and not full:
               if len(retVal) <= count and not full:
-                for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive:
+                for c in every:
                   c.selected = False
                   c.invalid = False
                 self.cardChanged()
+                logging.info(f"{[c.title for c in retVal]} targeted.")
                 return retVal
               else:
                 pyautogui.alert("Not enough targets selected!")
             elif retVal and full and len(retVal) == count:
-              for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive:
+              for c in every:
                 c.selected = False
                 c.invalid = False
               self.cardChanged()
+              logging.info(f"{[c.title for c in retVal]} targeted.")
               return retVal
             elif not full:
               incomplete = None
               while not incomplete:
-                incomplete = self.chooseHouse("custom", ("Are you sure you want to target less than the full number of targets?", ["Yes", "No"]))
+                incomplete = self.chooseHouse("custom", ("Are you sure you want to target nothing?", ["Yes", "No"]))
               if incomplete == "Yes":
-                for c in target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive:
+                for c in every:
                   c.selected = False
                   c.invalid = False
                 self.cardChanged()
+                logging.info(f"{[c.title for c in retVal]} targeted. Should be nothing.")
                 return retVal
           elif Rect.collidepoint(cancelBackRect, (self.mousex, self.mousey)):
             for c in retVal:
@@ -3348,6 +3356,7 @@ class Board():
               for card in unallowable:
                 card.invalid = True
             confirmBack.fill(COLORS["GREEN"])
+            self.cardChanged()
           elif True in self.friendDraws and Rect.collidepoint(self.closeFriendDiscard, (self.mousex, self.mousey)):
             self.drawFriendDiscard = False
             self.drawFriendArchive = False
@@ -3383,13 +3392,11 @@ class Board():
             self.drawFriendArchive = True
           elif not self.drawEnemyArchive and Rect.collidepoint(self.archive2_rect, (self.mousex, self.mousey)):
             self.drawEnemyArchive = True
-          # hypothetically I can hella streamline this due to the selected/invalid changes I made
-          every = target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive
           if canHit == "either": # in which case, otherPool and targetPool will be defined
             for c in every:
               if True in [Rect.collidepoint(c.rect, (self.mousex, self.mousey)), Rect.collidepoint(c.tapped_rect, (self.mousex, self.mousey))]:
                 if not c.invalid:
-                  if len(retVal < count):
+                  if len(retVal) <= count:
                     if c.selected:
                       c.selected = False
                       retVal.remove(c)
@@ -3403,7 +3410,7 @@ class Board():
                             card.invalid = False
                         for card in unallowable:
                           card.invalid = True
-                    else:
+                    elif len(retVal) < count:
                       c.selected = True
                       retVal.append(c)
                       if c in target.board[targetPool] + target.board[otherPool] + target.hand + target.archive + target.discard:
@@ -3414,6 +3421,7 @@ class Board():
                           c2.invalid = True
                   else:
                     logging.info(f"{c.title} is not a valid target.")
+                self.cardChanged()
             # if retVal is empty, figure out which side has been selected and mark the other side as invalid now
             # now for future selections we'll only need to make sure the target is valid
           else:
@@ -3421,15 +3429,16 @@ class Board():
             for c in every:
               if True in [Rect.collidepoint(c.rect, (self.mousex, self.mousey)), Rect.collidepoint(c.tapped_rect, (self.mousex, self.mousey))]:
                 if not c.invalid:
-                  if len(retVal) < count:
+                  if len(retVal) <= count:
                     if c.selected:
                       c.selected = False
                       retVal.remove(c)
-                    else:
+                    elif len(retVal) < count:
                       c.selected = True
                       retVal.append(c)
                 else:
                   logging.info(f"{c.title} is not a valid target.")
+                self.cardChanged()
           # if targetPool != "Hand":
           #   if targetPool == "Discard":
           #     if canHit == "both": # this means I can select from both boards at the same time, eg natures call

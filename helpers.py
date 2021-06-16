@@ -33,7 +33,7 @@ def stealAmber(thief, victim, num, game):
   """ Function for stealing amber.
   """
   # this will account for edge cases that allow the inactive player to steal amber (namely, Magda leaving play)
-  if "The Vaultkeeper" in [x.title for x in victim.board["Creature"]]:
+  if "the_vaultkeeper" in [x.title for x in victim.board["Creature"]]:
     logging.info("The steal effect fails because of Vaultkeeper.")
     return
   if victim.amber >= num:

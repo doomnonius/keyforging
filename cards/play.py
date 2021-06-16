@@ -39,13 +39,13 @@ def passFunc(game, card):
       logging.info("Charge!'s effect is triggered.")
       count = activeS["charge"]
       while inactive["Creature"] and count > 0:
-        choice = game.chooseCards("Creature", "Choose an enemy minion to deal 2 damage to:", "enemy")[0][1]
-        inactive["Creature"][choice].damageCalc(game, 2)
-        inactive["Creature"][choice].updateHealth(game.inactivePlayer)
-        if inactive["Creature"][choice].destroyed:
-          game.pendingReloc.append(card)
-        game.pending()
-        count -= 1
+        for c in game.chooseCards("Creature", "Choose an enemy minion to deal 2 damage to:", "enemy"):
+          c.damageCalc(game, 2)
+          c.updateHealth(game.inactivePlayer)
+          if c.destroyed:
+            game.pendingReloc.append(card)
+          game.pending()
+          count -= 1
     # stuff that gives armor
     if "grey_monk" in [x.title for x in active["Creature"]]:
       logging.info("Grey Monk gives +1 armor.")
@@ -125,12 +125,12 @@ def anger(game, card):
     logging.info("No valid targets. The card is still played.")
     return
   
-  choice = game.chooseCards("Creature", "Choose a friendly creature:", "friend")[0][1]
-  if not game.activePlayer.board["Creature"][choice].ready:
-    game.activePlayer.board["Creature"][choice].ready = True
-    game.fightCard(choice, cheat=True)
-  else:
-    game.fightCard(choice, cheat=True)
+  for c in game.chooseCards("Creature", "Choose a friendly creature:", "friend"):
+    if not c.ready:
+      c.ready = True
+      game.fightCard(c, cheat=True)
+    else:
+      game.fightCard(c, cheat=True)
 
 
 def barehanded(game, card):
@@ -156,9 +156,9 @@ def blood_money(game, card):
   if not game.inactivePlayer.board["Creature"]:
     logging.info("No valid targets.")
   else:
-    choice = game.chooseCards("Creature", "Choose an enemy creature to gain two amber:", "enemy")[0][1]
-    game.inactivePlayer.board["Creature"][choice].captured += 2
-    logging.info(game.inactivePlayer.board["Creature"][choice].title + " now has " + game.inactivePlayer.board["Creature"][choice].amber + " amber.")
+    for c in game.chooseCards("Creature", "Choose an enemy creature to gain two amber:", "enemy"):
+      c.captured += 2
+      logging.info(c.title + " now has " + c.amber + " amber.")
     return
         
 def brothers_in_battle(game, card):
@@ -190,18 +190,18 @@ def champions_challenge(game, card):
   max_friend = max([x.power for x in active])
   max_enemy = max([x.power for x in inactive])
 
-  if active:
-    choiceA = active[game.chooseCards("Creature", "Choose which friendly creature of the highest power will survive:", condition = lambda x: x.power == max_friend, con_message = "That creature doesn't have the highest power among friendlies.")[0][1]]
-  if inactive:
-    choiceI = inactive[game.chooseCards("Creature", "Choose which enemy creature of the highest power will survive:", condition = lambda x: x.power == max_enemy, con_message = "That creature doesn't have the highest power among enemies.")[0][1]]
+  for a in game.chooseCards("Creature", "Choose which friendly creature of the highest power will survive:", condition = lambda x: x.power == max_friend, con_message = "That creature doesn't have the highest power among friendlies."):
+    a = a[0]
+  for i in game.chooseCards("Creature", "Choose which enemy creature of the highest power will survive:", condition = lambda x: x.power == max_enemy, con_message = "That creature doesn't have the highest power among enemies."):
+    i = i[0]
 
   for c in active:
-    if c != choiceA:
+    if c != a:
       destroy(c, game.activePlayer, game)
       if c.destroyed:
         game.pendingReloc.append(c)
   for c in inactive:
-    if c != choiceI:
+    if c != i:
       destroy(c, game.inactivePlayer, game)
       if c.destroyed:
         game.pendingReloc.append(c)
@@ -213,12 +213,12 @@ def champions_challenge(game, card):
   if not active:
     logging.info("You have no creatures to target.")
     return
-  choice = active[game.chooseCards("Creature", "Choose a creature to fight with:", "friend")[0][1]] # because ward will be a thing, and something could happen
-  if not choice.ready:
-    choice.ready = True
-    game.fightCard(active.index(choice), cheat=True)
-  else:
-    game.fightCard(active.index(choice), cheat=True)
+  for c in game.chooseCards("Creature", "Choose a creature to fight with:", "friend"): # because ward will be a thing, more than 1 could survive
+    if not c.ready:
+      c.ready = True
+      game.fightCard(active.index(c), cheat=True)
+    else:
+      game.fightCard(active.index(c), cheat=True)
 
 def cowards_end (game, card):
   """Coward's End: Destroy each undamaged creature. Gain 3 chains.
@@ -258,37 +258,17 @@ def lava_ball (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  activeBoard = game.activePlayer.board["Creature"]
-  inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc # this one's fine because only one side is ever affected; pending would be able to handle it anyway though
 
-  if not activeBoard and not inactiveBoard:
-    logging.info("No valid targets.")
-    return
-
-  side, choice = game.chooseCards("Creature", "Deal 4 damage with 2 splash to a creature:")[0]
-  if side == "fr":
-    c = activeBoard[choice]
+  for c in game.chooseCards("Creature", "Deal 4 damage with 2 splash to a creature:"):
     c.damageCalc(game, 4)
     for neigh in c.neighbors(game):
       neigh.damageCalc(game, 2)
     for neigh in c.neighbors(game):
-      neigh.updateHealth(game.activePlayer)
+      neigh.updateHealth()
       if neigh.destroyed:
         pendingDisc.append(neigh)
-    c.updateHealth(game.activePlayer)
-    if c.destroyed:
-      pendingDisc.append(c)
-  else:
-    c = inactiveBoard[choice]
-    c.damageCalc(game, 4)
-    for neigh in c.neighbors(game):
-      neigh.damageCalc(game, 2)
-    for neigh in c.neighbors(game):
-      neigh.updateHealth(game.inactivePlayer)
-      if neigh.destroyed:
-        pendingDisc.append(neigh)
-    c.updateHealth(game.inactivePlayer)
+    c.updateHealth()
     if c.destroyed:
       pendingDisc.append(c)
   game.pending()
@@ -324,25 +304,11 @@ def punch (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  activeBoard = game.activePlayer.board["Creature"]
-  inactiveBoard = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only one side ever affected
 
-  if not activeBoard and not inactiveBoard:
-    logging.info("No valid targets. The card is still played.")
-    return
-
-  side, choice = game.chooseCards("Creature", "Deal 3 damage to a creature:")[0]
-  if side == "fr":
-    c = activeBoard[choice]
+  for c in game.chooseCards("Creature", "Deal 3 damage to a creature:"):
     c.damageCalc(game, 3)
-    c.updateHealth(game.activePlayer)
-    if c.destroyed:
-      pendingDiscard.append(c)
-  else:
-    c = inactiveBoard[choice]
-    c.damageCalc(game, 3)
-    c.updateHealth(game.inactivePlayer)
+    c.updateHealth()
     if c.destroyed:
       pendingDiscard.append(c)
   game.pending()
@@ -352,26 +318,15 @@ def relentless_assault (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  activeBoard = game.activePlayer.board["Creature"]
+  active = game.activePlayer.board["Creature"]
   
   count = 1
   chosen = []
   while count < 4:
-    if sum(x in chosen for x in activeBoard) == len(activeBoard):
-      logging.info("No more valid friendly targets.")
-      break
-    if activeBoard:
-      choice = game.chooseCards("Creature", f"Choose up to three creatures, one at a time. (Choice {count} of 3):", "friend", 1, False, lambda x: x not in chosen, con_message = "You've already chosen that creature, you can't fight with it again.")
-    else:
-      logging.info("No friendly creatures to target.")
-      return
-    if choice:
-      choice = choice[0][1]
-    else:
-      return
-    card = activeBoard[choice]
-    chosen.append(card)
-    count += 1
+    for c in game.chooseCards("Creature", f"Choose up to three creatures, one at a time. (Choice {count} of 3):", "friend", 1, False, lambda x: x not in chosen, con_message = "You've already chosen that creature, you can't fight with it again."):
+      chosen.append(c)
+      count += 1
+      game.fightCard(active.index(c), cheat = True)
 
 def smith (game, card):
   """Smith: Gain 2 amber if you control more creatures than your opponent.
@@ -411,17 +366,9 @@ def tremor (game, card):
     logging.info("No valid targets.")
     return
   
-  choice = game.chooseCards("Creature", "Stun a creature and its neighbors:")[0]
-
-  if choice[0] == "fr":
-    card = activeBoard[choice[1]]
-    card.stun = True
-    for neigh in card.neighbors(game):
-      neigh.stun = True
-  else:
-    card = inactiveBoard[choice[1]]
-    card.stun = True
-    for neigh in card.neighbors(game):
+  for c in game.chooseCards("Creature", "Stun a creature and its neighbors:"):
+    c.stun = True
+    for neigh in c.neighbors(game):
       neigh.stun = True
 
 def unguarded_camp (game, card):
@@ -444,9 +391,8 @@ def unguarded_camp (game, card):
     return
   diff = min(diff, game.inactivePlayer.amber)
   if diff:
-    choices = [x[1] for x in game.chooseCards("Creature", f"Choose {diff} friendly creatures to capture an amber:", "friend", diff)]
-    for x in choices:
-      activeBoard[x].capture(game, 1)
+    for c in game.chooseCards("Creature", f"Choose {diff} friendly creatures to capture an amber:", "friend", diff):
+      c.capture(game, 1)
 
 def warsong (game, card):
   """Warsong: For the remainder of the turn, gain 1 amber each time a friendly creature fights.
@@ -569,19 +515,9 @@ def smaaash (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  activeBoard = game.activePlayer.board["Creature"]
-  inactiveBoard = game.inactivePlayer.board["Creature"]
-  
-  if not activeBoard and not inactiveBoard:
-    logging.info("No valid targets.")
-    return
 
-  choice = game.chooseCards("Creature", "Stun a creature:")[0]
-
-  if choice[0] == "fr":
-    activeBoard[choice[1]].stun = True
-  else:
-    inactiveBoard[choice[1]].stun = True
+  for c in game.chooseCards("Creature", "Stun a creature:"):
+    c.stun = True
 
 def wardrummer (game, card):
   """Wardrummer: Return each other friendly Brobnar creature to your hand.
@@ -677,16 +613,13 @@ def creeping_oblivion (game, card):
   inactiveDisc = game.inactivePlayer.discard
   game.drawFriendDiscard = True
   game.drawEnemyDiscard = True
-  toPurge = game.chooseCards("Discard", "Choose up to two cards to purge:", "either", 2, False)
-  toPurge.sort(key = lambda x: x[1], reverse = True)
-  for side, choice in toPurge:
-    if side == "fr":
-      c = activeDisc[choice]
+  for c in game.chooseCards("Discard", "Choose up to two cards to purge:", "either", 2, False):
+    if c in activeDisc:
       activeDisc.remove(c)
     else:
-      c = inactiveDisc[choice]
+      inactiveDisc.remove(c)
     game.pendingReloc.append(c)
-  game.pending(c)
+  game.pending("purge")
   game.drawFriendDiscard = False
   game.drawEnemyDiscard = False
   
@@ -717,19 +650,12 @@ def fear (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
-  if len(inactive) == 0:
-    logging.info("No valid targets.")
-    return
-  elif len(inactive) == 1:
-    choice = inactive[0]
-  else:
-    choice = inactive[game.chooseCards("Creature", "Choose an enemy creature to return to its owner's hand:", "enemy")[0][1]]
-  return_card(choice, game)
-  if choice.returned:
-    pending.append(choice)
-  game.pending('hand')
+  for c in game.chooseCards("Creature", "Choose an enemy creature to return to its owner's hand:", "enemy"):
+    return_card(c, game)
+    if c.returned:
+      pending.append(c)
+    game.pending('hand')
 
 def gateway_to_dis (game, card):
   """ Gateway to Dis: Destroy each creature. Gain three gains.
@@ -762,35 +688,21 @@ def gongoozle (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc # fine b/c only ever one side
-  
-  if not active and not inactive:
-    return
 
-  side, choice = game.chooseCards("Creature", "Deal 3 damage to a creature:")[0]
-  if side == "fr": # friendly side
-    card = active[choice]
-    card.damageCalc(game, 3)
-    card.updateHealth(game.activePlayer)
-    if card.destroyed:
-      pendingDiscard.append(card)
+  for c in game.chooseCards("Creature", "Deal 3 damage to a creature:"):
+    c.damageCalc(game, 3)
+    c.updateHealth()
+    if c.destroyed:
+      pendingDiscard.append(c)
       game.pending()
     else:
-      ran = random.choice(list(range(len(active))))
-      game.discardCard(ran, True)
-  # enemy side
-  else:
-    card = inactive[choice]
-    card.damageCalc(game, 3)
-    card.updateHealth(game.inactivePlayer)
-    if card.destroyed:
-      pendingDiscard.append(card)
-      game.pending()
-    else:
-      ran = game.inactivePlayer.hand[random.choice(list(range(len(inactive))))]
-      pendingDiscard.append(ran)
-      game.inactivePlayer.hand.remove(ran)
-      game.pending()
-
+      if c in active:
+        ran = random.choice(list(range(len(active))))
+        game.discardCard(ran, True)
+      else:
+        ran = game.inactivePlayer.hand[random.choice(list(range(len(inactive))))]
+        game.inactivePlayer.hand.remove(ran)
+        game.inactivePlayer.discard.append(ran)
 
 def guilty_hearts (game, card):
   """ Guilty Hearts: Destroy each creature with any amber on it.
@@ -827,17 +739,10 @@ def hand_of_dis (game, card):
     logging.info("No valid targets. The card is still played.")
     return
   
-  side, choice = game.chooseCards("Creature", "Choose a non-flank creature to destroy:", condition = lambda x: x.isFlank(game), con_message = "That's not a flank creature.")[0]
-  if side == "fr":
-    card = active[choice]
-    destroy(card, game.activePlayer, game)
-    if card.destroyed:
-      pendingDiscard.append(card)
-  else:
-    card = inactive[choice]
-    destroy(card, game.inactivePlayer, game)
-    if card.destroyed:
-      pendingDiscard.append(card)
+  for c in game.chooseCards("Creature", "Choose a non-flank creature to destroy:", condition = lambda x: x.isFlank(game), con_message = "That's not a flank creature."):
+    destroy(c, game.activePlayer, game)
+    if c.destroyed:
+      pendingDiscard.append(c)
   
   game.pending()
 
@@ -969,17 +874,15 @@ def pandemonium (game, card):
   if len(undamaged) <= game.inactivePlayer.amber:
     [x.capture(game, 1) for x in active if x.damage == 0]
   else:
-    choices = game.chooseCards("Creature", "Choose which friendly undamaged creatures will capture an amber:", "friend", game.inactivePlayer.amber, condition = lambda x: x.damage == 0, con_message = "That creature is not damaged. Choose a different one")
-    for choice in choices:
-      active[choice[1]].capture(game, 1)
+    for c in game.chooseCards("Creature", "Choose which friendly undamaged creatures will capture an amber:", "friend", game.inactivePlayer.amber, condition = lambda x: x.damage == 0, con_message = "That creature is not damaged. Choose a different one"):
+      c.capture(game, 1)
   #inactive
   undamaged = [x for x in inactive if x.damage == 0]
   if len(undamaged) <= game.activePlayer.amber:
     [x.capture(game, 1) for x in inactive if x.damage == 0]
   else:
-    choices = game.chooseCards("Creature", "Choose which enemy undamaged creatures will capture an amber:", "enemy", game.inactivePlayer.amber, condition = lambda x: x.damage == 0, con_message = "That creature is not damaged. Choose a different one")
-    for choice in choices:
-      inactive[choice[1]].capture(game, 1)
+    for c in game.chooseCards("Creature", "Choose which enemy undamaged creatures will capture an amber:", "enemy", game.inactivePlayer.amber, condition = lambda x: x.damage == 0, con_message = "That creature is not damaged. Choose a different one"):
+      c.capture(game, 1)
 
 def poltergeist (game, card):
   """ Poltergeist: Use an artifact controlled by any player as if it were yours. Destroy that artifact.
@@ -987,25 +890,19 @@ def poltergeist (game, card):
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Artifact"]
-  inactive = game.inactivePlayer.board["Artifact"]
   pending = game.pendingReloc
-  
-  if not active and not inactive:
-    logging.info("No valid targets. The card is still played.")
-    return
 
-  choice = game.chooseCards("Artifact", "Choose an artifact to use as if it were yours, then destroy it:")[0]
-  if choice[0] == "fr": # friendly side
-    c = active[choice[1]]
-    if c.ready and c.action:
-      game.actionCard(c, "Artifact", cheat=True)
-    destroy(c, game.activePlayer, game)
-    pending.append(c)
-  else:
-    c = inactive[choice[1]]
-    if c.ready and c.action:
-      c.action(game, c)
-    pending.append(c)
+  for c in game.chooseCards("Artifact", "Choose an artifact to use as if it were yours, then destroy it:"):
+    if c in active:
+      if c.ready and c.action:
+        game.actionCard(c, "Artifact", cheat=True)
+      destroy(c, game.activePlayer, game)
+      pending.append(c)
+    else:
+      if c.ready and c.action:
+        c.action(game, c)
+      destroy(c, game.activePlayer, game)
+      pending.append(c)
   game.pending()
 
 def red_hot_armor (game, card):
@@ -1084,18 +981,10 @@ def three_fates (game, card):
       game.draw()
       pygame.display.flip()
     else:
-      choices = game.chooseCards("Creature", f"Choose which {left} creature(s) with the highest power to destroy:", left, condition = lambda x: x.power == high, con_message = "You chose a minion that didn't have the highest power. Please select again.")
-      for choice in choices:
-        if choice[0] == "fr":
-          card = active[choice[1]]
-          destroy(card, game.activePlayer, game)
-          if card.destroyed:
-            pendingDiscard.append(card)
-        else:
-          card = inactive[choice[1]]
-          destroy(card, game.activePlayer, game)
-          if card.destroyed:
-            pendingDiscard.append(card)
+      for c in game.chooseCards("Creature", f"Choose which {left} creature(s) with the highest power to destroy:", left, condition = lambda x: x.power == high, con_message = "You chose a minion that didn't have the highest power. Please select again."):
+        destroy(c, game.activePlayer, game)
+        if c.destroyed:
+          pendingDiscard.append(c)
         # break
   game.pending()
 
@@ -1123,42 +1012,19 @@ def guardian_demon (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc
-  # easy case: no damage
-  if reduce(lambda x, y: x + y, [x.damage for x in game.activePlayer.board["Creature"]] + [x.damage for x in game.inactivePlayer.board["Creature"]]) == 0:
-    logging.info("There are no damaged creatures, so the play effect doesn't happen.")
-    return
-  choice = game.chooseCards("Creature", "Choose a creature:")[0]
-  if choice[0] == "fr":
-    card1 = active[choice[1]]
-    if card1.damage > 0:
-      heal = int(game.chooseHouse("custom", ("How much damage would you like to heal?", ["  0  ", "  1  ", "  2  "]))[0])
+  for c in game.chooseCards("Creature", "Choose a creature:"):
+    if c.damage > 0:
+      heal = int(game.chooseHouse("custom", ("How much damage would you like to heal?", list(range(min(3, c.damage + 1)))))[0])
     else:
       logging.info("There was no damage on this creature, so no damage will be dealt.")
-      return
-  else:
-    card1 = inactive[choice[1]]
-    if card1.damage > 0:
-      heal = game.chooseHouse("guardian")[0]
-    else:
-      logging.info("There was no damage on this creature, so no damage will be dealt.")
-      return
+      heal = 0
   if heal:
-    side, choice = game.chooseCards("Creature", f"Choose a creature to deal {heal} damage to:", condition = lambda x: x != card1, con_message = "You can't damage the creature you healed. Choose a different target.")[0]
-    if side == "fr":
-      card2 = active[choice]
-      card2.damageCalc(game, heal)
-      card2.updateHealth(game.activePlayer)
-      if card2.destroyed:
-        pendingDisc.append(card2)
-    else:
-      card2 = inactive[choice]
-      card2.damageCalc(game, heal)
-      card2.updateHealth(game.inactivePlayer)
-      if card.destroyed:
-        pendingDisc.append(card2)
+    for c2 in game.chooseCards("Creature", f"Choose a creature to deal {heal} damage to:", condition = lambda x: x != c, con_message = "You can't damage the creature you healed. Choose a different target."):
+      c2.damageCalc(game, heal)
+      c2.updateHealth()
+      if c2.destroyed:
+        pendingDisc.append(c2)
     game.pending()
 
 def restringuntus (game, card):
@@ -1215,23 +1081,15 @@ def bouncing_deathquark (game, card):
       choices = game.chooseCards("Creature", "Choose an enemy creature to destroy and a friendly creature to destroy, or choose no creatures to stop:", count = 2, full = False) # this condition is more complicated, can't integrate it
       if len(choices) == 0:
         return
-      if len(choices) == 1 or choices[0][0] == choices[1][0]:
+      if len(choices) == 1 or (choices[0] in active and choices[1] in active) or (choices[0] in inactive and choices[1] in inactive):
         logging.info("You need to choose one enemy and one friendly creature.")
         continue
       else:
-        for choice in choices:
-          if choice[0] == "fr":
-            card = active[choice[1]]
-            destroy(card, game.activePlayer, game)
-            if card.destroyed:
-              pendingDiscard.append(card)
-          else:
-            card = inactive[choice[1]]
-            destroy(card, game.inactivePlayer, game)
-            if card.destroyed:
-              pendingDiscard.append(card)
-        break
-    game.pending()
+        for c in choices:
+          destroy(c, game.activePlayer, game)
+          if c.destroyed:
+            pendingDiscard.append(c)
+      game.pending()
 
 def dimension_door (game, card):
   """ Dimension Door: For the remainder of the turn, any amber you would gain from reaping is stolen from your opponent instead.
@@ -1313,14 +1171,10 @@ def knowledge_is_power (game, card):
   # b/c this is one of only two choose card in whole set, will give card text
   choice = game.chooseHouse("custom", ("Archive a card, or gain 1 amber for each card in your archives?", ["Archive", "Gain amber"]))[0]
   if choice == "Archive":
-    if len(game.activePlayer.hand) > 0:
-      archive = game.chooseCards("Hand", "Choose a card to archive:")[0][1]
-      card = game.activePlayer.hand[archive]
-      game.pendingReloc.append(card)
-      game.activePlayer.hand["Creature"].remove(card)
+    for c in game.chooseCards("Hand", "Choose a card to archive:"):
+      game.pendingReloc.append(c)
+      game.activePlayer.hand["Creature"].remove(c)
       game.pending("archive", target = game.activePlayer)
-    else:
-      logging.info("Your hand is empty, so you can't archive a card.")
   else:
     game.activePlayer.gainAmber(len(game.activePlayer.archive), game)
 
@@ -1330,11 +1184,9 @@ def labwork (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  if game.activePlayer.hand:
-    archive = game.chooseCards("Hand", "Choose a card from your hand to archive:")[0][1]
-    card = game.activePlayer.hand[archive]
-    game.pendingReloc.append(card)
-    game.activePlayer.hand.remove(card)
+  for c in game.chooseCards("Hand", "Choose a card from your hand to archive:"):
+    game.pendingReloc.append(c)
+    game.activePlayer.hand.remove(c)
     game.pending("archive", target = game.activePlayer)
 
 def library_access (game, card):
@@ -1379,103 +1231,102 @@ def positron_bolt (game, card):
     logging.info("No valid targets.")
     return
   
-  side, choice = game.chooseCards("Creature", "Choose a flank creature to deal three damage to:", condition = lambda x: x.isFlank(game), con_message = "You didn't choose a flank creature. Please try again.")[0]
-  
-  if side == "fr":
-    if choice == 0:
-      i = 0
-      card1 = active[i]
-      card1.damageCalc(game, 3)
-      if len(active) > 1:
-        card2 = active[i + 1]
+  for c in game.chooseCards("Creature", "Choose a flank creature to deal three damage to:", condition = lambda x: x.isFlank(game), con_message = "You didn't choose a flank creature. Please try again."):
+    if c in active:
+      if active.index(c) == 0:
+        i = 0
+        card1 = active[i]
+        card1.damageCalc(game, 3)
+        if len(active) > 1:
+          card2 = active[i + 1]
+          card2.damageCalc(game, 2)
+        else:
+          card2 = False
+        if len(active) > 2:
+          card3 = active[i + 2]
+          card3.damageCalc(game, 1)
+        else:
+          card3 = False
+        card1.updateHealth()
+        if card1.destroyed:
+          pending.append(card1)
+        if card2:
+          card2.updateHealth()
+          if card2.destroyed:
+            pending.append(card2)
+        if card3:
+          card3.updateHealth()
+          if card3.destroyed:
+            pending.append(card3)
+      else:
+        i = active.index(c)
+        card1 = active[i]
+        card1.damageCalc(game, 3)
+        card2 = active[i - 1]
         card2.damageCalc(game, 2)
-      else:
-        card2 = False
-      if len(active) > 2:
-        card3 = active[i + 2]
-        card3.damageCalc(game, 1)
-      else:
-        card3 = False
-      card1.updateHealth(game.activePlayer)
-      if card1.destroyed:
-        pending.append(card1)
-      if card2:
-        card2.updateHealth(game.activePlayer)
+        if len(active) > 2:
+          card3 = active[i - 2]
+          card3.damageCalc(game, 1)
+        else:
+          card3 = False
+        card1.updateHealth()
+        if card1.destroyed:
+          pending.append(card1)
+        card2.updateHealth()
         if card2.destroyed:
           pending.append(card2)
-      if card3:
-        card3.updateHealth(game.activePlayer)
-        if card3.destroyed:
-          pending.append(card3)
+        if card3:
+          card3.updateHealth()
+          if card3.destroyed:
+            pending.append(card3)
     else:
-      i = choice
-      card1 = active[i]
-      card1.damageCalc(game, 3)
-      card2 = active[i - 1]
-      card2.damageCalc(game, 2)
-      if len(active) > 2:
-        card3 = active[i - 2]
-        card3.damageCalc(game, 1)
+      if inactive.index(c) == 0:
+        i = 0
+        card1 = inactive[1]
+        card1.damageCalc(game, 3)
+        if len(inactive) > 1:
+          card2 = inactive[i + 1]
+          card2.damageCalc(game, 2)
+        else:
+          card2 = False
+        if len(inactive) > 2:
+          card3 = inactive[i + 2]
+          card3.damageCalc(game, 1)
+        else:
+          card3 = False
+        card1.updateHealth()
+        if card1.destroyed:
+          pending.append(card1)
+        if card2:
+          card2.updateHealth()
+          if card2.destroyed:
+            pending.append(card2)
+        if card3:
+          card3.updateHealth()
+          if card3.destroyed:
+            pending.append(card3)
       else:
-        card3 = False
-      card1.updateHealth(game.activePlayer)
-      if card1.destroyed:
-        pending.append(card1)
-      card2.updateHealth(game.activePlayer)
-      if card2.destroyed:
-        pending.append(card2)
-      if card3:
-        card3.updateHealth(game.activePlayer)
-        if card3.destroyed:
-          pending.append(card3)
-  else:
-    if choice == 0:
-      i = 0
-      card1 = inactive[1]
-      card1.damageCalc(game, 3)
-      if len(inactive) > 1:
-        card2 = inactive[i + 1]
+        i = inactive.index(c)
+        card1 = inactive[i]
+        card1.damageCalc(game, 3)
+        card2 = inactive[i - 1]
         card2.damageCalc(game, 2)
-      else:
-        card2 = False
-      if len(inactive) > 2:
-        card3 = inactive[i + 2]
-        card3.damageCalc(game, 1)
-      else:
-        card3 = False
-      card1.updateHealth(game.inactivePlayer)
-      if card1.destroyed:
-        pending.append(card1)
-      if card2:
-        card2.updateHealth(game.inactivePlayer)
+        if len(inactive) > 2:
+          card3 = inactive[i - 2]
+          card3.damageCalc(game, 1)
+        else:
+          card3 = False
+        card1.updateHealth()
+        if card1.destroyed:
+          pending.append(card1)
+        card2.updateHealth()
         if card2.destroyed:
           pending.append(card2)
-      if card3:
-        card3.updateHealth(game.inactivePlayer)
-        if card3.destroyed:
-          pending.append(card3)
-    else:
-      i = choice
-      card1 = inactive[i]
-      card1.damageCalc(game, 3)
-      card2 = inactive[i - 1]
-      card2.damageCalc(game, 2)
-      if len(inactive) > 2:
-        card3 = inactive[i - 2]
-        card3.damageCalc(game, 1)
-      else:
-        card3 = False
-      card1.updateHealth(game.inactivePlayer)
-      if card1.destroyed:
-        pending.append(card1)
-      card2.updateHealth(game.inactivePlayer)
-      if card2.destroyed:
-        pending.append(card2)
-      if card3:
-        card3.updateHealth(game.inactivePlayer)
-        if card3.destroyed:
-          pending.append(card3)
-  game.pending()
+        if card3:
+          card3.updateHealth()
+          if card3.destroyed:
+            pending.append(card3)
+    game.pending()
 
 def random_access_archives (game, card):
   """ Random Access Archives: Archive the top card of your deck.
@@ -1486,7 +1337,7 @@ def random_access_archives (game, card):
   if len(game.activePlayer.deck) > 0:
     card = game.activePlayer.deck[-1]
     game.pendingReloc.append(card)
-    game.activePlayer.deck["Creature"].remove(card)
+    game.activePlayer.deck.remove(card)
     game.pending("archive", target = game.activePlayer)
     logging.info("The top card or your deck has been archived.")
     return
@@ -1499,10 +1350,10 @@ def remote_access(game, card):
   logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Artifact"]
   if len(inactive) > 0:
-    choice = game.chooseCards("Artifact", "Choose an opponent's artifact to use:", "enemy")[0][1]
-    if inactive[choice].ready and inactive[choice].action:
-      inactive[choice].action(game, game.inactivePlayer.board["Artifact"][choice])
-      inactive[choice].ready = False
+    for c in game.chooseCards("Artifact", "Choose an opponent's artifact to use:", "enemy"):
+      if c.ready and c.action:
+        c.action(game, inactive.index(c))
+        c.ready = False
   else:
     logging.info("Your opponent has no artifacts.")
 
@@ -1529,18 +1380,14 @@ def sloppy_labwork (game, card):
   logging.info(f"{card.title}'s play ability is triggered.")
   hand = game.activePlayer.hand
   
-  if len(hand) > 0:
-    choice = game.chooseCards("Hand", "Choose a card to archive:")[0][1]
-    card = hand[choice]
-    game.pendingReloc.append(card)
-    hand.remove(card)
+  for c in game.chooseCards("Hand", "Choose a card to archive:"):
+    game.pendingReloc.append(c)
+    hand.remove(c)
     game.pending("archive", target = game.activePlayer)
     logging.info("Card archived!")
-  if len(hand) > 0:
-    choice = game.chooseCards("Hand", "Choose a card to discard:")[0][1]
-    c = hand[choice]
-    game.discardCard(choice, cheat=True)
-    logging.info(f"{c} discarded!")
+  for c in game.chooseCards("Hand", "Choose a card to discard:"):
+    game.discardCard(hand.index(c), cheat=True)
+    logging.info(f"{c.title} discarded!")
 
 def twin_bolt_emission (game, card):
   """ Twin Bolt Emission: Deal 2 damage to a creature and deal 2 damage to a different creature.
@@ -1550,21 +1397,12 @@ def twin_bolt_emission (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   pendingDisc = game.pendingReloc
-  if active or inactive:
-    choices = game.chooseCards("Creature", f"Choose {min(2, len(active) + len(inactive))} creature(s) to deal two damage to:", count = min(2, len(active) + len(inactive)))
-    for side, choice in choices:
-      if side == "fr":
-        c = active[choice]
-        c.damageCalc(game, 2)
-        c.updateHealth(game.activePlayer)
-        if c.destroyed:
-          pendingDisc.append(c)
-      else:
-        c = inactive[choice]
-        c.damageCalc(game, 2)
-        c.updateHealth(game.inactivePlayer)
-        if c.destroyed:
-          pendingDisc.append(c)
+
+  for c in game.chooseCards("Creature", f"Choose {min(2, len(active) + len(inactive))} creature(s) to deal two damage to:", count = min(2, len(active) + len(inactive))):
+    c.damageCalc(game, 2)
+    c.updateHealth(game.activePlayer)
+    if c.destroyed:
+      pendingDisc.append(c)
   game.pending()
 
 def wild_wormhole (game, card):
@@ -1629,41 +1467,34 @@ def harland_mindlock (game, card):
     logging.info("No enemy creatures to steal!")
     return
 
-  choice = inactive[game.chooseCards("Creature", "Choose an enemy flank creature to steal:", "enemy", condition = lambda x: x.isFlank(game), con_message = "You didn't choose a flank creature. Please try again.")[0][1]]
-  flank = game.chooseFlank(choice)
-  card.harland = choice
-  if flank == "Left":
-    flank = 0
-  else:
-    flank = len(active)
-  active.insert(flank, choice)
-  inactive.remove(choice)
-
+  for c in game.chooseCards("Creature", "Choose an enemy flank creature to steal:", "enemy", condition = lambda x: x.isFlank(game), con_message = "You didn't choose a flank creature. Please try again."):
+    flank = game.chooseFlank(c)
+    card.harland = c
+    if flank == "Left":
+      flank = 0
+    else:
+      flank = len(active)
+    active.insert(flank, c)
+    inactive.remove(c)
 
 def neutron_shark (game, card):
   """ Neutron Shark: Destroy an enemy creature or artifact and a friendly creature or artifact. Discard the top card of your deck. If that card is not a Logos card, trigger this effect again.
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  active = game.activePlayer.board
-  inactive = game.inactivePlayer.board
+  active = game.activePlayer.board["Creature"]
   pendingDiscard = game.pendingReloc
 
   while card in active:
-    if inactive:
-      targetType = game.chooseHouse("custom", ("Would you like to target an enemy artifact or an enemy creature?", ["Artifact", "Creature"]))[0]
-      choice1 = game.chooseCards(targetType, f"Choose an enemy {targetType.lower()} to destroy:", "enemy")[0][1]
-      card1 = game.inactivePlayer.board[targetType][choice1]
-      destroy(card1, game.inactivePlayer, game)
-      if (card1.type == "Creature" and card1.destroyed) or card1.type == "Artifact":
-        pendingDiscard.append(card1)
+    for c1 in game.chooseCards("Board", f"Choose an enemy card to destroy:", "enemy"):
+      destroy(c1, game.inactivePlayer, game)
+      if c1.destroyed:
+        pendingDiscard.append(c1)
     if active:
-      targetType2 = game.chooseHouse("custom", ("Would you like to target a friendly artifact or a friendly creature?", ["Artifact", "Creature"]))[0]
-      choice2 = game.chooseCards(targetType2, f"Choose a friendly {targetType2.lower()} to destroy:", "friend")[0][1]
-      card2 = game.inactivePlayer.board[targetType2][choice2]
-      destroy(card2, game.inactivePlayer, game)
-      if (card2.type == "Creature" and card2.destroyed) or card2.type == "Artifact":
-        pendingDiscard.append(card2)
+      for c2 in game.chooseCards("Board", f"Choose a friendly card to destroy:", "friend"):
+        destroy(c2, game.inactivePlayer, game)
+        if c2.destroyed:
+          pendingDiscard.append(c2)
     game.pending()
     if game.activePlayer.deck:
       game.activePlayer.discard.append(game.activePlayer.deck.pop())
@@ -1736,10 +1567,9 @@ def battle_fleet (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
-  for card in revealed:
-    game.activePlayer.hand[card].revealed = True
-  game.activePlayer += len(revealed)
+  for c in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again."):
+    c.revealed = True
+    game.activePlayer += 1
 
 def deep_probe (game, card):
   """ Deep Probe: Choose a house: Reveal your opponent's hand. Discard each creature of that house revealed this way.
@@ -1789,10 +1619,10 @@ def hypnotic_command (game, card):
   count = sum((x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
   hits = 1
   while hits <= count:
-    choice = game.chooseCards("Creature", f"Choose an enemy creature to capture one amber from their own side ({hits} of {count}):", "enemy")[0][1]
+    for c in game.chooseCards("Creature", f"Choose an enemy creature to capture one amber from their own side ({hits} of {count}):", "enemy"):
     # looks like they can choose the same minion each time, which is why the loop
-    inactive[choice].capture(game, 1, True)
-    count -= 1
+      c.capture(game, 1, True)
+      count -= 1
   logging.info("Your opponent now has " + str(game.inactivePlayer.amber) + " amber.")
   
 def irradiated_amber (game, card):
@@ -1853,19 +1683,10 @@ def martian_hounds (game, card):
   logging.info(f"{card.title}'s play ability is triggered.")
   
   count = sum(x.damage > 0 for x in game.activePlayer.board["Creature"] + game.inactivePlayer.board["Creature"])
-  if count == 0:
-    logging.info("There are no damaged creatures, so no power will be gained.")
-    return
-  side, choice = game.chooseCards("Creature", f"Choose a creature to give {count * 2} power counters to:")[0]
-  if side == "fr": # friendly
-    choice = game.activePlayer.board["Creature"][choice]
-    choice.extraPow += (2 * count)
-    choice.power += (2 * count)
-    logging.info(f"{choice.title} now has {choice.power} power.")
-    return
-  choice = game.inactivePlayer.board["Creature"][choice]
-  choice.power += (2 * count)
-  logging.info(choice.title + " now has " + str(choice.power) + " power.")
+  for c in game.chooseCards("Creature", f"Choose a creature to give {count * 2} power counters to:"):
+    c.extraPow += (2 * count)
+    c.power += (2 * count)
+    logging.info(f"{c.title} now has {c.power} power.")
 
 def martians_make_bad_allies (game, card):
   """ Martians Make Bad Allies: Reveal your hand. Purge each revealed non-Mars creature and gain 1 amber for each card purged this way.
@@ -1891,23 +1712,11 @@ def mass_abduction (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  
-  inactive = game.inactivePlayer.board["Creature"]
-  count = len([x for x in inactive if x.damage > 0])
-  
-  if count == 0:
-    logging.info("There are no damaged enemy creatures. The card is still played.")
-    return
 
-  choices = [x[1] for x in game.chooseCards("Creature", "Choose up to 3 damaged enemy creatures to put into your archives:", "enemy", 3, False, lambda x: x.damage > 0)]
-  choices.sort(reverse=True)
-
-  if choices:
-    for choice in choices:
-      c = inactive[choice]
-      return_card(c, game)
-      if c.returned:
-        game.pendingReloc.append(c)
+  for c in game.chooseCards("Creature", "Choose up to 3 damaged enemy creatures to put into your archives:", "enemy", 3, False, lambda x: x.damage > 0):
+    return_card(c, game)
+    if c.returned:
+      game.pendingReloc.append(c)
   
   game.pending("archive", target = game.activePlayer)
 
@@ -1949,34 +1758,21 @@ def mothership_support (game, card):
   logging.info(f"{card.title}'s play ability is triggered.")
   
   active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc # fine because one target at a time
-  friend_damaged = []
-  enemy_damaged = []
+  damaged = []
   count = sum(x.ready and (x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade]) for x in active)
   if count == 0:
     logging.info("You have no Mars creatures, so no damage is dealt. The card is still played.")
     return
   hits = 1
   while hits <= count:
-    side, choice = game.chooseCards("Creature", f"Deal 2 damage to a creature ({hits} of {count}):")[0]
-    if side == "fr":
-      c = active[choice]
-      if c not in friend_damaged:
-        friend_damaged.append(c)
-      c.damageCalc(game, 2)
-    else:
-      c = inactive[choice]
-      if c not in enemy_damaged:
-        enemy_damaged.append(c)
+    for c in game.chooseCards("Creature", f"Deal 2 damage to a creature ({hits} of {count}):"):
+      if c not in damaged:
+        damaged.append(c)
       c.damageCalc(game, 2)
     hits += 1
-  for c in friend_damaged:
-    c.updateHealth(game.activePlayer)
-    if c.destroyed:
-      pending.append(c)
-  for c in enemy_damaged:
-    c.updateHealth(game.inactivePlayer)
+  for c in damaged:
+    c.updateHealth()
     if c.destroyed:
       pending.append(c)
   game.pending()
@@ -1986,37 +1782,24 @@ def orbital_bombardment (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
-  friend_damaged = []
-  enemy_damaged = []
+  damaged = []
 
-  revealed = [x[1] for x in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again.")]
-  count = len(revealed)
+  count = 0
+  for c in game.chooseCards("Hand", "Reveal any number of Mars cards from your hand:", count = max(1, sum(x.house == "Mars" for x in game.activePlayer.hand)), full = False, condition = lambda x: x.house == "Mars", con_message = "That's not a Mars card. Please pick again."):
+    count += 1
   if count == 0:
     logging.info("You revealed no Mars cards, so no damage is dealt.")
     return
   hits = 1
   while hits <= count:
-    side, choice = game.chooseCards("Creature", f"Deal 2 damage to a creature ({hits} of {count}):")[0]
-    if side == "fr":
-      c = active[choice]
-      if c not in friend_damaged:
-        friend_damaged.append(c)
-      c.damageCalc(game, 2)
-    else:
-      c = inactive[choice]
-      if c not in enemy_damaged:
-        enemy_damaged.append(c)
+    for c in game.chooseCards("Creature", f"Deal 2 damage to a creature ({hits} of {count}):"):
+      if c not in damaged:
+        damaged.append(c)
       c.damageCalc(game, 2)
     hits += 1
-  for c in friend_damaged:
-    c.updateHealth(game.activePlayer)
-    if c.destroyed:
-      pending.append(c)
-  for c in enemy_damaged:
-    c.updateHealth(game.inactivePlayer)
+  for c in damaged:
+    c.updateHealth()
     if c.destroyed:
       pending.append(c)
   game.pending()
@@ -2064,9 +1847,7 @@ def sample_collection (game, card):
     logging.info("Your opponent has no creatures to target.")
   
   targets = min(len(inactive), count)
-  choices = [x[1] for x in game.chooseCards("Creature", f"Choose {targets} creature(s) to put into your archives:", "enemy", targets)]
-  for choice in choices:
-    c = inactive[choice]
+  for c in game.chooseCards("Creature", f"Choose {targets} creature(s) to put into your archives:", "enemy", targets):
     return_card(c, game)
     if c.returned:
       game.pendingReloc.append(c)
@@ -2100,23 +1881,12 @@ def squawker (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
   
-  if active or inactive:
-    side, choice = game.chooseCards("Creature", "Ready a Mars creature or stun a non-Mars creature:")[0]
-    if side == "fr":
-      c = active[choice]
-      if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
-        c.ready = True
-      else:
-        c.stun = True
+  for c in game.chooseCards("Creature", "Ready a Mars creature or stun a non-Mars creature:"):
+    if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
+      c.ready = True
     else:
-      c = inactive[choice]
-      if c.house == "Mars" or "experimental_therapy" in [x.title for x in c.upgrade]:
-        c.ready = True
-      else:
-        c.stun = True
+      c.stun = True
 
 def total_recall (game, card):
   """ Total Recall: For each friendly ready creature, gain 1 amber. Return each friendly creature to your hand.
@@ -2264,9 +2034,8 @@ def honorable_claim (game, card):
   knights = sum("Knight" in x.traits for x in active)
   if knights > game.inactivePlayer.amber and game.inactivePlayer.amber > 0:
     logging.info("You have more knights than your opponent has amber.")
-    choices = [x[1] for x in game.chooseCards("Creature", "You have more knights than your opponent has amber. Choose which knights will capture an amber:", "friend", game.inactivePlayer.amber, condition = lambda x: "Knight" in x.traits, con_message = "That's not a knight.")]
-    for choice in choices:
-      active[choice].capture(game, 1)
+    for c in game.chooseCards("Creature", f"Choose which {game.inactivePlayer.amber} knights will capture an amber:", "friend", game.inactivePlayer.amber, condition = lambda x: "Knight" in x.traits, con_message = "That's not a knight."):
+      c.capture(game, 1)
   elif knights <= game.inactivePlayer.amber:
     for c in active[::-1]:
       if "Knight" in c.traits:
@@ -2280,30 +2049,31 @@ def inspiration (game, card):
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
-  choice = game.chooseCards("Creature", "Ready and use a friendly creature", "friend")[0][1]
-  card = active[choice]
-  card.ready = True
-  uses =  []
-  if game.canReap(card, r_click = True, cheat = True):
-    uses.append("Reap")
-  if game.canFight(card, r_click = True, cheat = True):
-    uses.append("Fight")
-  if game.canAction(card, r_click = True, cheat = True):
-    uses.append("Action/Omni")
-  
-  if not uses:
-    return ("No valid uses for this card.")
+  for c in game.chooseCards("Creature", "Ready and use a friendly creature", "friend"):
+    c.ready = True
 
-  use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
-  if use[0] == "R":
-    if game.canReap(card, r_click = True, cheat = True):
-      game.reapCard(choice, cheat = True)
-  elif use[0] == "F":
-    if game.canFight(card, r_click = True, cheat = True):
-      game.fightCard(choice, cheat=True)
-  elif use[0] == "A":
-    if game.canAction(card, r_click = True, cheat = True):
-      game.actionCard(choice, cheat = True)
+    uses =  []
+    if game.canReap(c, r_click = True, cheat = True):
+      uses.append("Reap")
+    if game.canFight(c, r_click = True, cheat = True):
+      uses.append("Fight")
+    if game.canAction(c, r_click = True, cheat = True):
+      uses.append("Action")
+    if game.canOmni(c, r_click = True, cheat = True):
+      uses.append("Omni")
+    
+    if not uses:
+      return ("No valid uses for this card.")
+    
+    use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
+    if use[0] == "R":
+      game.reapCard(active.index(c), cheat = True)
+    elif use[0] == "F":
+      game.fightCard(active.index(c), cheat=True)
+    elif use[0] == "A":
+      game.actionCard(active.index(c), cheat = True)
+    elif use[0] == "O":
+      game.omniCard(active.index(c))
 
 def mighty_lance (game, card):
   """ Mighty Lance: Deal 3 damage to a creature and 3 damage to a neighbor of that creature.
@@ -2317,33 +2087,17 @@ def mighty_lance (game, card):
   if not active and not inactive:
     return
 
-  side, choice1 = game.chooseCards("Creature", "Deal three damage to a creature:")[0]
-  if side == "fr":
-    card1 = active[choice1]
-    if len(active) > 1:
-      choice2 = game.chooseCards("Creature", "Deal three damage to a neighbor of that creature:", condition=lambda x: x in card1.neighbors(game), con_message = "That's not a neighbor of your original target.")[0][1]
-      card2 = active[choice2]
-      card2.damageCalc(game, 3)
-      card2.updateHealth(game.activePlayer)
-      if card2.destroyed:
-        pendingD.append(card2)
-    card1.damageCalc(game, 3)
-    card1.updateHealth(game.activePlayer)
-    if card1.destroyed:
-      pendingD.append(card1)
-  else:
-    card1 = inactive[choice1]
-    if len(inactive) > 1:
-      choice2 = game.chooseCards("Creature", "Deal three damage to a neighbor of that creature:", condition = lambda x: x in card1.neighbors(game), con_message = "That's not a neighbor of your original target.")[0][1]
-      card2 = inactive[choice2]
-      card2.damageCalc(game, 3)
-      card2.updateHealth(game.inactivePlayer)
-      if card2.destroyed:
-        pendingD.append(card2)
-    card1.damageCalc(game, 3)
-    card1.updateHealth(game.inactivePlayer)
-    if card1.destroyed:
-      pendingD.append(card1)
+  for c in game.chooseCards("Creature", "Deal three damage to a creature:"):
+    if c.neighbors(game):
+      for c2 in game.chooseCards("Creature", f"Deal three damage to a neighbor of {c.title.replace('_', ' ').title()}:", condition=lambda x: x in c.neighbors(game), con_message = "That's not a neighbor of your original target."):
+        c2.damageCalc(game, 3)
+        c2.updateHealth(game.activePlayer)
+        if c2.destroyed:
+          pendingD.append(c2)
+    c.damageCalc(game, 3)
+    c.updateHealth(game.activePlayer)
+    if c.destroyed:
+      pendingD.append(c)
 
   game.pending()
 
@@ -2373,24 +2127,23 @@ def one_stood_against_many (game, card):
   logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
-  count = 3
   fought = [] # this should be cards, not indexes, so that if something dies and the index changes we're still good
 
-  if active:
-    fighting = game.chooseCards("Creature", "Choose a friendly creature to fight with:", "friend")[0][1]
-    fighter = active[fighting]
+  fighter = False
+  for f in game.chooseCards("Creature", "Choose a friendly creature to fight with:", "friend"):
+    fighter = f
+  if fighter:
+    fighter.ready = True
   else:
     return
-  fighter.ready = True
   attacks = 1
-  while inactive and fighter in active and attacks <= count:
-    choice = game.chooseCards("Creature", f"Choose an enemy creature to attack ({attacks} of {count}):", "enemy", condition = lambda x: x not in fought, con_message = "You've already fought that creature")[0][1]
-    fought.append(inactive[choice])
-    if game.canFight(fighter, reset = False, cheat=True):
-      game.fightCard(fighting, cheat = True, defender = choice)
-    attacks += 1
-    if attacks < 3:
-      fighter.ready = True
+  while inactive and fighter in active and attacks <= 3:
+    for c2 in game.chooseCards("Creature", f"Choose an enemy creature to attack ({attacks} of 3):", "enemy", condition = lambda x: x not in fought, con_message = "You've already fought that creature"):
+      fought.append(c2)
+      game.fightCard(active.index(fighter), cheat = True, defender = c2)
+      attacks += 1
+      if attacks < 3:
+        fighter.ready = True
 
 
 def radiant_truth (game, card):
@@ -2426,9 +2179,8 @@ def terms_of_redress (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  active = game.activePlayer.board["Creature"]
-  choice = game.chooseCards("Creature", "Choose a friendly creature to capture 2 amber:", "friend")[0][1]
-  active[choice].capture(game, 2)
+  for c in game.chooseCards("Creature", "Choose a friendly creature to capture 2 amber:", "friend"):
+    c.capture(game, 2)
 
 def the_harder_they_come (game, card):
   """ The Harder They Come: Purge a creature with power 5 or higher.
@@ -2438,20 +2190,13 @@ def the_harder_they_come (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   
-  if True not in [x.power > 4 for x in active + inactive]:
-    return
-  
-  side, choice = game.chooseCards("Creature", "Purge a creature with power 5 or higher:", condition = lambda x: x.power > 4, con_message = "This creature doesn't have high enough power.")[0]
-
-  if side == "fr":
-    card = active[choice]
-    active.remove(card)
+  for c in game.chooseCards("Creature", "Purge a creature with power 5 or higher:", condition = lambda x: x.power > 4, con_message = "This creature doesn't have high enough power."):
+    if c in active:
+      active.remove(card)
+    else:
+      inactive.remove(card)
     game.pendingReloc.append(card)
-  else:
-    card = inactive[choice]
-    inactive.remove(card)
-    game.pendingReloc.append(card)
-  game.pending("purge")
+    game.pending("purge")
 
 def the_spirits_way (game, card):
   """ The Spirit's Way: Destroy each creature with power 3 or higher.
@@ -2525,17 +2270,10 @@ def horseman_of_famine (game, card):
   if not active and not inactive:
     return
 
-  side, choice = game.chooseCards("Creature", "Destroy a creature with the lowest power:", condition = lambda x: x.power == low, con_message = "That creature does not have the lowest power.")[0]
-  if side == "fr":
-    card = active[choice]
-    destroy(card, game.activePlayer, game)
+  for c in game.chooseCards("Creature", "Destroy a creature with the lowest power:", condition = lambda x: x.power == low, con_message = "That creature does not have the lowest power."):
+    destroy(c, game.activePlayer, game)
     if card.destroyed:
-      pendingD.append(card)
-  else:
-    card = inactive[choice]
-    destroy(card, game.inactivePlayer, game)
-    if card.destroyed:
-      pendingD.append(card)
+      pendingD.append(c)
   game.pending()
 
 def horseman_of_pestilence (game, card):
@@ -2576,14 +2314,9 @@ def lady_maxena (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
   
-  side, choice = game.chooseCards("Creature", "Stun a creature:")[0]
-  if side == "fr":
-    active[choice].stun = True
-  else:
-    inactive[choice].stun = True
+  for c in game.chooseCards("Creature", "Stun a creature:"):
+    c.stun = True
 
 def numquid_the_fair (game, card):
   """ Numquid the Fair: Destroy an enemy creature. Repeat this card's effect if your opponent still controls more creatures than you.
@@ -2596,11 +2329,10 @@ def numquid_the_fair (game, card):
 
   # possible edge case: Numquid hits enemy w/ Phoenix Heart. Numquid then dies and the effect should not repeat. handle this by running pending after each destruction
   while len(inactive) > len(active) and card in active:
-    choice = game.chooseCards("Creature", "Destroy an enemy creature:", "enemy")[0][1]
-    card = inactive[choice]
-    destroy(card, game.inactivePlayer, game)
-    if card.destroyed:
-      pending.append(card)
+    for c in game.chooseCards("Creature", "Destroy an enemy creature:", "enemy"):
+      destroy(c, game.inactivePlayer, game)
+      if c.destroyed:
+        pending.append(c)
     game.pending()
 
 def raiding_knight (game, card):
@@ -2704,32 +2436,17 @@ def booby_trap (game, card):
     logging.info("No valid targets. The card is still played.")
     return
 
-  choice = game.chooseCards("Creature", "Deal 4 damage with 2 splash to a non-flank creature:", condition = lambda x: not x.isFlank(game), con_message = "")[0]
-  if choice[0] == "fr":
-    card = active[choice[1]]
-    card.damageCalc(game, 4)
-    for neigh in card.neighbors(game):
+  for c in game.chooseCards("Creature", "Deal 4 damage with 2 splash to a non-flank creature:", condition = lambda x: not x.isFlank(game), con_message = ""):
+    c.damageCalc(game, 4)
+    for neigh in c.neighbors(game):
       neigh.damageCalc(game, 2)
-    for neigh in card.neighbors(game):
-      neigh.updateHealth(game.activePlayer)
+    for neigh in c.neighbors(game):
+      neigh.updateHealth()
       if neigh.destroyed:
         pending.append(neigh)
-    card.updateHealth(game.activePlayer)
-    if card.destroyed:
-      pending.append(card)
-  else:
-    card = inactive[choice[1]]
-    card.damageCalc(game, 4)
-    for neigh in card.neighbors(game):
-      neigh.damageCalc(game, 2)
-    for neigh in card.neighbors(game):
-      neigh.updateHealth(game.inactivePlayer)
-      if neigh.destroyed:
-        pending.append(neigh)
-    card.updateHealth(game.inactivePlayer)
-    if card.destroyed:
-      pending.append(card)
-  
+    c.updateHealth()
+    if c.destroyed:
+      pending.append(c)
   game.pending()
 
 def finishing_blow (game, card):
@@ -2745,20 +2462,11 @@ def finishing_blow (game, card):
     logging.info("No valid targets.")
     return
 
-  side, choice = game.chooseCards("Creature", "Choose a damaged creature to destroy:", condition = lambda x: x.damage > 0, con_message = "That creature isn't damaged.")[0]
-
-  if side == "fr":
-    card = active[choice]
-    destroy(card, game.activePlayer, game)
-    if card.destroyed:
+  for c in game.chooseCards("Creature", "Choose a damaged creature to destroy:", condition = lambda x: x.damage > 0, con_message = "That creature isn't damaged."):
+    destroy(c, game.activePlayer, game)
+    if c.destroyed:
       stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
-      pending.append(card)
-  else:
-    card = inactive[choice]
-    destroy(card, game.inactivePlayer, game)
-    if card.destroyed:
-      stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
-      pending.append(card)
+      pending.append(c)
 
   game.pending()
 
