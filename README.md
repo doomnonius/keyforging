@@ -4,6 +4,7 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
+ <li>Bug related to hover_rect.</li>
  <li>Capture is wrong in a number of instances (order of variables).</li>
  <li>Phase shift allows extra plays on turn 1 - partially implemented (needs to be a non Logos card played).</li>
  <li>If a state thing targets something specific, that should also be shown in the hover.</li>
