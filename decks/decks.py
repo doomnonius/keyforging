@@ -159,7 +159,7 @@ class Deck:
             scaled = pygame.transform.scale(image, (HEIGHT // 21, HEIGHT // 21))
         else:
             scaled = pygame.transform.scale(image, (w, h))
-        return scaled, scaled.get_rect() 
+        return scaled, scaled.get_rect()
 
 url1 = "https://www.keyforgegame.com/api/decks/?page=1&page_size=1&links=cards&search="
 url2 = "https://www.keyforgegame.com/deck-details/"

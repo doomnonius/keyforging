@@ -4,12 +4,13 @@ from helpers import stealAmber, destroy, return_card
 
 def basicReap(game, card, replicated: bool = False):
   if "dimension_door" in game.activePlayer.states and game.activePlayer.states["dimension_door"]:
+    logging.info("Dimension Door causes amber gained from reaping to be stolen instead.")
     stealAmber(game.activePlayer, game.inactivePlayer, 1, game)
   else:
     game.activePlayer.gainAmber(1, game)
   if "crystal_hive" in game.activePlayer.states:
     game.activePlayer.gainAmber(game.activePlayer.states["crystal_hive"], game)
-  # game.log("You now have " + str(game.activePlayer.amber) + " amber.")
+    logging.info(f"Crystal hive grants {game.activePlayer.states['crystal_hive']} extra amber for reaping.")
 
 
 ###########
@@ -35,7 +36,10 @@ def looter_goblin (game, card, replicated: bool = False):
   """ Looter Goblin: for the remainder of the turn, gain 1 amber each time an enemy creature is destroyed.
   """
   logging.info(f"{card.title}'s reap ability triggered.")
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except:
+    game.activePlayer.states[card.title] = 1
   game.resetStates.append(("a", card.title))
 
 def troll (game, card, replicated: bool = False):
@@ -484,12 +488,18 @@ def protectrix (game, card, replicated: bool = False):
   logging.info(f"{card.title}'s reap ability triggered.")
   
   for c in game.chooseCards("Creature", "You may fully heal a creature:", full = False):
+    if c.damage > 0:
+      healed = True
     c.damage = 0
-    if game.activePlayer.states[card.title]:
-      game.activePlayer.states[card.title].append(c)
-    else:
-      game.activePlayer.states[card.title] = [c]
-    game.resetStates.append(("a", card.title))
+    if healed:
+      try:
+        if game.activePlayer.states[card.title]:
+          game.activePlayer.states[card.title].append(c)
+        else:
+          game.activePlayer.states[card.title] = [c]
+      except:
+        game.activePlayer.states[card.title] = [c]
+      game.resetStates.append(("a", card.title))
 
 def sanctum_guardian (game, card, replicated: bool = False):
   """ Sanctum Guardian: Swap SG with another friendly creature in your battleline.
@@ -551,9 +561,26 @@ def nexus (game, card, replicated: bool = False):
   logging.info(f"{card.title}'s reap ability triggered.")
   inactive = game.inactivePlayer.board["Artifact"]
   for c in game.chooseCards("Artifact", "Choose an opponent's artifact to use:", "enemy"):
-    if c.ready and c.action:
-      c.action(game, inactive.index(c))
-      c.ready = False
+
+    if not c.ready:
+      logging.info("Card isn't ready, so can't be used.")
+      return
+
+    uses =  []
+    if game.canAction(c, r_click = True, cheat = True):
+      uses.append("Action")
+    if game.canOmni(c, r_click = True, cheat = True):
+      uses.append("Omni")
+    
+    if not uses:
+      logging.info("No valid uses for this card.")
+      return
+    
+    use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
+    if use[0] == "A":
+      game.actionCard(inactive.index(c), enemy = True, cheat = True)
+    elif use[0] == "O":
+      game.omniCard(inactive.index(c), enemy = True)
 
 def selwyn_the_fence (game, card, attacked):
   """ Selwyn the Fence: move 1 amber from one of your cards to your pool.

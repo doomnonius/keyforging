@@ -2,53 +2,56 @@
 
 <h2>This project uses pygame: https://www.pygame.org/docs/genindex.html</h2>
 
+<h3>Dependencies:<h3>
+<ul>
+  <li>types</li>
+  <li>pygame</li>
+  <li>json</li>
+  <li>random</li>
+  <li>logging</li>
+  <li>pyautogui</li>
+  <li>os</li>
+  <li>sys</li>
+  <li>argparse</li>
+  <li>typing</li>
+  <li>requests</li>
+  <li>time</li>
+  <li></li>
+  <li></li>
+</ul>
+
 <h3>Planned features / Current Goals:<h3>
 <ul>
- <li>Update how using an opponent's artifact works, then update Nexus, Poltergeist, and Remote Access to also work with Omni abilities.</li>
- <li>Capture is wrong in a number of instances (order of variables).</li>
+ <li>If an effect (like lash of broken dreams) is applied more than once, show that in the mini image.</li>
+ <li>Update choose flank to choose which side an opponent's creature entering will go on.</li>
  <li>If a state thing targets something specific, that should also be shown in the hover.</li>
- <li>Veylan Analyst should give amber for using an opponent's artifact - need to create an option in use artifact to use an opponent's artifact, or alternatively temporarily copy it into active board then delete it - this second option won't work because it will end up getting drawn, unless we create something a bool that prevents cards from being drawn.</li>
  <li>If collar of subordination leaves play, the creature should return to its owner.</li>
+ <li>A whole lot more game assets, for stun, enrage, damage, card backs, rest of house symbols, etc.</li>
+ <li>Handling Mavericks? - atm back end will know, but player won't - want to handle this kind of like how I will handle drawing counters</li>
+ <li>Settings button (immediately below end turn?) and menu.</li>
+ <li>Make some selection windows not ask for confirmation (particularly the end turn one)</li>
  <li>If autocannon (or pingle) kills a creature, its play ability will not resolve - but activePlayer should decide the order of those things, since they are in the same timing window, so they could choose the proper order. - This is related to the whole library access trigger/card play effect trigger I have noted immediately below.</li>
  <li>A function for ordering simultaneous things or choosing a number of items from the list of abilities.</li>
- <li>Update choose flank to choose which side an opponent's creature entering will go on.</li>
  <li>Code reap, fight, action, abilities with knowledge that there might be more than one</li>
- <li>I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow. Same with basic leaves. Actually, I think I'll have basic dest, but I'll call it from pending, not tied to the card. Potentially the same with basicReap and basicFight</li>
- <li>game.pending() needs updates - including handling cards with upgrades attached and handling card.reveal - everytime a function tries to ref pendingReloc, it needs to check if pendingReloc contains something - if it does, then this is a nested destroy, and secondary needs to be used instead - I think this shouldn't matter for play effects</li>
+ <li>basic dest called from pending, not tied to the card, same with basicReap and basicFight</li>
+ <li>game.pending() needs updates - including handling cards with upgrades attached or cards under them and handling card.reveal - everytime a function tries to ref pendingReloc, it needs to check if pendingReloc contains something - if it does, then this is a nested destroy, and secondary needs to be used instead - I think this shouldn't matter for play effects in CotA</li>
+ <li>Have spangler box use card.under?</li>
+ <li>Display the card that's under Masterplan - based on ruling on Jargogle, it can be looked at by controller of Jargogle</li>
  <li>card.reveal should be being changed constantly as cards move around, ie you can see your cards in opp's archives, but not theirs, unless it is revealed</li>
- <li>game.pending should be able to handle things going into archives from play (because of card.reset())</li>
- <li>Code not yet implemented to only display valid options for items, instead of all. - in progress, don't think all effects are taken into account</li>
- <li>Actions say they don't work, but kind of do? I think it calls the function but hits an error in the function. - in progess</li>
- <li>The game usually doesn't tell you if an attempt to play a card failed, or why it failed. - in progress</li>
- <li>I really need to throw in a whole bunch of logging all over the place.</li>
- <li>A whole lot more game assets, for stun, enrage, damage, card backs, house symbols, etc.</li>
- <li>Give Gray Monk a Play and Leaves Play ability to handle how it gives armor.</li>
  <li>Picking decks within game window - will be another while loop</li>
  <li>Verify game integrity at ends of turns.</li>
- <li>Drag a friendly minion onto an enemy minion to fight? - I don't like this one</li>
- <li>Make a tiny purged image.</li>
+ <li>Arrows like H*********e for fighting?</li>
  <li>Ready creature entering next to tapped taunt looks like it has taunt in chooseFlank</li>
  <li>things in later sets that give other cards abilities</li>
- <li>Write all the functions for all the cards.</li>
- <li>What about having the background color of the active Player's mat match the color of the house they've chosen?</li>
- <li>Display the card that's under Masterplan</li>
- <li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged - <s>related: Correct power + extraPow to just power, and make sure we're regularly recalcing power</s></li>
- <li>To get shoulder armor working properly (and a recalc armor function), we'll need to start recording card.lostarmor as well - except there are edge cases with shoulder armor where I think even that won't work.</li>
- <li>Update the lambda for "Are you sure you want to end your turn to highlight all usable things.</li>
- <li>Scale the selected surf?</li>
- <li>Make some selection windows not ask for confirmation (particularly the end turn one)</li>
- <li>Small versions of cards with turn effects drawn in the center area, hoverable.</li>
- <li>End turn button off to the right of the neutral area.</li>
- <li>Scale cards in hand too.</li>
- <li>Handle if chooseHouse or chooseCards get called with no valid options.</li>
+ <li>What about having the background color of the active Player's mat match the color of the house they've chosen?- No, if only because of the tide coming in later sets.</li>
  <li></li>
  <li></li>
  <li></li>
  <li></li>
  <li></li>
  <li></li>
- <li></li>
- <li></li>
+ <li><s>Reworked damageCalc and capture to be consistent with gainAmber</s></li>
+ <li><s>Capture is wrong in a number of instances (order of variables).</s></li>
  <li><s>Remove helpers.destroy()'s middle argument</s></li>
  <li><s>Get rid of remaining print statements/turn into log statements.</s></li>
  <li><s>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</s></li>
@@ -110,11 +113,11 @@
       </li>
       <li><s>Ready Cards</s> - <b>Done</b></li>
       <li><s>Draw Cards</s> - <b>Done</b></li>
-      <li>EOT effects,<s> and declare "Check!" - Also making more obvious that opponent is about to forge</s></li>
+      <li><s>EOT effects, and declare "Check!" - Also making more obvious that opponent is about to forge</s></li>
    </ol>
  </li>
  <li><s>Build a state dict that only has the relevant information</s></li>
- <li>Logger wil be in game (built in to Board?), and imported into everything else and called there.</li>
+ <li><s>Logger wil be defined in main, and imported into everything else and called there.</s></li>
  <li><s>Sort hand by house</s></li>
  <li><s>Rewrite the base code to reflect the implementation of the cards (ie in responses())</s></li>
  <li><s>update the play card function to tell the player how much amber they got for playing the card.</s></li>
@@ -127,6 +130,25 @@
 
 <h2>Testing / Rules: </h2>
 <ol>
+<li>Make choose house use houseSymbols instead</li>
+<li>Update the lambda for "Are you sure you want to end your turn" to highlight all usable things.</li>
+<li>Armor recalc for Bulwark and Shoulder armor in calcPower</li>
+<li>Only display valid options for items, instead of all</li>
+<li>Log if an attempt to play a card failed</li>
+<li>I really need to throw in a whole bunch of logging all over the place.</li>
+<li>Make a tiny purged image.</li>
+<li>Write all the functions for all the cards.</li>
+<li>game.pending should be able to handle things going into archives from play (because of card.reset()) - used in combo with return_card</li>
+<li>Gonna need some sort of calcPower function or some one offs that get called in cardChanged - <s>related: Correct power + extraPow to just power, and make sure we're regularly recalcing power</s></li>
+<li>Rework calls to playCard for cheat/played_from change</li>
+<li>Mimicry on Library Access? - should purge Mimicry</li>
+<li>Veylan Analyst should give amber for using an opponent's artifact - need to create an option in use artifact to use an opponent's artifact, or alternatively temporarily copy it into active board then delete it - this second option won't work because it will end up getting drawn, unless we create something a bool that prevents cards from being drawn.</li>
+<li>Scale the selected surf</li>
+<li>Small versions of cards with turn effects drawn in the center area, hoverable.</li>
+<li>End turn button off to the right of the neutral area.</li>
+<li>Scale cards in hand too.</li>
+<li>Handle if chooseHouse or chooseCards get called with no valid options.</li>
+<li>Update how using an opponent's artifact works, then update Nexus, Poltergeist, and Remote Access to also work with Omni abilities.</li>
 <li>Bug related to hover_rect.</li>
 <li>While resolving the effect of an action card, have it displaying in the top left corner, but also allow it to be minimized and maximized.</li>
 <li>Implement card.heal instead of subtracting damage.</li>
@@ -186,221 +208,7 @@
 <li><s>Hitboxes for tapped cards should exist.<s></li>
 </ol>
 
-<h2>Card notes: (Cards I've implemented, w/ notes on implementation)</h2>
+<h2>Card notes: (Cards I've tested, w/ notes)</h2>
 <ul>
-  <li>44: Rock-Hurling Giant</li>
-  <li>261: The Vaultkeeper</li>
-  <li>295: The Sting</li>
-  <li>298: Carlo Phantom</li>
-  <li>354: Giant Sloth</li>
-  <li>366: Teliga</li>
-  <li>367: Hunting Witch</li>
-</ul>
-
-<h3>Randoms (one-offs that will get their own special checks):</h3>
-<ul>
-  <li>192: Ether Spider - won't have a state, will just check for it everytime amber is gained (event emitter?)</li>
-</ul>
-
-
-<h3>Play:</h3>
-<h4>Brobnar:</h4>
-<ul>
-  <li>1: Anger - tested</li>
-  <li>2: Barehanded - needs retested after creating cards.pending() - passed retest</li>
-  <li>3: Blood Money</li>
-  <li>4: Brothers in Battle - made changes to Game.chooseHouse() for this</li>
-  <li>5: Burn the Stockpile</li>
-  <li>6: Champion's Challenge - possily janky stuff here</li>
-  <li>7: Cowards End</li>
-  <li>8: Follow the Leader - also uses Game.chooseHouse()</li>
-  <li>9: Lava Ball - uses Card.damageCalc()</li>
-  <li>10: <u>Loot the Bodies</u> - skipped for now</li>
-  <li>11: Take that, Smartypants - uses cards.stealAmber()</li>
-  <li>12: Punch - also uses Card.damageCalc()</li>
-  <li>13: Relentles Assault - pretty janky b/c I have to make sure they don't target the same minion more than once</li>
-  <li>14: Smith - easy</li>
-  <li>15: Sound the Horns</li>
-  <li>16: Tremor</li>
-  <li>17: Unguarded Camp</li>
-  <li>18: Warsong - doesn't account for multiple copies</li>
-  <li>30: Bumpsy - tested</li>
-  <li>31: Earthshaker - <u><b>passed</u></b></li>
-  <li>33: Ganger Chieftain</li>
-  <li>36: Hebe the Huge</li>
-  <li>40: Lomir Flamefist</li>
-  <li>46: Smaaash</li>
-  <li>49: Wardrummer - not sure won't return self to hand - <u><b>passed</u></b></li>
-  <li>52: Yo Mama Mastery - only handles the healing part</li>
-</ul>
-<h4>Dis:</h4>
-<ul>
-  <li>53: A Fair Game</li>
-  <li>54: Arise</li>
-  <li>55: Control the Weak - will need an EOT state reset</li>
-  <li>56: Creeping Oblivion</li>
-  <li>57: Dance of Doom</li>
-  <li>58: Fear - need to implemenet a reset function to reset cards to default state when leave board</li>
-  <li>59: Gateway to Dis - foreseen difficulties: Armageddon Cloak</li>
-  <li>60: Gongoozle</li>
-  <li>61: Guilty Hearts</li>
-  <li>62: Hand of Dis</li>
-  <li>63: Hecatomb</li>
-  <li>64: Tendrils of Pain - added a self.forgedLastTurn value to game</li>
-  <li>65: Hysteria</li>
-  <li>66: Key Hammer</li>
-  <li>67: Mind Barb</li>
-  <li>68: Pandemonium - created self.capture(game, num) function in Card</li>
-  <li>69: Poltergeist - modified chooseSide() to work for artifacts too</li>
-  <li>70: Red-Hot Armor</li>
-  <li>71: Three Fates - this one was surprisingly tough</li>
-  <li>81: Charette - one line</li>
-  <li>82: Drumble - two lines</li>
-  <li>88: Guardian Demon</li>
-  <li>94: Restringuntus: added to game.chooseHouse</li>
-  <li>96: Shooler</li>
-  <li>101: The Terror</li>
-</ul>
-<h4>Logos:</h4>
-<ul>
-  <li>107: Bouncing Death Quark</li>
-  <li>108: Dimension Door - still need to update the reaping function to deal check for this</li>
-  <li>109: Effervescent Principle</li>
-  <li>110: Foggify</li>
-  <li>111: Help from Future Self</li>
-  <li>112: Interdimensional Graft</li>
-  <li>113: Knowledge is Power</li>
-  <li>114: Labwork</li>
-  <li>115: Library Access</li>
-  <li>116: Neuro Syphon</li>
-  <li>117: Phase Shift</li>
-  <li>118: Positron Bolt</li>
-  <li>119: Random Access Archives</li>
-  <li>120: Remote Access - waiting on implementation of actions</li>
-  <li>121: Reverse Time</li>
-  <li>122: Scrambler Storm</li>
-  <li>123: Sloppy Labwork</li>
-  <li>124: Twin Bolt Emission</li>
-  <li>125: Wild Wormhole</li>
-  <li>138: Dextre</li>
-  <li>140: Dr. Escotera</li>
-  <li>141: Dysania</li>
-  <li>143: Harland Mindlock</li>
-  <li>146: Neutron Shark - kind of complicated</li>
-  <li>149: Psychic Bug</li>
-  <li>152: Skippy Timehog - created checkReapState and checkActionState</li>
-  <li>153: Timetraveller</li>
-  <li>157: Experimental Therapy</li>
-</ul>
-<h4>Mars:</h4>
-<ul>
-  <li>160: Ammonia Clouds</li>
-  <li>161: Battle Fleet</li>
-  <li>162: Deep Probe - create an OppHouses option in responses</li>
-  <li>163: EMP Blast</li>
-  <li>164: Hypnotic Command</li>
-  <li>165: Irradiated Aember</li>
-  <li>166: Key Abduction</li>
-  <li>167: Martian Hounds</li>
-  <li>168: Martians Make Bad Allies - found a couple bugs that I had already implemented several times in my code. Think I fixed them all</li>
-  <li>169: Mass </li>
-  <li>170: Mating Season</li>
-  <li>171: Mothership Support</li>
-  <li>172: Orbital Bombardment</li>
-  <li>173: Phosphorous Stars</li>
-  <li>174: Psychic Network</li>
-  <li>175: Sample Collection</li>
-  <li>176: Shatter Storm</li>
-  <li>177: Soft Landing - another thing for states</li>
-  <li>178: Squawker</li>
-  <li>179: Total Recall</li>
-  <li>203: Yxili Marauder</li>
-</ul>
-<h4>Sanctum:</h4>
-<ul>
-  <li>212: Begone</li>
-  <li>213: Blinding Light</li>
-  <li>214: Charge</li>
-  <li>215: Cleansing Wave</li>
-  <li>216: Clear Mind</li>
-  <li>217: Doorstep to Heaven</li>
-  <li>218: Glorious Few</li>
-  <li>219: Honorable Claim</li>
-  <li>220: Inspiration</li>
-  <li>221: Mighty Lance</li>
-  <li>222: Oath of Poverty</li>
-  <li>223: One Stood Against Many</li>
-  <li>224: Radiant Truth</li>
-  <li>225: Shield of Justice</li>
-  <li>226: Take Hostages</li>
-  <li>227: Terms of Redress</li>
-  <li>228: The Harder They Come</li>
-  <li>229: The Spirit's Way</li>
-  <li>231: Epic Quest</li>
-  <li>246: Horseman of Death</li>
-  <li>247: Horseman of Famine</li>
-  <li>248: Horseman of Pestilence</li>
-  <li>249: Horseman of War</li>
-  <li>251: Lady Maxena</li>
-  <li>253: Raiding Knight</li>
-  <li>258: Sergeant Zakiel</li>
-  <li>260: Gatekeeper</li>
-  <li>262: Veemos Lightbringer</li>
-</ul>
-<h4>Shadows:</h4>
-<ul>
-  <li>267: Bait and Switch (nerfed version)</li>
-  <li>268: Booby Trap</li>
-  <li>269: Finishing Blow</li>
-  <li>270: Ghostly Hand</li>
-  <li>271: Hidden Stash</li>
-  <li>272: Imperial Traitor</li>
-  <li>273: Key of Darkness</li>
-  <li>274: Lights Out</li>
-  <li>275: Miasma</li>
-  <li>276: Nerve Blast</li>
-  <li>277: One Last Job</li>
-  <li>278: Oubliette</li>
-  <li>279: Pawn Sacrifict</li>
-  <li>280: Poison Wave</li>
-  <li>281: Relentless Whispers</li>
-  <li>282: Routine Job</li>
-  <li>283: Too Much to Protect</li>
-  <li>284: Treasure Map</li>
-  <li>288: Masterplan</li>
-  <li>303: Magda the Rat</li>
-  <li>307: Old Bruno</li>
-  <li>313: Sneklifter</li>
-  <li>315: Urchin</li>
-</ul>
-<h4>Untamed</h4>
-<ul>
-  <li>319: Cooperative Hunting</li>
-  <li>320: Curiosity</li>
-  <li>321: Fertility Chant</li>
-  <li>322: Fogbank</li>
-  <li>323: Full Moon</li>
-  <li>324: Grasping Vines</li>
-  <li>325: Key Charge</li>
-  <li>326: Lifeweb</li>
-  <li>327: Lost in the Woods</li>
-  <li>328: Mimicry</li>
-  <li>329: Nature's Call</li>
-  <li>330: Nocturnal Maneuver</li>
-  <li>331: Perilous Wild</li>
-  <li>332: Regrowth</li>
-  <li>333: Save the Pack</li>
-  <li>334: Scout</li>
-  <li>335: Stampede</li>
-  <li>336: The Common Cold</li>
-  <li>337: Troop Call</li>
-  <li>338: Vigor</li>
-  <li>339: Word of Returning</li>
-  <li>349: Chota Hazri</li>
-  <li>352: Flaxia</li>
-  <li>353: Fuzzy Gruen</li>
-  <li>356: Inka the Spider</li>
-  <li>359: Lupo the Scarred</li>
-  <li>360: Mighty Tiger</li>
-  <li>365: Piranha Monkeys</li>
+  <li></li>
 </ul>

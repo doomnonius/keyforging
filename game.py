@@ -45,6 +45,9 @@ class Board():
     self.dragging = []
     self.response = []
     self.turnNum = 0
+    # settings
+    self.confirmHouse = True
+    self.confirmSelection = False
     # reset each turn cycle
     self.miniRectsEnemy = []
     self.miniRectsFriend = []
@@ -426,7 +429,7 @@ class Board():
           self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
           if Rect.collidepoint(self.endBackRect, (self.mousex, self.mousey)):
             if self.remaining:
-              answer = self.chooseHouse("custom", ("Are you sure you want to end your turn?", ["Yes", "No"]), highlight = lambda x: x.house in self.activeHouse and (x in self.activePlayer.hand or x.ready))[0]
+              answer = self.chooseHouse("custom", ("Are you sure you want to end your turn?", ["Yes", "No"]), highlight = lambda x: (x in self.activePlayer.hand and self.canPlay(x, reset = False)) or (x in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"] and (self.canAction(x, reset = False) or self.canFight(x, reset = False) or self.canOmni(x, reset = False) or self.canReap(x, reset = False))))[0]
               if answer == "No":
                 for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
                   c.selected = False
@@ -1222,10 +1225,13 @@ class Board():
 # Card functions #
 ##################
 
-  def actionCard(self, cardNum: int, loc: str, cheat: bool = False):
+  def actionCard(self, cardNum: int, loc: str, enemy: bool = False, cheat: bool = False):
     """ Trigger a card's action from within the turn.
     """
-    card = self.activePlayer.board[loc][cardNum]
+    if enemy:
+      card = self.inactivePlayer.board[loc][cardNum]
+    else:
+      card = self.activePlayer.board[loc][cardNum]
     if not self.canAction(card, r_click=True, cheat=cheat):
       logging.info(f"{card.title} can't use action/omni right now")
       return
@@ -1319,10 +1325,13 @@ class Board():
       self.usedThisTurn[card] += 1
     self.cardChanged(True)
 
-  def omniCard(self, chosen: int, location: str):
+  def omniCard(self, chosen: int, location: str, enemy: bool = False):
     """ This activates Omni abilities.
     """
-    card = self.activePlayer.board[location][chosen]
+    if enemy:
+      card = self.inactivePlayer.board[location][chosen]
+    else:
+      card = self.activePlayer.board[location][chosen]
     if not self.canOmni(card):
       logging.info(f"Can't use {card.title} right now.")
     if card.type == "Creature" and card.stun:
@@ -1343,23 +1352,22 @@ class Board():
     if card.type == "Artifact" and "veylan_analyst" in self.activePlayer.board["Creature"]:
       logging.info("Veylan Analyst gives you 1 amber for using an artifact.")
   
-  def playCard(self, chosen: int, cheat: str = "Hand", flank = "Right", ask = True):
+  def playCard(self, chosen: int, played_from: str = "Hand", cheat: bool = False, flank = "Right", ask = True):
     """ This is needed for cards that play other cards (eg wild wormhole). Will also simplify responses. Booly is a boolean that tells whether or not to check if the house matches.
     """
     logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
-    if cheat == "Deck":
+    if played_from == "Deck":
       source = self.activePlayer.deck
-    elif cheat == "Discard":
+    elif played_from == "Discard":
       source = self.activePlayer.discard
-    elif cheat == "Mimicry":
+    elif played_from == "Mimicry":
       source = self.inactivePlayer.discard
     else:
       source = self.activePlayer.hand
     card = source[chosen]
-    if not self.canPlay(card, message = False):
+    if not self.canPlay(card, cheat = cheat):
       return
-    # cardOptions() makes sure that you can't try to play a card you're not allowed to play
-    # canPlay() does the same for drag and drop and cheating out cards
+    # canPlay() makes sure that you can't try to play a card you're not allowed to play
     # Increases amber, adds the card to the action section of the board, then calls the card's play function
     if card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
@@ -1372,10 +1380,10 @@ class Board():
       self.activePlayer.board[card.type].insert(0, source.pop(chosen))
       logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
     # default case: right flank
-    elif card.type != "Upgrade" and cheat != "Mimicry":
+    elif card.type != "Upgrade" and played_from != "Mimicry":
       self.activePlayer.board[card.type].append(source.pop(chosen))
       logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
-    elif cheat == "Mimicry":
+    elif played_from == "Mimicry":
       self.activePlayer.board[card.type].append(source[chosen])
       logging.info(f"Mimicry branch.")
     else:
@@ -1398,21 +1406,32 @@ class Board():
     card.play(self, card)
     logging.info(f"{card.title} play ability resolved.")
     logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
-    # if the card is an action, now add it to the discard pile - remote access or poltergeist or nexuss on masterplan can potentially play cards that belong to the other player
-    if card.type == "Action" and cheat != "Mimicry":
+    # if the card is an action, now add it to the discard pile - remote access or poltergeist or nexus on masterplan can potentially play cards that belong to the other player
+    if card.type == "Action" and played_from != "Mimicry":
       if card.title == "library_access":
+        if card not in self.activePlayer.board["Action"]:
+          return
         if card.deck == self.activePlayer.name:
           self.activePlayer.purged.append(self.activePlayer.board["Action"].pop())
         else:
           self.inactivePlayer.purged.append(self.activePlayer.board["Action"].pop())
       else:
+        if card not in self.activePlayer.board["Action"]:
+          return
         if card.deck == self.activePlayer.name:
           self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
         else:
           self.inactivePlayer.discard.append(self.activePlayer.board["Action"].pop())
-    elif cheat == "Mimicry":
+    elif played_from == "Mimicry":
+      if card.title == "library_access":
+        purge_mimic = True
       self.activePlayer.board["Action"].pop()
       logging.info(f"Removing Mimicried card.")
+      if purge_mimic:
+        if card.deck == self.activePlayer.name:
+          self.activePlayer.purged.append(self.activePlayer.board["Action"].pop())
+        else:
+          self.inactivePlayer.purged.append(self.activePlayer.board["Action"].pop())
     self.cardChanged(True)
 
   def reapCard(self, cardNum: int, cheat:bool = False):
@@ -1766,19 +1785,39 @@ class Board():
     for k in self.activePlayer.states:
       x = 0
       if self.activePlayer.states[k]:
-        mini_image, mini_rect = self.activePlayer.stateImages[k][1]
+        if k in self.activePlayer.stateImages:
+          mini_image, mini_rect = self.activePlayer.stateImages[k][1]
+        else:
+          mini_image, mini_rect = self.inactivePlayer.stateImages[k][1]
         mini_rect.bottomleft = (self.neutral_rect.left + (x * (mini_image.get_width() + 5)), self.neutral_rect.bottom - 5)
         self.miniRectsFriend.append((mini_rect, self.activePlayer.stateImages[k][0]))
         self.cardBlits.append((mini_image, mini_rect))
+        if type(self.activePlayer.states[k]) == int and self.activePlayer.states[k] > 1:
+          multi = self.SMALLFONT.render(f"x{self.activePlayer.states[k]}", 1, COLORS["WHITE"])
+          multi_rect = multi.get_rect()
+          multi_rect.bottomright = mini_rect.bottomright
+          self.cardBlits.append((multi, multi_rect))
+        elif type(self.activePlayer.states[k]) == list:
+          pass # TODO: see README
       x += 1
     self.miniRectsEnemy = []
     for k in self.inactivePlayer.states:
       x = 0
       if self.inactivePlayer.states[k]:
-        mini_image, mini_rect = self.inactivePlayer.stateImages[k][1]
+        if k in self.inactivePlayer.stateImages:
+          mini_image, mini_rect = self.inactivePlayer.stateImages[k][1]
+        else:
+          mini_image, mini_rect = self.activePlayer.stateImages[k][1]
         mini_rect.topleft = (self.neutral_rect.left + (x * (mini_image.get_width() + 5)), self.neutral_rect.top + 5)
         self.miniRectsFriend.append((mini_rect, self.inactivePlayer.stateImages[k][0]))
         self.cardBlits.append((mini_image, mini_rect))
+        if type(self.inactivePlayer.states[k]) == int and self.inactivePlayer.states[k] > 1:
+          multi = self.SMALLFONT.render(f"x{self.inactivePlayer.states[k]}", 1, COLORS["WHITE"])
+          multi_rect = multi.get_rect()
+          multi_rect.bottomright = mini_rect.bottomright
+          self.cardBlits.append((multi, multi_rect))
+        elif type(self.activePlayer.states[k]) == list:
+          pass # TODO: see README
       x += 1
     # discards
     if self.activePlayer.discard:
@@ -1956,18 +1995,13 @@ class Board():
       board += self.inactivePlayer.board["Creature"] + self.inactivePlayer.board["Artifact"]
 
     for c in board:
-      if condition(c): # or "experimental_therapy" in [x.title for x in c.upgrade]:
+      if condition(c):
         c.selected = True
-        # if c.ready:
-        #   retVal.append((selectedSurf, c.rect))
-        # else:
-        #   retVal.append((selectedSurfTapped, c.tapped_rect))
     if both:
       return retVal
     for c in self.activePlayer.hand:
       if condition(c):
         c.selected = True
-        # retVal.append((selectedSurf, c.rect))
     
     return retVal
 
@@ -2974,6 +3008,9 @@ class Board():
         houses = self.inactivePlayer.states["control_the_weak"]
       else:
         houses = [self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]]
+        for c in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
+          if c.house not in houses:
+            houses.append(c.house) # because you can choose the house of a stolen card
       if "pitlord" in [x.title for x in self.activePlayer.board["Creature"]]:
         if "control_the_weak" in self.inactivePlayer.states and self.inactivePlayer.states["control_the_weak"] and "Dis" not in houses: # other things can affect this too, but not from this set
           houses.append("Dis")
@@ -2981,7 +3018,7 @@ class Board():
           houses = ["Dis"]
       if "restringuntus" in [x.title for x in self.inactivePlayer.board["Creature"]]:
         house = self.inactivePlayer.states["restringuntus"] # won't be more than one
-        if house in houses:
+        if house in houses and len(houses) > 1:
           houses.remove(house)
     elif varAsStr == "extraFight": #for brothers in battle, and probably others
       message = "Choose another house to be able to fight:"
@@ -3021,7 +3058,10 @@ class Board():
     confirmBackRect.center = (WIDTH // 2, (HEIGHT // 2) - (self.target_cardh // 4))
     # house buttons
     for house in houses:
-      houseMessageSurf = self.BASICFONT.render(f"  {house}  ", 1, COLORS["BLACK"])
+      if house in ["Brobnar", "Dis", "Logos", "Mars", "Sanctum", "Shadows", "Untamed"]:
+        houseMessageSurf = self.activePlayer.load_image(house.lower(), w = HEIGHT // 15, h = HEIGHT // 15)[0]
+      else:
+        houseMessageSurf = self.BASICFONT.render(f"  {house}  ", 1, COLORS["BLACK"])
       houseMessageRect = houseMessageSurf.get_rect()
       houseMessageRect.top = messageRect[1] + messageRect[3] + self.margin
       houseBackSurf = Surface((houseMessageSurf.get_width(), houseMessageSurf.get_height()))
@@ -3031,7 +3071,7 @@ class Board():
         houseBackSurf.fill(COLORS["YELLOW"])
       houseBackRect = houseBackSurf.get_rect()
       houseBackRect.top = messageRect[1] + messageRect[3] + self.margin
-      houses_rects.append(( houseBackSurf, houseBackRect, houseMessageSurf, houseMessageRect))
+      houses_rects.append((houseBackSurf, houseBackRect, houseMessageSurf, houseMessageRect))
     length = sum(house[1][2] for house in houses_rects) + (self.margin * (len(houses_rects) - 1))
     left = (WIDTH // 2) - (length // 2)
     for house_rect in houses_rects:
@@ -3042,16 +3082,29 @@ class Board():
     selected = 0
     while True:
       if highlight:
-        self.extraDraws = self.previewHouse(highlight)
+        self.extraDraws = []
+        self.previewHouse(highlight)
         self.cardChanged()
       else:
         self.extraDraws = []
       if selected:
+        if varAsStr == "activeHouse" and not self.confirmHouse:
+          for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
+            c.selected = False
+          self.extraDraws = []
+          self.cardChanged()
+          return [houses[clicked]]
+        if varAsStr != "activeHouse" and not self.confirmSelection:
+          for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
+            c.selected = False
+          self.extraDraws = []
+          self.cardChanged()
+          return [houses[clicked]]
         self.extraDraws += [(confirmBack, confirmBackRect), (confirmSurf, confirmRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
         if varAsStr == "activeHouse":
           for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
             c.selected = False
-          self.extraDraws += self.previewHouse(lambda x: x.house == self.activePlayer.houses[selected - 1] or (x.type == "Creature" and "experimental_therapy" in [y.title for y in x.upgrade]))
+          self.previewHouse(lambda x: (x in self.activePlayer.hand and self.canPlay(x, reset = False)) or (x in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"] and (self.canAction(x, reset = False) or self.canFight(x, reset = False) or self.canOmni(x, reset = False) or self.canReap(x, reset = False))))
           self.cardChanged()
       else:
         self.extraDraws += [(messageBackSurf, messageBackRect), (messageSurf, messageRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]

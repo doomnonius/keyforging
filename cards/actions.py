@@ -123,7 +123,10 @@ def lash_of_broken_dreams (game, card):
   """ Lash of Broken Dreams: Keys cost +3 amber during your opponent's next turn.
   """
   logging.info(f"Using {card.title}'s action.")
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except: # in case  you're using an opponent's artifact
+    game.activePlayer.states[card.title] = 1
   game.resetStatesNext.append(("i", card.title))
 
 def library_of_the_damned (game, card):
@@ -315,10 +318,14 @@ def spectral_tunneler (game, card):
   logging.info(f"Using {card.title}'s action.")
 
   for c in game.chooseCards("Creature", "Purge a creature in play:"):
-    if not game.activePlayer.states[card.title]:
+    try:
+      if not game.activePlayer.states[card.title]:
+        game.activePlayer.states[card.title] = [c]
+      else:
+        game.activePlayer.states[card.title].append(c)
+    except: # using enemy artifact means and need to add it to state dict
       game.activePlayer.states[card.title] = [c]
-    else:
-      game.activePlayer.states[card.title].append(c)
+    game.resetStates(("a", card.title))
     c.reap.append(st)
     game.resetCard.append((c, "st"))
 
@@ -361,10 +368,13 @@ def transposition_sandals (game, card):
     other_i = active.index(c)
     active[sg_i], active[other_i] = active[other_i], active[sg_i]
 
-    if not game.activePlayer.states[card.title]:
+    try:
+      if not game.activePlayer.states[card.title]:
+        game.activePlayer.states[card.title] = [c]
+      else:
+        game.activePlayer.states[card.title].append(c)
+    except: # may be needed when using enemy artifact
       game.activePlayer.states[card.title] = [c]
-    else:
-      game.activePlayer.states[card.title].append(c)
     game.resetStates(("a", card.title))
 
 ########
@@ -379,7 +389,10 @@ def omni_combat_pheromones (game, card):
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending()
-  game.activePlayer.states[card.title] += 2
+  try:
+    game.activePlayer.states[card.title] += 2
+  except: # may be needed if using an enemy artifact
+    game.activePlayer.states[card.title] = 2
   game.resetStates(("a", card.title))
 
 def commpod (game, card):
@@ -400,7 +413,10 @@ def crystal_hive (game, card):
   """ Crystal Hive: For the remainder of the turn, gain 1 amber each time a creature reaps.
   """
   logging.info(f"Using {card.title}'s action.")
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except: # may be needed it using enemy artifact
+    game.activePlayer.states[card.title] = 1
   game.resetStates(("a", card.title))
 
 def omni_custom_virus (game, card):
@@ -734,10 +750,13 @@ def omni_deipno_spymaster (game, card):
   logging.info(f"Using {card.title}'s action.")
   for c in game.chooseCards("Creature", "Choose a friendly creature to be able to use this turn:", "friend"):
     logging.info(f"{c.title} was added to Deipno Spymaster's state.")
-    if not game.activePlayer.states[card.title]:
+    try:
+      if not game.activePlayer.states[card.title]:
+        game.activePlayer.states[card.title] = [c]
+      else:
+        game.activePlayer.states[card.title].append(c)
+    except: # may be needed if using enemy creature - I don't think this is possible, but doing anyway
       game.activePlayer.states[card.title] = [c]
-    else:
-      game.activePlayer.states[card.title].append(c)
 
 def mack_the_knife (game, card):
   """ Mack the Knife: Deal 1 damage to a creature. If this damage destroys that creature, gain 1 amber.

@@ -129,7 +129,7 @@ def basicLeaves(game, card):
     logging.info(f"Exiting basic leaves for {card.title}")
         
 
-# I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow
+# my understanding of timing is that all things in basicDest happen after any destroyed abilities
 
 def basicDest(game, card):
     """ Called for when a card is destroyed, triggers "after a card is destroyed" effects.
@@ -347,7 +347,6 @@ def bad_penny (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
   card.safe = True
-  basicDest(game, card)
   if card in active + inactive:
     if card.deck == game.activePlayer.name:
       game.activePlayer.hand.append(card)

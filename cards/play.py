@@ -1,5 +1,4 @@
-import pyautogui, pygame, random, logging
-from functools import reduce
+import pygame, random, logging
 from helpers import stealAmber, willEnterReady, destroy, return_card
 # I think it makes more sense to add these to the cardsAsClass file, which means that the only function here is addToBoard
 
@@ -269,7 +268,10 @@ def loot_the_bodies (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except: # may be needed because of mimicry
+    game.activePlayer.states[card.title] = 1
   game.resetStates.append(("a", card.title))
   # the rest will be in basicDest
 
@@ -385,7 +387,10 @@ def warsong (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except: # may be needed because of mimicry
+    game.activePlayer.states[card.title] = 1
   game.resetStates.append(("a", card.title))
 
 def banner_of_battle (game, card):
@@ -870,19 +875,40 @@ def poltergeist (game, card):
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
   active = game.activePlayer.board["Artifact"]
+  inactive = game.inactivePlayer.board["Artifact"]
   pending = game.pendingReloc
 
   for c in game.chooseCards("Artifact", "Choose an artifact to use as if it were yours, then destroy it:"):
-    if c in active:
-      if c.ready and c.action:
-        game.actionCard(c, "Artifact", cheat=True)
-      destroy(c, game)
+    if not c.ready:
+      logging.info("Card isn't ready, so can't be used.")
+      return
+
+    uses =  []
+    if game.canAction(c, r_click = True, cheat = True):
+      uses.append("Action")
+    if game.canOmni(c, r_click = True, cheat = True):
+      uses.append("Omni")
+    
+    if not uses:
+      logging.info("No valid uses for this card.")
+      return
+    
+    use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
+    if use[0] == "A":
+      if c in active:
+        game.actionCard(active.index(c), cheat = True)
+      else:
+        game.actionCard(inactive.index(c), enemy = True, cheat = True)
+    elif use[0] == "O":
+      if c in active:
+        game.omniCard(active.index(c))
+      else:
+        game.omniCard(inactive.index(c), enemy = True)
+    
+    destroy(c, game)
+    if c.destroyed:
       pending.append(c)
-    else:
-      if c.ready and c.action:
-        c.action(game, c)
-      destroy(c, game)
-      pending.append(c)
+  
   game.pending()
 
 def red_hot_armor (game, card):
@@ -1077,7 +1103,7 @@ def dimension_door (game, card):
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
   # just set a state, effect doesn't stack from multiple copies
-  game.activePlayer.states[card.title] += 1
+  game.activePlayer.states[card.title] = 1
   game.resetStates.append("a", card.title)
 
 def effervescent_principle (game, card):
@@ -1107,8 +1133,7 @@ def foggify (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  # states should always be in deck that they affect
-  game.activePlayer.states[card.title] += 1
+  game.activePlayer.states[card.title] = 1
   game.resetStatesNext.append(("i", card.title))
 
 def help_from_future_self (game, card):
@@ -1139,8 +1164,7 @@ def interdimensional_graft (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  # update state
-  game.activePlayer.states[card.title] += 1
+  game.activePlayer.states[card.title] = 1
   game.resetStatesNext.append(("i", card.title))
 
 def knowledge_is_power (game, card):
@@ -1175,7 +1199,10 @@ def library_access (game, card):
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
   # purging is handled in the playCard function
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except: # may be needed because of mimicry
+    game.activePlayer.states[card.title] = 1
 
 def neuro_syphon (game, card):
   """ Neuro Syphon: If your opponent has more amber than you, steal 1 amber and draw a card.
@@ -1195,7 +1222,10 @@ def phase_shift (game, card):
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
   # this is a tough one. effect can stack, so we'll use a list
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except:
+    game.activePlayer.states[card.title] = 1
   game.resetStates.append("a", card.title)
 
 def positron_bolt (game, card):
@@ -1326,9 +1356,26 @@ def remote_access(game, card):
   logging.info(f"{card.title}'s play ability is triggered.")
   inactive = game.inactivePlayer.board["Artifact"]
   for c in game.chooseCards("Artifact", "Choose an opponent's artifact to use:", "enemy"):
-    if c.ready and c.action:
-      c.action(game, inactive.index(c))
-      c.ready = False
+
+    if not c.ready:
+      logging.info("Card isn't ready, so can't be used.")
+      return
+
+    uses =  []
+    if game.canAction(c, r_click = True, cheat = True):
+      uses.append("Action")
+    if game.canOmni(c, r_click = True, cheat = True):
+      uses.append("Omni")
+    
+    if not uses:
+      logging.info("No valid uses for this card.")
+      return
+    
+    use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
+    if use[0] == "A":
+      game.actionCard(inactive.index(c), enemy = True, cheat = True)
+    elif use[0] == "O":
+      game.omniCard(inactive.index(c), enemy = True)
 
 def reverse_time (game, card):
   """ Reverse Time: Swap your deck and your discard pile. Then, shuffle your deck.
@@ -1343,7 +1390,10 @@ def scrambler_storm (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except:
+    game.activePlayer.states[card.title] = 1
   game.resetStatesNext.append(("i", card.title))
 
 def sloppy_labwork (game, card):
@@ -1485,7 +1535,10 @@ def skippy_timehog (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except:
+    game.activePlayer.states[card.title] = 1
   game.resetStatesNext.append(("i", card.title))
 
 def timetraveller (game, card):
@@ -1934,7 +1987,10 @@ def charge (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except:
+    game.activePlayer.states[card.title] = 1
   game.resetStates.append(("a", card.title))
 
 def cleansing_wave (game, card):
@@ -2117,7 +2173,10 @@ def shield_of_justice (game, card):
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
   # create a state that is checked in damageCalc
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except:
+    game.activePlayer.states[card.title] = 1
   game.resetStates.append(("a", card.title))
 
 def take_hostages (game, card):
@@ -2126,7 +2185,10 @@ def take_hostages (game, card):
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
   # create a state that is check in basicFight
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except:
+    game.activePlayer.states[card.title] = 1
   game.resetStates.append(("a", card.title))
 
 def terms_of_redress (game, card):
@@ -2770,7 +2832,10 @@ def full_moon (game, card):
   """
   passFunc(game, card)
   logging.info(f"{card.title}'s play ability is triggered.")
-  game.activePlayer.states[card.title] += 1
+  try:
+    game.activePlayer.states[card.title] += 1
+  except:
+    game.activePlayer.states[card.title] = 1
   game.resetStates.append(("a", card.title))
   # should be able to account for multiple instances of full moon
   
@@ -2858,7 +2923,7 @@ def mimicry (game, card):
     return
   game.drawEnemyDiscard = True
   for c in game.chooseCards("Discard", "Choose an enemy action", "enemy", condition = lambda x: x.type == "Action", con_message = "That's not an action card."):
-    c.playCard(game, inactive.index(c), "Mimicry")
+    game.playCard(inactive.index(c), "Mimicry", cheat = True)
   game.cardChanged()
   
 

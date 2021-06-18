@@ -275,7 +275,7 @@ class Card(pygame.sprite.Sprite):
             logging.info(f"No damage is dealt to {self.title} because of Shield of Justice.")
             return
         if "protectrix" in game.activePlayer.states and self in game.activePlayer.states["protectrix"]:
-            logging.info(f"No damage is dealt to {self.title}; because or Protectrix it cannot take damage this turn.")
+            logging.info(f"No damage is dealt to {self.title}; because of Protectrix it cannot take damage this turn.")
             return
         if not armor:
             self.damage += num
@@ -540,7 +540,7 @@ class Card(pygame.sprite.Sprite):
         self.orig_image, self.orig_rect = image, image.get_rect()
         self.image, self.rect = self.scale_image(self.width, self.height)
         self.tapped, self.tapped_rect = self.tap(self.image)
-        self.purge_image, self.purge_rect = self.tap(self.scale_image((self.width // 7) * 5, self.width))
+        self.purge_image, self.purge_rect = self.tap(self.scale_image((self.width // 7) * 5, self.width)[0])
 
 
     def scale_image(self, width, height):

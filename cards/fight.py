@@ -58,15 +58,12 @@ def basicBeforeFight(game, card, attacked):
   if "warsong" in game.activePlayer.states:
     game.activePlayer.gainAmber(game.activePlayer.states["warsong"], game)
   logging.info("After warsong.")
-  if "take_hostages" in game.activePlayer.states:
-    if game.activePlayer.states["take_hostages"] > 0:
-      card.capture(game.activePlayer.states["take_hostages"], game)
+  if "take_hostages" in game.activePlayer.states and game.activePlayer.states["take_hostages"] > 0:
+    card.capture(game.activePlayer.states["take_hostages"], game)
   logging.info("After take hostages.")
   if "halacor" in [x.title for x in game.activePlayer.board["Creature"]] and card.isFlank():
     card.temp_skirmish = True
   logging.info("End of basic before fight.")
-  if "stampede" in game.activePlayer.states:
-    game.activePlayer.states["stampede"] += 1
 
 
 ###########
