@@ -264,7 +264,7 @@ class Card(pygame.sprite.Sprite):
                 return
             self.captured += inactive
             game.inactivePlayer.amber = 0
-        logging.info(f"{self.title} captured {self.title - initial} amber.")
+        logging.info(f"{self.title} captured {self.captured - initial} amber.")
         if self.title == "yxili_marauder":
             self.power += self.captured - initial
 

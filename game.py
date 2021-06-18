@@ -1305,14 +1305,12 @@ class Board():
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       self.cardChanged()
       if "rock_hurling_giant" in [x.title for x in active] and card.house == "Brobnar":
-        target = self.chooseCards("Creature", "Deal 4 damage to:")
-        if target:
-          target = target[0]
-        target.damageCalc(self, 4)
-        target.updateHealth()
-        if target.destroyed:
-          pending.append(target)
-        self.pending()
+        for t in self.chooseCards("Creature", "Deal 4 damage to:"):
+          t.damageCalc(self, 4)
+          t.updateHealth()
+          if t.destroyed:
+            pending.append(t)
+          self.pending()
       self.discardedThisTurn.append(card)
     self.cardChanged(True)
 
@@ -1391,6 +1389,8 @@ class Board():
       source = self.activePlayer.deck
     elif cheat == "Discard":
       source = self.activePlayer.discard
+    elif cheat == "Mimicry":
+      source = self.inactivePlayer.discard
     else:
       source = self.activePlayer.hand
     card = source[chosen]
@@ -1410,13 +1410,18 @@ class Board():
       self.activePlayer.board[card.type].insert(0, source.pop(chosen))
       logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
     # default case: right flank
-    elif card.type != "Upgrade":
+    elif card.type != "Upgrade" and cheat != "Mimicry":
       self.activePlayer.board[card.type].append(source.pop(chosen))
       logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
+    elif cheat == "Mimicry":
+      self.activePlayer.board[card.type].append(source[chosen])
+      logging.info(f"Mimicry branch.")
     else:
       targeted = self.chooseCards("Creature", "Choose a creature to attach the upgrade to:")
       if targeted:
         targeted = targeted[0]
+      else:
+        return
       self.playUpgrade(card, targeted)
       self.cardChanged()
       return
@@ -1432,7 +1437,7 @@ class Board():
     logging.info(f"{card.title} play ability resolved.")
     logging.info(f"numPlays: {sum(v for k,v in self.playedThisTurn.items())}")
     # if the card is an action, now add it to the discard pile - remote access or poltergeist or nexuss on masterplan can potentially play cards that belong to the other player
-    if card.type == "Action":
+    if card.type == "Action" and cheat != "Mimicry":
       if card.title == "library_access":
         if card.deck == self.activePlayer.name:
           self.activePlayer.purged.append(self.activePlayer.board["Action"].pop())
@@ -1443,6 +1448,9 @@ class Board():
           self.activePlayer.discard.append(self.activePlayer.board["Action"].pop())
         else:
           self.inactivePlayer.discard.append(self.activePlayer.board["Action"].pop())
+    elif cheat == "Mimicry":
+      self.activePlayer.board["Action"].pop()
+      logging.info(f"Removing Mimicried card.")
     self.cardChanged(True)
 
   def reapCard(self, cardNum: int, cheat:bool = False):
@@ -1634,6 +1642,10 @@ class Board():
       if rescale:  # scale everything down or up
         ratio = CARDH / card_h
         card_w = int(CARDW // ratio)
+      elif l:
+        card_h = board[0].rect.height
+        card_w = board[0].rect.width
+        rescale = True
       if True in [x.selected for x in board]:
         selectedSurf = Surface(board[0].image.get_size())
         selectedSurf.convert_alpha()
@@ -1725,8 +1737,10 @@ class Board():
       if rescale: # scale everything up or down
         ratio = CARDH / card_h
         card_w = int(CARDW // ratio)
-      else:
-        card_w = board[0].image.get_width()
+      elif l:
+        card_h = board[0].rect.height
+        card_w = board[0].rect.width
+        rescale = True
       if True in [x.selected for x in board]:
         selectedSurf = Surface(board[0].image.get_size())
         selectedSurf.convert_alpha()
@@ -1763,8 +1777,9 @@ class Board():
           self.cardBlits.append((invalidSurf, card_rect))
     # actions
     if self.activePlayer.board["Action"]:
+      c = self.activePlayer.board["Action"][-1]
+      self.ref_orig_image, self.ref_orig_rect = c.orig_image, c.orig_rect
       if not self.ref_image:
-        c = self.activePlayer.board["Action"][-1]
         target_height = self.actionBackSurf.get_height() - (self.margin * 2)
         target_width = (target_height // 7) * 5
         self.ref_image, self.ref_image_rect = c.scale_image(target_width, target_height)
@@ -2413,18 +2428,18 @@ class Board():
             return
           elif True in activeHit:
             self.activePlayer.board["Upgrade"].append(self.dragging.pop())
-            side = "fr"
             choice = activeHit.index(True)
-            active[choice].upgrade.append(card)
-            eval(f"upgrade.{card.title}(self, card, side, choice)")
+            target = active[choice]
+            target.upgrade.append(card)
+            eval(f"upgrade.{card.title}(self, card, target)")
             broken = True
             break
           elif True in inactiveHit:
             self.activePlayer.board["Upgrade"].append(self.dragging.pop())
-            side = "fo"
             choice = inactiveHit.index(True)
-            inactive[choice].upgrade.append(card)
-            eval(f"upgrade.{card.title}(self, card, side, choice)")
+            target = active[choice]
+            target.upgrade.append(card)
+            eval(f"upgrade.{card.title}(self, card, target)")
             broken = True
             break
           elif self.canDiscard(card, reset=False) and Rect.collidepoint(discRect, (self.mousex, self.mousey)):
@@ -2472,7 +2487,10 @@ class Board():
     if not target and card.amber > 0:
       self.activePlayer.gainAmber(card.amber, self)
       logging.info(f"{card.title} gave you {str(card.amber)} amber. You now have {str(self.activePlayer.amber)} amber.\n\nChange to a log when you fix the amber display issue.""")
-    self.playedThisTurn.append(card)
+    if card not in self.playedThisTurn:
+      self.playedThisTurn[card] = 1
+    else:
+      self.playedThisTurn[card] += 1
     self.cardChanged(True)
     return
 
@@ -2986,7 +3004,7 @@ class Board():
       else:
         houses = [self.activePlayer.houses[0],self.activePlayer.houses[1],self.activePlayer.houses[2]]
       if "pitlord" in [x.title for x in self.activePlayer.board["Creature"]]:
-        if "control_the_weak" in self.inactivePlayer.states and self.inactivePlayer.states["control_the_weak"] and "Dis" not in houses: # other things can affect this too though...
+        if "control_the_weak" in self.inactivePlayer.states and self.inactivePlayer.states["control_the_weak"] and "Dis" not in houses: # other things can affect this too, but not from this set
           houses.append("Dis")
         else:
           houses = ["Dis"]
@@ -3069,6 +3087,7 @@ class Board():
         if varAsStr == "activeHouse":
           for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
             c.selected = False
+            self.cardChanged()
       for e in pygame.event.get():
         if e.type == QUIT:
           pygame.quit()
@@ -3090,6 +3109,8 @@ class Board():
                 else:
                   x[0].fill(COLORS["YELLOW"])
                 selected = 0
+                for c in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"] + self.activePlayer.hand:
+                  c.selected = False
             else:
               for x in houses_rects:
                 if colors:

@@ -126,6 +126,7 @@ def basicLeaves(game, card):
       else:
         flank = len(inactive)
       inactive[t].insert(flank, card)
+    logging.info(f"Exiting basic leaves for {card.title}")
         
 
 # I don't want to use a basic dest because things can have more than one destroyed effect. Going to incoporate the aspects of basic dest in pending somehow
@@ -170,6 +171,7 @@ def basicDest(game, card):
 
     # I think this should be last, because it removes from board and we still need to know what side a card is on above
     basicLeaves(game, card)
+    logging.info(f"Entering basic dest for {card.title}")
 
 ###########
 # Brobnar #
@@ -208,7 +210,6 @@ def phoenix_heart (game, card):
   
   return_card(card)
   if card.returned:
-    basicLeaves(card)
     if card.deck == game.activePlayer.name:
       game.activePlayer.hand.append(card)
     else:
@@ -268,7 +269,6 @@ def dextre (game, card):
   """
   logging.info("Dextre's destroyed effect is triggered.")
   card.safe = True
-  basicDest(game, card)
   if card.deck == game.activePlayer.name:
     game.activePlayer.deck.append(card)
     logging.info(f"Dextre should now be on top of it's owner's deck. Is it? {card in game.activePlayer.deck}")
@@ -296,18 +296,14 @@ def research_smoko (game, card):
 def biomatrix_backup (game, card):
   """ Biomatrix Backup: Put this creature into its owner's archive.
   """
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
   logging.info("The destroyed ability from Biomatrix Backup is triggered.")
   card.safe = True
-  basicDest(game, card)
-  if card in active + inactive:
-    if card.deck == game.activePlayer.name:
-      game.activePlayer.archive.append(card)
-      logging.info(f"{card.title} should now be in it's owner's archives. Is it? {card in game.activePlayer.archive}")
-    else:
-      game.inactivePlayer.archive.append(card)
-      logging.info(f"{card.title} should now be in it's owner's archives. Is it? {card in game.inactivePlayer.archive}")
+  if card.deck == game.activePlayer.name:
+    game.activePlayer.archive.append(card)
+    logging.info(f"{card.title} should now be in it's owner's archives. Is it? {card in game.activePlayer.archive}")
+  else:
+    game.inactivePlayer.archive.append(card)
+    logging.info(f"{card.title} should now be in it's owner's archives. Is it? {card in game.inactivePlayer.archive}")
 
   game.pending()
   

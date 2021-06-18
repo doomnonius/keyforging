@@ -108,14 +108,9 @@ def kelifi_dragon (game, card, attacked):
   """ Kelifi Dragon: Gain 1 amber. Deal 5 damage to a creature.
   """
   logging.info(f"{card.title}'s fight or before fight ability triggered.")
-  active = game.activePlayer.board["Creature"]
-  inactive = game.inactivePlayer.board["Creature"]
   pending = game.pendingReloc
 
   game.activePlayer.gainAmber(1, game)
-  if not active and not inactive:
-    logging.info("No valid targets.")
-    return
 
   for c in game.chooseCards("Creature", "Deal 5 damage to a creature:"):
     c.damageCalc(game, 5)
@@ -140,7 +135,7 @@ def eater_of_the_dead (game, card, attacked):
   if sum(x.type == "Creature" for x in inactive):
     game.drawEnemyDiscard = True
 
-  for c in game.chooseCards("Discard", "Purge a creature from a discard pile:"):
+  for c in game.chooseCards("Discard", "Purge a creature from a discard pile:", condition = lambda x: x.type == "Creature", con_message = "That's not a creature."):
     if c in active:
       game.activePlayer.purge.append(c)
       active.remove(c)

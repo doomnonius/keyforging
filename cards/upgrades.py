@@ -5,6 +5,9 @@ from cards.reap import red_planet_ray_gun as rprg, duskrunner as dr, silent_dagg
 from cards.fight import rocket_boots as rb
 from cards.actions import transposition_sandals as ts
 
+###########
+# Brobnar #
+###########
 
 def blood_of_titans (game, card, target):
   """ Blood of Titans: This creature has +5 power.
@@ -27,7 +30,11 @@ def yo_mama_mastery (game, card, target):
   logging.info(f"{card.title} has been played.")
   target.damage = 0
   target.taunt = True
-    
+
+#######
+# Dis #
+#######
+
 def collar_of_subordination(game, card, target):
   """ Collar of Subordiation: You control this creature
   """
@@ -54,6 +61,10 @@ def flame_wreathed (game, card, target):
   target.power += 2
   target.hazard += 2
 
+#########
+# Logos #
+#########
+
 def experimental_therapy (game, card, target):
   """ Experimental Therapy: Stun and exhaust this creature.
   """
@@ -77,8 +88,12 @@ def transposition_sandals (game, card, target):
   logging.info(f"{card.title} has been played.")
   target.action.append(ts)
 
+########
+# Mars #
+########
+
 def biomatrix_backup (game, card, target):
-  """ Biomatrix Backup: This creature gains, “Destroyed: You may put this creature into its owner's archives.”
+  """ Biomatrix Backup: This creature gains, “Destroyed: Put this creature into its owner's archives.”
   """
   passFunc(game, card)
   logging.info(f"{card.title} has been played.")
@@ -101,6 +116,10 @@ def red_planet_ray_gun (game, card, target):
   logging.info(f"{card.title} has been played.")
   target.reap.append(rprg)
   
+###########
+# Sanctum #
+###########
+
 def armageddon_cloak (game, card, target):
   """ Armageddon Cloak: This creature gains hazardous 2 and, “Destroyed: Fully heal this creature and destroy Armageddon Cloak instead.”
   """
@@ -131,6 +150,10 @@ def shoulder_armor (game, card, target):
     target.extraArm += 2
   # this one will be implemented in the cardChanged function
 
+###########
+# Shadows #
+###########
+
 def duskrunner (game, card, target):
   """ Duskrunner: This creature gains, “Reap: Steal 1A.”
   """
@@ -152,6 +175,10 @@ def silent_dagger (game, card, target):
   passFunc(game, card)
   logging.info(f"{card.title} has been played.")
   target.reap.append(sd)
+
+###########
+# Untamed #
+###########
 
 def way_of_the_bear (game, card, target):
   """ Way of the Bear: This creature gains assault 2.
