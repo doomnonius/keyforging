@@ -28,7 +28,7 @@ def basicFight(game, card, attacked):
       elif card.title == "grommid":
         game.inactivePlayer.amber -= min(1, game.inactivePlayer.amber)
       elif card.title == "francus":
-        card.capture(game, 1)
+        card.capture(1, game)
   if card.destroyed and not attacked.destroyed:
     if attacked.title == "krump": # one offs for Krump and etc
       game.activePlayer.amber -= min(1, game.activePlayer.amber)
@@ -46,7 +46,7 @@ def basicFight(game, card, attacked):
     elif attacked.title == "grommid":
       game.activePlayer.amber -= min(1, game.activePlayer.amber)
     elif attacked.title == "francus":
-      attacked.capture(game, 1)
+      attacked.capture(1, game)
     
     
 
@@ -60,7 +60,7 @@ def basicBeforeFight(game, card, attacked):
   logging.info("After warsong.")
   if "take_hostages" in game.activePlayer.states:
     if game.activePlayer.states["take_hostages"] > 0:
-      card.capture(game, game.activePlayer.states["take_hostages"])
+      card.capture(game.activePlayer.states["take_hostages"], game)
   logging.info("After take hostages.")
   if "halacor" in [x.title for x in game.activePlayer.board["Creature"]] and card.isFlank():
     card.temp_skirmish = True
@@ -84,10 +84,10 @@ def before_firespitter (game, card, attacked):
   pending = game.pendingReloc
 
   for c in active:
-    c.damageCalc(game, 1)
+    c.damageCalc(1, game)
     c.updateHealth(game.activePlayer)
   for c in inactive:
-    c.damageCalce(game, 1)
+    c.damageCalce(1, game)
     c.updateHealth(game.inactivePlayer)
   for c in active[::-1]:
     if c.destroyed:
@@ -113,7 +113,7 @@ def kelifi_dragon (game, card, attacked):
   game.activePlayer.gainAmber(1, game)
 
   for c in game.chooseCards("Creature", "Deal 5 damage to a creature:"):
-    c.damageCalc(game, 5)
+    c.damageCalc(5, game)
     c.updateHealth()
     if c.destroyed:
       pending.append(c)
@@ -151,7 +151,7 @@ def before_gabos_longarms (game, card, attacked):
   logging.info(f"{card.title}'s fight or before fight ability triggered.")
   basicBeforeFight(game, card, attacked)
   for c in game.chooseCards("Creature", f"Deal Gabos' {card.power} damage to:", condition = lambda x: x != attacked, con_message = "Gabos can't deal his damage to the creature he is attacking."):
-    c.damageCalc(game, card.power)
+    c.damageCalc(card.power, game)
     c.updateHealth()
     if c.destroyed:
       game.pendingReloc.append(c)
@@ -170,7 +170,7 @@ def guardian_demon (game, card, attacked):
       heal = 0
   if heal:
     for c2 in game.chooseCards("Creature", f"Choose a creature to deal {heal} damage to:", condition = lambda x: x != c, con_message = "You can't damage the creature you healed. Choose a different target."):
-      c2.damageCalc(game, heal)
+      c2.damageCalc(heal, game)
       c2.updateHealth()
       if c2.destroyed:
         pendingDisc.append(c2)
@@ -237,7 +237,7 @@ def ozmo_martianologist (game, card, attacker):
   for c in game.chooseCards("Creature", "Choose a Mars creature to heal or stun:", condition = lambda x: x.house == "Mars" or "experimental_therapy" in [y.title for y in x.upgrade], con_message = "That creature is not from house Mars."):
     action = game.chooseHouse("custom", (f"Would you like to stun {c.title.replace('_', ' ').title()} or heal three damage?", ["Stun", "Heal"]), colors = ["YELLOW", "RED"])[0]
     if action == "Heal":
-      c.damage -= min(3, c.damage)
+      c.heal(3)
     else:
       c.stun = True
 
@@ -259,7 +259,7 @@ def chuff_ape (game, card, attacked):
   logging.info(f"{card.title}'s fight or before fight ability triggered.")
 
   for c in game.chooseCards("Creature", "You may sacrifice another creature to fully heal Chuff Ape:", full = False):
-    destroy(c, game.activePlayer, game)
+    destroy(c, game)
     if c.destroyed:
       sac = True
       game.pendingReloc.append(c)
@@ -275,7 +275,7 @@ def grabber_jammer (game, card, attacked):
   """ Grabber Jammer: Capture 1 amber.
   """
   logging.info(f"{card.title}'s fight or before fight ability triggered.")
-  card.capture(game, 1)
+  card.capture(1, game)
 
 def john_smyth (game, card, attacked):
   """ John Smyth: Ready a non-agent Mars creature.
@@ -294,11 +294,13 @@ def qyxxlyx_plague_master (game, card, attacked):
   pending = game.pendingReloc
 
   for c in active:
-    c.damageCalc(game, 3, armor = False)
-    c.updateHealth()
+    if "Human" in c.traits:
+      c.damageCalc(3, game, armor = False)
+      c.updateHealth()
   for c in inactive:
-    c.damageCalc(game, 3, armor = False)
-    c.updateHealth()
+    if "Human" in c.traits:
+      c.damageCalc(3, game, armor = False)
+      c.updateHealth()
   for c in active:
     if c.destroyed:
       pending.append(c)
@@ -313,10 +315,6 @@ def ulyq_megamouth (game, card, attacked):
   """
   logging.info(f"{card.title}'s fight or before fight ability triggered.")
   active = game.activePlayer.board["Creature"]
-
-  if not sum(x.house != "Mars" and "experimental_therapy" not in [y.title for y in x.upgrade] for x in active):
-    logging.info("No valid targets.")
-    return
 
   for c in game.chooseCards("Creature", "Use a friendly non-Mars creature:", "friend", condition = lambda x: x.house != "Mars" and "experimental_therapy" not in [y.title for y in x.upgrade], con_message = "You must pick a creature that doesn't belong to house Mars."):
   
@@ -335,7 +333,8 @@ def ulyq_megamouth (game, card, attacked):
       uses.append("Omni")
     
     if not uses:
-      return ("No valid uses for this card.")
+      logging.info("No valid uses for this card.")
+      return
     
     use = game.chooseHouse("custom", ("How would you like to use this creature?", uses))[0]
     if use[0] == "R":
@@ -395,7 +394,7 @@ def champion_tabris (game, card, attacked):
   """ Champion Tabris: Capture 1 amber.
   """
   logging.info(f"{card.title}'s fight or before fight ability triggered.")
-  card.capture(game, 1)
+  card.capture(1, game)
 
 def horseman_of_famine (game, card, attacked):
   """ Horseman of Famine: Destroy the least powerful creature.
@@ -406,11 +405,8 @@ def horseman_of_famine (game, card, attacked):
   low = min(x.power for x in (active + inactive))
   pendingD = game.pendingReloc
 
-  if not active and not inactive:
-    return
-
   for c in game.chooseCards("Creature", "Destroy a creature with the lowest power:", condition = lambda x: x.power == low, con_message = "That creature does not have the lowest power."):
-    destroy(c, game.activePlayer, game)
+    destroy(c, game)
     if c.destroyed:
       pendingD.append(c)
     game.pending()
@@ -425,14 +421,14 @@ def horseman_of_pestilence (game, card, attacked):
 
   for c in active:
     if "Horseman" not in c.traits:
-      c.damageCalc(game, 1)
+      c.damageCalc(1, game)
   for c in active[::-1]:
     c.updateHealth(game.activePlayer)
     if c.destroyed:
       pending.append(c)
   for c in inactive:
     if "Horseman" not in c.traits:
-      c.damageCalc(game, 1)
+      c.damageCalc(1, game)
   for c in inactive[::-1]:
     c.updateHealth(game.inactivePlayer)
     if c.destroyed:
@@ -446,7 +442,7 @@ def before_lord_golgotha (game, card, attacked):
   logging.info(f"{card.title}'s fight or before fight ability triggered.")
   basicBeforeFight (game, card, attacked)
   for n in attacked.neighbors(game):
-    n.damageCalc(game, 3)
+    n.damageCalc(3, game)
     n.updateHealth()
   for n in attacked.neighbors(game):
     if n.destroyed:

@@ -817,12 +817,6 @@ class Board():
       self.WIN.blit(self.endText, self.endRect)
     # draw discards/archive/purges
     if self.drawFriendDiscard or self.drawFriendArchive or self.drawFriendPurge:
-      # if self.drawFriendDiscard:
-      #   pool = self.activePlayer.discard
-      # elif self.drawFriendArchive:
-      #   pool = self.activePlayer.archive
-      # else:
-      #   pool = self.activePlayer.purged
       # discard back
       discardBackSurf = Surface((self.WIN.get_width(), self.WIN.get_height() * 5 // 12))
       discardBackSurf.convert_alpha()
@@ -844,29 +838,8 @@ class Board():
       self.WIN.blit(discardBackSurf, discardBackRect)
       self.WIN.blit(closeBackSurf, self.closeFriendDiscard)
       self.WIN.blit(closeSurf, closeRect)
-      # draw cards
-      # x = 0
-      # for card in pool[0:16]:
-      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + self.margin)
-      #   x += 1
-      #   self.WIN.blit(card.image, card.rect)
-      # x = 0
-      # for card in pool[16:32]:
-      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
-      #   x += 1
-      #   self.WIN.blit(card.image, card.rect)
-      # for card in pool[32:]:
-      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 3 * self.margin + 2 * self.target_cardh)
-      #   x += 1
-      #   self.WIN.blit(card.image, card.rect)
     
     if self.drawEnemyDiscard or self.drawEnemyArchive or self.drawEnemyPurge:
-      # if self.drawEnemyDiscard:
-      #   pool = self.inactivePlayer.discard
-      # elif self.drawEnemyArchive:
-      #   pool = self.inactivePlayer.archive
-      # else:
-      #   pool = self.inactivePlayer.purged
       # discard back
       discardBackSurf = Surface((self.WIN.get_width(), self.WIN.get_height() * 5 // 12))
       discardBackSurf.convert_alpha()
@@ -888,17 +861,6 @@ class Board():
       self.WIN.blit(discardBackSurf, discardBackRect)
       self.WIN.blit(closeBackSurf, self.closeEnemyDiscard)
       self.WIN.blit(closeSurf, closeRect)
-      # draw cards
-      # x = 0
-      # for card in pool[0:16]:
-      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + self.margin)
-      #   x += 1
-      #   self.WIN.blit(card.image, card.rect)
-      # x = 0
-      # for card in pool[16:32]:
-      #   card.rect.topleft = (discardBackRect.left + (x * self.target_cardw) + self.margin * (x + 1), discardBackRect.top + 2 * self.margin + self.target_cardh)
-      #   x += 1
-      #   self.WIN.blit(card.image, card.rect)
     
     if self.cardBlits:
       self.WIN.blits(self.cardBlits)
@@ -1306,7 +1268,7 @@ class Board():
       self.cardChanged()
       if "rock_hurling_giant" in [x.title for x in active] and card.house == "Brobnar":
         for t in self.chooseCards("Creature", "Deal 4 damage to:"):
-          t.damageCalc(self, 4)
+          t.damageCalc(4, self)
           t.updateHealth()
           if t.destroyed:
             pending.append(t)
@@ -1563,14 +1525,14 @@ class Board():
         length = len(other.board["Creature"])
         for x in range(1, length+1):
           card = other.board["Creature"][length-x]
-          card.damageCalc(self, 2)
+          card.damageCalc(2, self)
           card.updateHealth(self.inactivePlayer)
           if card.destroyed:
             self.pendingReloc.append(card) # this trigger shouldn't end up nested, though it could create a nest
         self.pending()
       if "strange_gizmo" in forger.board["Artifact"]:
         for c in forger.board["Artifact"] + other.board["Artifact"] + forger.board["Creature"] + other.board["Creature"]:
-          destroy(c, self.activePlayer, self)
+          destroy(c, self)
           if c.destroyed:
             self.pendingReloc.append(c)
         self.pending()
@@ -1590,13 +1552,13 @@ class Board():
       if not inactive and "tireless_crocag" in [x.title for x in active]:
         for c in active[::-1]:
           if c.title == "tireless_crocag":
-            destroy(c, self.activePlayer, self)
+            destroy(c, self)
             if c.destroyed:
               self.pendingReloc.append(c)
       if not active and "tireless_crocag" in [x.title for x in inactive]:
         for c in inactive[::-1]:
           if c.title == "tireless_crocag":
-            destroy(c, self.inactivePlayer, self)
+            destroy(c, self)
             if c.destroyed:
               self.pendingReloc.append(c)
       # check for things that are affected by being on a flank, shoulder armor and staunch knight
@@ -1845,6 +1807,15 @@ class Board():
     if self.inactivePlayer.deck:
       card_image, card_rect = self.inactivePlayer.deck[-1].image, self.inactivePlayer.deck[-1].rect
       card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
+      self.cardBlits.append((card_image, card_rect))
+    # purge
+    if self.activePlayer.deck:
+      card_image, card_rect = self.activePlayer.purged[-1].image, self.activePlayer.purged[-1].rect
+      card_rect.topleft = (self.purge1_rect.left, self.purge1_rect.top)
+      self.cardBlits.append((card_image, card_rect))
+    if self.inactivePlayer.deck:
+      card_image, card_rect = self.inactivePlayer.purged[-1].image, self.inactivePlayer.purged[-1].rect
+      card_rect.topleft = (self.purge2_rect.left, self.purge2_rect.top)
       self.cardBlits.append((card_image, card_rect))
     # friendly discards/archive/purges when opened
     if self.drawFriendDiscard or self.drawFriendArchive or self.drawFriendPurge:
@@ -2169,7 +2140,7 @@ class Board():
     return True
   
   def canDiscard(self, card, reset = True, cheat = True, message: bool = False):
-    if self.turnNum == 1 and (len(self.playedThisTurn) > 0 or len(self.discardedThisTurn) > 0):
+    if self.turnNum == 1 and (sum(v for k,v in self.playedThisTurn.items()) > 0 or len(self.discardedThisTurn) > 0):
       if message: logging.info("Can't discard, action for first turn already taken.")
       return False
     if card.house not in self.activeHouse or not cheat:
@@ -2242,13 +2213,13 @@ class Board():
     return True
 
   def canPlay(self, card, reset: bool = True, message: bool = False, cheat: bool = False):
-    if len(self.playedThisTurn) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]] and not ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] and card.house != "Logos"):
+    if sum(v for k,v in self.playedThisTurn.items()) >= 1 and self.turnNum == 1 and "wild_wormhole" not in [x.title for x in self.activePlayer.board["Action"]] and not ("phase_shift" in self.activePlayer.states and self.activePlayer.states["phase_shift"] and card.house != "Logos"):
       if message: logging.info("You cannot play more than one card on your first turn.")
       return False
     if self.ruleOfSix(card):
       if message: logging.info(f"Rule of six prevents playing {card.title}.")
       return False
-    if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and len(self.playedThisTurn) >= 2: #
+    if "ember_imp" in [x.title for x in self.inactivePlayer.board["Creature"]] and sum(v for k,v in self.playedThisTurn.items()) >= 2: #
       if message: logging.info(f"'Ember Imp' prevents playing {card.title}")
       return False
     if "treasure_map" in self.activePlayer.states and self.activePlayer.states["treasure_map"]:
@@ -2256,7 +2227,7 @@ class Board():
       return False
     if "witch_of_the_wilds" in [x.title for x in self.activePlayer.board["Creature"]] \
     and "Untamed" not in self.activeHouse \
-    and sum(x.house == "Untamed" for x in self.playedThisTurn) < 2:
+    and sum(v for k,v in self.playedThisTurn.items() if k.house == "Untamed") < 2:
       return True # the problem is this probably does stack with phase shift
     if "wild_wormhole" in [x.title for x in self.activePlayer.board["Action"]]:
       if card.type == "Action":
@@ -3169,7 +3140,7 @@ class Board():
 
   def chooseCards(self, targetPool: str, message: str = "Choose a target:", canHit: str = "both", count: int = 1, full: bool = True, condition = lambda x: x == x, con_message: str = "This target does not meet the conditions.") -> List[int]:
     """ This can't deal with something that could target artifacts and creatures simultaneously. Also, the onus is on the caller to handle the results as creatures or artifacts or hand or discard, as appropriate.\n
-        Valid targetPool options: Creature, Artifact, [in progress: Board (ie Creature or Artifact)], Hand, Discard, [future set: Archive]\n
+        Valid targetPool options: Creature, Artifact, Board (ie Creature or Artifact), Hand, Discard, Faygin (Board or Discard), [future set: Archive]\n
         Valid message: any string
         Valid canHit: either, both, enemy, friend\n
         Count is max number of choices\n
@@ -3212,29 +3183,6 @@ class Board():
     cancelBackRect = cancelBack.get_rect()
     cancelBackRect.top = messageRect[1] + messageRect[3] + self.margin
     cancelBackRect.left = (WIDTH // 2)  + (self.margin // 2)
-    
-    # selectedSurf = Surface((self.target_cardw, self.target_cardh))
-    # selectedSurf.convert_alpha()
-    # selectedSurf.set_alpha(80)
-    # selectedSurf.fill(COLORS["LIGHT_GREEN"])
-
-    # selectedSurfTapped = Surface((self.target_cardh, self.target_cardw))
-    # selectedSurfTapped.convert_alpha()
-    # selectedSurfTapped.set_alpha(80)
-    # selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
-
-    # invalidSurf = Surface((self.target_cardw, self.target_cardh))
-    # invalidSurf.convert_alpha()
-    # invalidSurf.set_alpha(80)
-    # invalidSurf.fill(COLORS["RED"])
-
-    # invalidSurfTapped = Surface((self.target_cardh, self.target_cardw))
-    # invalidSurfTapped.convert_alpha()
-    # invalidSurfTapped.set_alpha(80)
-    # invalidSurf.fill(COLORS["RED"])
-    
-
-    # invalid = []
 
     if canHit == "friend":
       target = self.activePlayer
@@ -3279,6 +3227,15 @@ class Board():
       otherPool = "Artifact"
       for card in target.hand + target.discard + target.archive + other.hand + other.discard + other.archive:
         card.invalid = True
+    elif targetPool == "Faygin":
+      for c in target.board["Creature"] + other.board["Creature"]:
+        if not condition(c):
+          c.invalid = True
+      for c in target.discard:
+        if not condition(c):
+          c.invalid = True
+      for c in target.Board["Artifact"] + other.board["Artifact"] + target.hand + target.archive + other.hand + other.discard + other.archive:
+        c.invalid = True
     else: # targetPool == "Artifact" or "Creature"
       if targetPool == "Artifact":
         otherPool = "Creature"
@@ -3296,22 +3253,13 @@ class Board():
             card.invalid = True
         for card in unallowable:
           card.invalid = True
-            # if card.ready:
-            #   card.invalid = True # invalid.append((invalidSurf, card.rect))
-            # else:
-            #   card.invalid = True # invalid.append((invalidSurfTapped, card.tapped_rect))
       if canHit == "friend" or canHit == "enemy":
         for card in target.board[targetPool]:
           if not condition(card):
             card.invalid = True
-            # if card.ready:
-            #   card.invalid = True # invalid.append((invalidSurf, card.rect))
-            # else:
-            #   card.invalid = True # invalid.append((invalidSurfTapped, card.tapped_rect))  
         for card in target.board[otherPool] + other.board[targetPool] + other.board[otherPool]:
           card.invalid = True
         
-    # selected = []
     retVal = []
     every = target.board["Creature"] + target.board["Artifact"] + other.board["Creature"] + other.board["Artifact"] + target.discard + other.discard + target.hand + other.hand + target.archive + other.archive
     if sum(c.invalid for c in every) == len(every):

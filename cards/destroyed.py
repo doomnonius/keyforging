@@ -218,13 +218,13 @@ def phoenix_heart (game, card):
   
   for c in active:
     if not c.destroyed:
-      c.damageCalc(game, 3)
+      c.damageCalc(3, game)
       c.updateHealth()
       if c.destroyed:
         pending.append(c)
   for c in inactive:
     if not c.destroyed:
-      c.damageCalc(game, 3)
+      c.damageCalc(3, game)
       c.updateHealth()
       if c.destroyed:
         pending.append(c)

@@ -4,9 +4,8 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
- <li>Bug related to hover_rect.</li>
+ <li>Update how using an opponent's artifact works, then update Nexus, Poltergeist, and Remote Access to also work with Omni abilities.</li>
  <li>Capture is wrong in a number of instances (order of variables).</li>
- <li>Phase shift allows extra plays on turn 1 - partially implemented (needs to be a non Logos card played).</li>
  <li>If a state thing targets something specific, that should also be shown in the hover.</li>
  <li>Veylan Analyst should give amber for using an opponent's artifact - need to create an option in use artifact to use an opponent's artifact, or alternatively temporarily copy it into active board then delete it - this second option won't work because it will end up getting drawn, unless we create something a bool that prevents cards from being drawn.</li>
  <li>If collar of subordination leaves play, the creature should return to its owner.</li>
@@ -42,7 +41,6 @@
  <li>End turn button off to the right of the neutral area.</li>
  <li>Scale cards in hand too.</li>
  <li>Handle if chooseHouse or chooseCards get called with no valid options.</li>
- <li>While resolving the effect of an action card, have it displaying in the top left corner, but also allow it to be minimized and maximized.</li>
  <li></li>
  <li></li>
  <li></li>
@@ -51,7 +49,8 @@
  <li></li>
  <li></li>
  <li></li>
-<li><s>Get rid of remaining print statements/turn into log statements.</s></li>
+ <li><s>Remove helpers.destroy()'s middle argument</s></li>
+ <li><s>Get rid of remaining print statements/turn into log statements.</s></li>
  <li><s>need to implement upgrades (and then figure out how to work them into pending): initial thought: upgrades have their own list and creatures are linked to them</s></li>
  <li><s>If a card is trying to find it's own index, can it tell itself apart from another card with the same name?</s> - Yes</li>
  <li><s>Implement the check step, and make it obvious opponent is in check (have an idea that involves using self.highlight)</s></li>
@@ -128,6 +127,10 @@
 
 <h2>Testing / Rules: </h2>
 <ol>
+<li>Bug related to hover_rect.</li>
+<li>While resolving the effect of an action card, have it displaying in the top left corner, but also allow it to be minimized and maximized.</li>
+<li>Implement card.heal instead of subtracting damage.</li>
+<li>Phase shift allows extra plays on turn 1 - partially implemented (needs to be a non Logos card played).</li>
 <li>implement the rule of six: change playedThisTurn, etc into dictionaries?</li>
 <li>Along the lines of the optimized game.draw, I feel like I now have more flexibility to deal with situations where cards would go outside the bounds of their area, ie with upgrades and more than 15 card in hand or more than 12(?) creatures or artifacts</li>
 <li>Is captured amber returned, while amber on artifacts lost? - this will be in game.pending</li>

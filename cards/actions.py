@@ -12,7 +12,7 @@ def cannon (game, card):
   logging.info(f"Using {card.title}'s action.")
 
   for c in game.chooseCards("Creature", "Deal 2 damage to a creature:"):
-    c.damageCalc(game, 2)
+    c.damageCalc(2, game)
     c.updateHealth(game.inactivePlayer)
     if c.destroyed:
       game.pendingReloc.append(c)
@@ -35,12 +35,12 @@ def omni_mighty_javelin (game, card):
   """
   logging.info(f"Using {card.title}'s action.")
   
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
 
   for c in game.chooseCards("Creature", "Deal 4 damage to a creature:"):
-    c.damageCalc(game, 4)
+    c.damageCalc(4, game)
     c.updateHealth(game.inactivePlayer)
     if c.destroyed:
       game.pendingReloc.append(c)
@@ -50,7 +50,7 @@ def omni_screechbomb (game, card):
   """Screechbomb: Sacrifice Screechbomb. Your opponent loses 2 amber.
   """
   logging.info(f"Using {card.title}'s action.")
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.inactivePlayer.amber -= min(2, game.inactivePlayer.amber)
@@ -108,12 +108,12 @@ def omni_key_to_dis (game, card):
   active = game.activePlayer.board["Creature"]
   inactive = game.inactivePlayer.board["Creature"]
 
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
 
   for c in active + inactive:
-    destroy(c, game.activePlayer, game)
+    destroy(c, game)
     if c.destroyed:
       game.pendingReloc.append(c)
   
@@ -202,7 +202,7 @@ def anomaly_exploiter (game, card):
   logging.info(f"Using {card.title}'s action.")
 
   for c in game.chooseCards("Creature", "Destroy a damaged creature:", condition = lambda x: x.damage > 0, con_message = "That creature is not damaged."):
-    destroy(c, game.activePlayer, game)
+    destroy(c, game)
     if c.destroyed:
       game.pendingReloc.append(c)
     game.pending()
@@ -248,13 +248,13 @@ def crazy_killing_machine (game, card):
 
   if iDiscard:
     for c in game.chooseCards("Board", f"Choose a(n) {iDiscard.house} card to destroy:", condition = lambda x: x.house == iDiscard.house, con_message = "That's not of the right house."):
-      destroy(c, game.inactivePlayer, game)
+      destroy(c, game)
       if c.destroyed:
         game.pendingReloc.append(c)
         count += 1
   if aDiscard:
     for c in game.chooseCards("Board", f"Choose a(n) {aDiscard.house} card to destroy:", condition = lambda x: x.house == aDiscard.house and not x.destroyed, con_message = "That's not of the right house."):
-      destroy(c, game.inactivePlayer, game)
+      destroy(c, game)
       if c.destroyed:
         game.pendingReloc.append(c)
         count += 1
@@ -262,7 +262,7 @@ def crazy_killing_machine (game, card):
 
   if count < 2:
     if card in active["Artifact"]:
-      destroy(card, game.activePlayer, game)
+      destroy(card, game)
       if card.destroyed:
         game.pendingReloc.append(card)
       game.pending()
@@ -375,7 +375,7 @@ def omni_combat_pheromones (game, card):
   """ Sacrifice Combat Pheromones. You may use up to 2 other Mars cards this turn.
   """
   logging.info(f"Using {card.title}'s action.")
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending()
@@ -407,7 +407,7 @@ def omni_custom_virus (game, card):
   """ Custom Virus: Sacrifice Custom Virus. Purge a creature from your hand. Destroy each creature that shares a trait with the purged creature.
   """
   logging.info(f"Using {card.title}'s action.")
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending()
@@ -424,7 +424,7 @@ def omni_custom_virus (game, card):
     for c in active + inactive:
       for tr in traits:
         if tr in c.traits:
-          destroy(c, game.activePlayer, game)
+          destroy(c, game)
           if c.destroyed:
             game.pendingReloc.append(c)
           break # if it matches two traits, we don't destroy it twice (ie ward)
@@ -480,7 +480,7 @@ def mothergun (game, card):
     return
 
   for c in game.chooseCards("Creature", f"Deal {damage} damage to a creature:"):
-    c.damageCalc(game, damage)
+    c.damageCalc(damage, game)
     c.updateHealth()
     if c.destroyed:
       game.pendingReloc.append(c)
@@ -524,7 +524,7 @@ def mindwarper (game, card):
   """
   logging.info(f"Using {card.title}'s action.")
   for c in game.chooseCards("Creature", "Choose an enemy creature to capture 1 amber from its own side:", "enemy"):
-    c.capture(game, 1, True)
+    c.capture(1, game, True)
 
 def phylyx_the_disintegrator (game, card):
   """ Phylyx the Disintegrator: Your opponent loses 1 amber for each other friendly Mars creature.
@@ -545,7 +545,7 @@ def omni_epic_quest (game, card):
   logging.info(f"Using {card.title}'s action.")
   if sum(x.house == "Sanctum" for x in game.playedThisTurn) >= 7:
     if game.canForge():
-      destroy(card, game.activePlayer, game)
+      destroy(card, game)
       if card.destroyed:
         game.pendingReloc.append(card)
       game.pending()
@@ -556,7 +556,7 @@ def omni_gorm_of_omm (game, card):
   """
   logging.info(f"Using {card.title}'s action.")
 
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending() # pending calls cardChanged
@@ -577,13 +577,13 @@ def hallowed_blaster (game, card):
   
   for c in game.chooseCards("Creature", "Heal 3 damage from a creature:"):
     logging.info(f"Healing {min(c.damage, 3)} from {c.title}")
-    c.damage -= min(c.damage, 3)
+    c.heal(3)
 
 def omni_potion_of_invulnerability (game, card):
   """ Potion of Invulnerability: Destroy Potion of Invulnerability. For the remainder of the turn, each friendly creature cannot be dealt damage.
   """
   logging.info(f"Using {card.title}'s action.")
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending()
@@ -595,7 +595,7 @@ def omni_sigil_of_brotherhood (game, card):
   """ Sigil of Brotherhood: Sacrifice Sigil of Brotherhood. For the remainder of the turn, you may use friendly Sanctum creatures.
   """
   logging.info(f"Using {card.title}'s action.")
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending()
@@ -631,14 +631,14 @@ def omni_longfused_mines (game, card):
   """ Longfused Mines: Sacrifice Longfused Mines. Deal 3 damage to each enemy creature not on a flank.
   """
   logging.info(f"Using {card.title}'s action.")
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending()
   inactive = game.inactivePlayer.board["Creature"]
   for c in inactive:
     if not c.isFlank(game):
-      c.damageCalc(game, 3)
+      c.damageCalc(3, game)
       c.updateHealth()
     if c.destroyed():
       game.pendingReloc.append(c)
@@ -655,7 +655,7 @@ def omni_masterplan (game, card):
     card.upgrade.remove(c)
     game.activePlayer.hand.append(c)
     game.playCard(-1)
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending()
@@ -675,7 +675,7 @@ def seeker_needle (game, card):
   logging.info(f"Using {card.title}'s action.")
 
   for c in game.chooseCards("Creature", "Deal 1 damage to a creature:"):
-    c.damageCalc(game, 1)
+    c.damageCalc(1, game)
     c.updateHealth()
     if c.destroyed:
       logging.info(f"{card.title} destroyed {c.title}, gaining 1 amber.")
@@ -690,14 +690,14 @@ def skeleton_key (game, card):
   logging.info(f"Using {card.title}'s action.")
   for c in game.chooseCards("Creature", "Choose a friendly creature to capture 1 amber:", "friend"):
     logging.info(f"{c.title} targeted with {card.title}")
-    c.capture(game, 1)
+    c.capture(1, game)
 
 def omni_special_delivery (game, card):
   """ Special Delivery: Sacrifice Special Delivery. Deal 3 damage to a flank creature. If this damage destroys that creature, purge it.
   """
   logging.info(f"Using {card.title}'s action.")
   pending = game.pendingReloc
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     pending.append(card)
   game.pending()
@@ -723,7 +723,7 @@ def the_sting (game, card):
   """ The Sting: Destroy The Sting.
   """
   logging.info(f"Using {card.title}'s action.")
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending()
@@ -745,7 +745,7 @@ def mack_the_knife (game, card):
   logging.info(f"Using {card.title}'s action.")
 
   for c in game.chooseCards("Creature", "Deal 1 damage to a creature:"):
-    c.damageCalc(game, 1)
+    c.damageCalc(1, game)
     c.updateHealth()
     if c.destroyed:
       logging.info(f"{card.title} destroyed {c.title}, gaining 1 amber.")
@@ -791,7 +791,7 @@ def omni_nepenthe_seed (game, card):
   """ Sacrifice Nepenthe Seed. Return a card from your discard pile to your hand.
   """
   logging.info(f"Using {card.title}'s action.")
-  destroy(card, game.activePlayer, game)
+  destroy(card, game)
   if card.destroyed:
     game.pendingReloc.append(card)
   game.pending() # I'm ruling the player can return Nepenthe Seed to their hand

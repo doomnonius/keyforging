@@ -234,7 +234,7 @@ class Card(pygame.sprite.Sprite):
                 s += ", Stunned"
         return s
 
-    def capture(self, game, num, own = False):
+    def capture(self, num, game, own = False):
         """ Num is number of amber to capture. Own is for if the amber is captured from its own side (pretty much a mars exclusive ability)
         """
         active = game.activePlayer.amber
@@ -268,14 +268,14 @@ class Card(pygame.sprite.Sprite):
         if self.title == "yxili_marauder":
             self.power += self.captured - initial
 
-    def damageCalc(self, game, num, poison = False, armor = True):
+    def damageCalc(self, num, game, poison = False, armor = True):
         """ Calculates damage, considering armor only.
         """
         if "shield_of_justice" in game.activePlayer.states and game.activePlayer.states["shield_of_justice"] and self in game.activePlayer.board["Creature"]:
             logging.info(f"No damage is dealt to {self.title} because of Shield of Justice.")
             return
-        if not self.damagable:
-            logging.info(f"No damage is dealt to {self.title} because it cannot take damage this turn.")
+        if "protectrix" in game.activePlayer.states and self in game.activePlayer.states["protectrix"]:
+            logging.info(f"No damage is dealt to {self.title}; because or Protectrix it cannot take damage this turn.")
             return
         if not armor:
             self.damage += num
@@ -304,7 +304,7 @@ class Card(pygame.sprite.Sprite):
                 else:
                     choice = game.chooseCards("Creature", "Choose which Shadow Self will take the damage:", "enemy", condition = lambda x: x in self.neighbors(game))
                 for c in choice:
-                    c.damageCalc(game, damage)
+                    c.damageCalc(damage, game)
                     logging.info(f"{choice.title} took {self.title}'s {num} damage, and now has {choice.damage} damage.")
         else:
             self.armor -= num
@@ -318,12 +318,12 @@ class Card(pygame.sprite.Sprite):
         # add hazardous and assault in here too
         logging.info(f"Hazard: {other.hazard}")
         if other.hazard:
-            self.damageCalc(game, other.hazard)
+            self.damageCalc(other.hazard, game)
             logging.info("Damage from hazard calced")
             self.updateHealth(game.activePlayer)
         logging.info(f"Assault: {self.assault}")
         if self.assault:
-            other.damageCalc(game, self.assault)
+            other.damageCalc(self.assault, game)
             logging.info("Damage from assault calced")
             other.updateHealth(game.inactivePlayer)
         if self.destroyed:
@@ -372,7 +372,7 @@ class Card(pygame.sprite.Sprite):
             logging.info("The defender has elusive, so no damage is dealt to the attacker.")
         else:
             logging.info("Damage is dealt as normal to attacker.")
-            self.damageCalc(game, other.power, poison = other.poison)
+            self.damageCalc(other.power, game, poison = other.poison)
         if other.elusive and self.title != "niffle_ape":
             logging.info("The defender has elusive, so no damage is dealt to the defender.")
             other.elusive = False
@@ -383,7 +383,7 @@ class Card(pygame.sprite.Sprite):
             if self.title == "valdr" and other.isFlank(game):
                 damage += 2
             logging.info(f"{damage} damage is dealt as normal to defender.")
-            other.damageCalc(game, damage, self.poison)
+            other.damageCalc(damage, game, poison = self.poison)
         logging.info("After fight effects trigger here.")
         logging.info(f"Damage on attacker: {self.damage}")
         logging.info(f"Damage on defender: {other.damage}")
@@ -540,6 +540,8 @@ class Card(pygame.sprite.Sprite):
         self.orig_image, self.orig_rect = image, image.get_rect()
         self.image, self.rect = self.scale_image(self.width, self.height)
         self.tapped, self.tapped_rect = self.tap(self.image)
+        self.purge_image, self.purge_rect = self.tap(self.scale_image((self.width // 7) * 5, self.width))
+
 
     def scale_image(self, width, height):
         scaled = pygame.transform.scale(self.orig_image, (width, height))

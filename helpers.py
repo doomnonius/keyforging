@@ -16,18 +16,15 @@ def return_card(card, game):
   logging.info(f"{card.title} leaving play.")
   card.returned = True
 
-def destroy(card, player, game):
+def destroy(card, game):
   """ Destroys a card owned by player. Make sure you call pending afterwards
   """
   if card.type == "Creature":
     card.destroyed = True
     logging.info(f"{card.title} destroyed")
-    # if "armageddon_cloak" not in [x.title for x in card.upgrade]:
-    #   player.board["Creature"].remove(card)
   elif card.type == "Artifact":
     card.destroyed = True
     logging.info(f"{card.title} destroyed")
-    # player.board["Artifact"].remove(card)
 
 def stealAmber(thief, victim, num, game):
   """ Function for stealing amber.

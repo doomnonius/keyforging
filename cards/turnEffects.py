@@ -7,10 +7,10 @@ import logging
 def eot_rogue_ogre (game, card):
   """ Rogue Ogre: If you only played one card this turn, Rogue Ogre heals 2 damage and captures 1 amber.
   """
-  if len(game.playedThisTurn) == 1:
+  if sum(v for k,v in game.playedThisTurn.items()) == 1:
     logging.info(f"{card.title}'s eot effect has triggered.")
-    card.damage -= min(2, card.damage)
-    card.capture(game, 1)
+    card.heal(2)
+    card.capture(1, game)
 
 #######
 # Dis #

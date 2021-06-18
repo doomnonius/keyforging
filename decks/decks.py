@@ -113,23 +113,23 @@ class Deck:
             count = sum(x.title == "ether_spider" and not x.destroyed and not x.returned for x in inactive)
             if count > 1:
                 choice = game.chooseCards("Creature", "Choose which Ether Spider will capture the amber:", "enemy", condition = lambda x: x.title == "ether_spider", con_message = "That's not an ether spider")[0] # choose which one captures
-                choice.capture(game, count)
+                choice.capture(count, game)
                 logging.info(f"Ether Spider captured the {count} amber that was gained.")
             elif count == 1:
                 for c in inactive:
                     if c.title == "ether_spider" and not c.destroyed and not c.returned:
-                        c.capture(game, count)
+                        c.capture(count, game)
                         logging.info(f"Ether Spider captured the {count} amber that was gained.")
         if self == game.inactivePlayer:
             count = sum(x.title == "ether_spider" and not x.destroyed and not x.returned for x in active)
             if count > 1:
                 choice = game.chooseCards("Creature", "Choose which Ether Spider will capture the amber:", "friend", condition = lambda x: x.title == "ether_spider", con_message = "That's not an ether spider")[0] # choose which one captures
-                choice.capture(game, count)
+                choice.capture(count, game)
                 logging.info(f"Ether Spider captured the {count} amber that was gained.")
             elif count == 1:
                 for c in active:
                     if c.title == "ether_spider" and not c.destroyed and not c.returned:
-                        c.capture(game, count)
+                        c.capture(count, game)
                         logging.info(f"Ether Spider captured the {count} amber that was gained.")
         logging.info(f"{self.name} gained {count} amber. {self.name} now has {self.amber} amber.")
         game.setKeys()
