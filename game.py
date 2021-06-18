@@ -1809,11 +1809,11 @@ class Board():
       card_rect.topleft = (self.deck2_rect.left, self.deck2_rect.top)
       self.cardBlits.append((card_image, card_rect))
     # purge
-    if self.activePlayer.deck:
+    if self.activePlayer.purged:
       card_image, card_rect = self.activePlayer.purged[-1].image, self.activePlayer.purged[-1].rect
       card_rect.topleft = (self.purge1_rect.left, self.purge1_rect.top)
       self.cardBlits.append((card_image, card_rect))
-    if self.inactivePlayer.deck:
+    if self.inactivePlayer.purged:
       card_image, card_rect = self.inactivePlayer.purged[-1].image, self.inactivePlayer.purged[-1].rect
       card_rect.topleft = (self.purge2_rect.left, self.purge2_rect.top)
       self.cardBlits.append((card_image, card_rect))
