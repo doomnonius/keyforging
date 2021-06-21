@@ -22,7 +22,7 @@
 
 <h3>Planned features / Current Goals:<h3>
 <ul>
- <li>If an effect (like lash of broken dreams) is applied more than once, show that in the mini image.</li>
+ <li>Seeming bug when returning an empty list from chooseCards.</li>
  <li>Update choose flank to choose which side an opponent's creature entering will go on.</li>
  <li>If a state thing targets something specific, that should also be shown in the hover.</li>
  <li>If collar of subordination leaves play, the creature should return to its owner.</li>
@@ -50,6 +50,7 @@
  <li></li>
  <li></li>
  <li></li>
+ <li><s>If an effect (like lash of broken dreams) is applied more than once, show that in the mini image.</s> - though changed to show the image multiple times.</li>
  <li><s>Reworked damageCalc and capture to be consistent with gainAmber</s></li>
  <li><s>Capture is wrong in a number of instances (order of variables).</s></li>
  <li><s>Remove helpers.destroy()'s middle argument</s></li>

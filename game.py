@@ -181,7 +181,7 @@ class Board():
       return ["Unstun", "Details"]
     retVal.append("Details")
     if not retVal:
-      return ["You can't use this card right now."]
+      return ["You can't use this card right now.", "Details"]
     return retVal
 
   def handOptions(self, cardNum: int) -> List:
@@ -192,8 +192,8 @@ class Board():
     if self.canDiscard(card):
       retVal.append("Discard")
     if not retVal:
-      return ["You can't play or discard this card."]
-    return retVal
+      return ["You can't play or discard this card.", "Details"]
+    return retVal + ["Details"]
 
   def main(self):
     wid, hei = [int(x) for x in self.WIN.get_size()]
@@ -361,12 +361,12 @@ class Board():
     # action close button
     self.actionMin = self.SYMBOLFONT.render("<", 1, COLORS['RED'])
     self.actionMinRect = self.actionMin.get_rect()
-    self.actionMinRect.topright = self.actionBackRect.topright
+    self.actionMinRect.topright = (self.actionBackRect.top + 20, self.actionBackRect.top)
 
     # action open button
     self.actionMax = self.SYMBOLFONT.render(">", 1, COLORS["RED"])
     self.actionMaxRect = self.actionMax.get_rect()
-    self.actionMaxRect.topleft = (0, self.actionBackRect.top)
+    self.actionMaxRect.topleft = (20, self.actionBackRect.top)
 
     # end turn
     self.endText = self.OTHERFONT.render(f"  End Turn  ", 1, COLORS['WHITE'])
@@ -429,7 +429,7 @@ class Board():
           self.enemyDraws = [self.drawEnemyDiscard, self.drawEnemyArchive, self.drawEnemyPurge]
           if Rect.collidepoint(self.endBackRect, (self.mousex, self.mousey)):
             if self.remaining:
-              answer = self.chooseHouse("custom", ("Are you sure you want to end your turn?", ["Yes", "No"]), highlight = lambda x: (x in self.activePlayer.hand and self.canPlay(x, reset = False)) or (x in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"] and (self.canAction(x, reset = False) or self.canFight(x, reset = False) or self.canOmni(x, reset = False) or self.canReap(x, reset = False))))[0]
+              answer = self.chooseHouse("custom", ("Are you sure you want to end your turn?", ["Yes", "No"]), highlight = lambda x: (x in self.activePlayer.hand and (self.canPlay(x, reset = False)) or (x.house in self.activeHouse and x.type == "Upgrade")) or (x in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"] and (self.canAction(x, reset = False) or self.canFight(x, reset = False) or self.canOmni(x, reset = False) or self.canReap(x, reset = False))))[0]
               if answer == "No":
                 for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
                   c.selected = False
@@ -935,11 +935,14 @@ class Board():
           hover = self.SMALLFONT.render(f"There are {len(self.inactivePlayer.archive)} cards in your opponent's archive.", 1, COLORS["BLACK"])
           hover_rect = hover.get_rect()
           hover_rect.bottomright = (self.mousex, self.mousey)
-        hover_back = Surface(hover.get_size())
-        hover_back.fill(COLORS["WHITE"])
-        hover_back_rect = hover_back.get_rect()
-        hover_back_rect.topleft = hover_rect.topleft
-        self.WIN.blit(hover_back, hover_back_rect)
+        try:
+          hover_back = Surface(hover.get_size())
+          hover_back.fill(COLORS["WHITE"])
+          hover_back_rect = hover_back.get_rect()
+          hover_back_rect.topleft = hover_rect.topleft
+          self.WIN.blit(hover_back, hover_back_rect)
+        except:
+          pass # TODO?: allow hovering over the minimized image of the action (at moment of writing, minimizing the image doesn't work)
       self.WIN.blit(hover, hover_rect)
     
     if self.dragging:
@@ -1232,7 +1235,7 @@ class Board():
       card = self.inactivePlayer.board[loc][cardNum]
     else:
       card = self.activePlayer.board[loc][cardNum]
-    if not self.canAction(card, r_click=True, cheat=cheat):
+    if not self.canAction(card, r_click=True, cheat=cheat, message = True):
       logging.info(f"{card.title} can't use action/omni right now")
       return
     if card.type == "Creature" and card.stun:
@@ -1265,11 +1268,12 @@ class Board():
     active = self.activePlayer.board["Creature"]
     inactive = self.inactivePlayer.board["Creature"]
     card = self.activePlayer.hand[cardNum]
+    logging.info(f"Trying to discard {card.title}")
     if self.pendingReloc:
       pending = []
     else:
       pending = self.pendingReloc
-    if self.canDiscard(card, cheat = cheat):
+    if self.canDiscard(card, cheat = cheat, message = True):
       self.activePlayer.discard.append(self.activePlayer.hand.pop(cardNum))
       self.cardChanged()
       if "rock_hurling_giant" in [x.title for x in active] and card.house == "Brobnar":
@@ -1280,20 +1284,22 @@ class Board():
             pending.append(t)
           self.pending()
       self.discardedThisTurn.append(card)
+    else:
+      logging.info(f"Couldn't discard {card.title}.")
     self.cardChanged(True)
 
 
   def fightCard(self, attacker: int, cheat: bool = True, defender = None):
     """ This is needed for cards that trigger fights (eg anger, gauntlet of command). If attacker is fed in to the function (which will only be done by cards that trigger fights), the house check is skipped.
     """
-    # This will actually probably need to be incorporated into the main loop in some way
     card = self.activePlayer.board["Creature"][attacker]
     # this check is also in cardOptions, but sometimes things let you trigger a fight other ways
     if len(self.inactivePlayer.board["Creature"]) == 0:
       logging.info("Fight canceled because no opposing creatures.")
       return self
-    if not self.canFight(card, cheat=cheat, r_click = True):
+    if not self.canFight(card, cheat=cheat, r_click = True, message = True):
       logging.info("This card can't fight right now.")
+      return
     if card.stun:
       logging.info("Creature is stunned and unable to fight. Unstunning creature instead.")
       logging.info(f"Unstunning {card.title}.")
@@ -1789,14 +1795,16 @@ class Board():
           mini_image, mini_rect = self.activePlayer.stateImages[k][1]
         else:
           mini_image, mini_rect = self.inactivePlayer.stateImages[k][1]
-        mini_rect.bottomleft = (self.neutral_rect.left + (x * (mini_image.get_width() + 5)), self.neutral_rect.bottom - 5)
+        mini_rect.bottomleft = (self.neutral_rect.left + ((x + 1) * self.margin) + (x * (mini_image.get_width() + 5)), self.neutral_rect.bottom - 5)
         self.miniRectsFriend.append((mini_rect, self.activePlayer.stateImages[k][0]))
         self.cardBlits.append((mini_image, mini_rect))
         if type(self.activePlayer.states[k]) == int and self.activePlayer.states[k] > 1:
-          multi = self.SMALLFONT.render(f"x{self.activePlayer.states[k]}", 1, COLORS["WHITE"])
-          multi_rect = multi.get_rect()
-          multi_rect.bottomright = mini_rect.bottomright
-          self.cardBlits.append((multi, multi_rect))
+          for y in range(1, (self.activePlayer.states[k])):
+            x += 1
+            copy_rect, copy_image = mini_rect.copy(), mini_image.copy()
+            copy_rect.bottomleft = (self.neutral_rect.left + ((x + 1) * self.margin) + (x * (mini_image.get_width() + 5)), self.neutral_rect.bottom - 5)
+            self.miniRectsFriend.append((copy_rect, self.activePlayer.stateImages[k][0]))
+            self.cardBlits.append((copy_image, copy_rect))
         elif type(self.activePlayer.states[k]) == list:
           pass # TODO: see README
       x += 1
@@ -1808,14 +1816,19 @@ class Board():
           mini_image, mini_rect = self.inactivePlayer.stateImages[k][1]
         else:
           mini_image, mini_rect = self.activePlayer.stateImages[k][1]
-        mini_rect.topleft = (self.neutral_rect.left + (x * (mini_image.get_width() + 5)), self.neutral_rect.top + 5)
+        mini_rect.topleft = (self.neutral_rect.left + ((x + 1) * self.margin) + (x * (mini_image.get_width() + 5)), self.neutral_rect.top + 5)
         self.miniRectsFriend.append((mini_rect, self.inactivePlayer.stateImages[k][0]))
         self.cardBlits.append((mini_image, mini_rect))
         if type(self.inactivePlayer.states[k]) == int and self.inactivePlayer.states[k] > 1:
-          multi = self.SMALLFONT.render(f"x{self.inactivePlayer.states[k]}", 1, COLORS["WHITE"])
-          multi_rect = multi.get_rect()
-          multi_rect.bottomright = mini_rect.bottomright
-          self.cardBlits.append((multi, multi_rect))
+          for y in range(1, (self.inactivePlayer.states[k])):
+            x += 1
+            if k in self.inactivePlayer.stateImages:
+              mini_image, mini_rect = self.inactivePlayer.stateImages[k][1]
+            else:
+              mini_image, mini_rect = self.activePlayer.stateImages[k][1]
+            mini_rect.topleft = (self.neutral_rect.left + ((x + 1) * self.margin) + (x * (mini_image.get_width() + 5)), self.neutral_rect.top + 5)
+            self.miniRectsFriend.append((mini_rect, self.inactivePlayer.stateImages[k][0]))
+            self.cardBlits.append((mini_image, mini_rect))
         elif type(self.activePlayer.states[k]) == list:
           pass # TODO: see README
       x += 1
@@ -1975,21 +1988,9 @@ class Board():
     self.remaining = True
     
 
-  def previewHouse(self, condition: LambdaType, both: bool = False) -> List[Tuple[Surface, Rect]]:
+  def previewHouse(self, condition: LambdaType, both: bool = False) -> None:
     """ Highlights the cards that meet the selected conditions.
     """
-    retVal = []
-
-    selectedSurf = Surface((self.target_cardw, self.target_cardh))
-    selectedSurf.convert_alpha()
-    selectedSurf.set_alpha(80)
-    selectedSurf.fill(COLORS["LIGHT_GREEN"])
-
-    selectedSurfTapped = Surface((self.target_cardh, self.target_cardw))
-    selectedSurfTapped.convert_alpha()
-    selectedSurfTapped.set_alpha(80)
-    selectedSurfTapped.fill(COLORS["LIGHT_GREEN"])
-
     board = self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]
     if both:
       board += self.inactivePlayer.board["Creature"] + self.inactivePlayer.board["Artifact"]
@@ -1998,12 +1999,10 @@ class Board():
       if condition(c):
         c.selected = True
     if both:
-      return retVal
+      return
     for c in self.activePlayer.hand:
       if condition(c):
         c.selected = True
-    
-    return retVal
 
   def pending(self, destination = "discard", secondary: List = [], target = None, reveal: bool = False):
     """ Pending is the function that handles when multiple cards leave play at the same time, whether it be to hand or to discard. It will trigger leaves play and destroyed effects. Allowable options for dest are 'purge', 'discard', 'hand', 'deck', 'archive'.
@@ -2150,7 +2149,7 @@ class Board():
     if "deipno_spymaster" in self.activePlayer.states and card in self.activePlayer.states["deipno_spymaster"]:
       cheat = True
     if card.house not in self.activeHouse and card.house not in self.extraUseHouses and not cheat:
-      if len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
+      if card.type == "Creature" and len(card.upgrade) > 0 and ("mantle_of_the_zealot" in [x.title for x in card.upgrade] or "experimental_theory" in [x.title for x in card.upgrade]):
         pass
       else:
         return False
@@ -2180,7 +2179,7 @@ class Board():
     if card.house not in self.activeHouse or not cheat:
       if message: logging.info("Can't discard card not in activeHouse.")
       return False
-    # I don't think anything messes with your ability to discard
+    # I don't think anything else messes with your ability to discard
     return True
   
   def canFight(self, card, reset = True, cheat: bool = False, r_click: bool = False, message: bool = False):
@@ -3104,7 +3103,9 @@ class Board():
         if varAsStr == "activeHouse":
           for c in self.activePlayer.hand + self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"]:
             c.selected = False
-          self.previewHouse(lambda x: (x in self.activePlayer.hand and self.canPlay(x, reset = False)) or (x in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"] and (self.canAction(x, reset = False) or self.canFight(x, reset = False) or self.canOmni(x, reset = False) or self.canReap(x, reset = False))))
+          self.activeHouse = [houses[clicked]]
+          self.previewHouse(condition = lambda x: (x in self.activePlayer.hand and (self.canPlay(x, reset = False)) or (x.house in self.activeHouse and x.type == "Upgrade")) or (x in self.activePlayer.board["Creature"] + self.activePlayer.board["Artifact"] and (self.canAction(x, reset = False) or self.canFight(x, reset = False) or self.canOmni(x, reset = False) or self.canReap(x, reset = False))))
+          self.activeHouse = []
           self.cardChanged()
       else:
         self.extraDraws += [(messageBackSurf, messageBackRect), (messageSurf, messageRect)] + [item for sublist in [[(x[0], x[1]), (x[2], x[3])] for x in houses_rects] for item in sublist]
@@ -3441,6 +3442,11 @@ class Board():
                       else:
                         for c2 in target.board[targetPool] + target.board[otherPool] + target.hand + target.archive + target.discard:
                           c2.invalid = True
+                    elif count == 1:
+                      for r in retVal:
+                        r.selected = False
+                      c.selected = True
+                      retVal = [c]
                   else:
                     logging.info(f"{c.title} is not a valid target.")
                 self.cardChanged()
@@ -3458,6 +3464,11 @@ class Board():
                     elif len(retVal) < count:
                       c.selected = True
                       retVal.append(c)
+                    elif count == 1:
+                      for r in retVal:
+                        r.selected = False
+                      c.selected = True
+                      retVal = [c]
                 else:
                   logging.info(f"{c.title} is not a valid target.")
                 self.cardChanged()
