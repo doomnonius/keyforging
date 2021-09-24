@@ -1980,11 +1980,11 @@ class Board():
     if True not in [self.canPlay(c, reset = False, message = False) for c in self.activePlayer.hand if c.type] + [self.canDiscard(c, reset = False, message = False) for c in self.activePlayer.hand if c.type]:
       if True not in [self.canAction(c, reset = False, message = False) for c in self.activePlayer.board["Creature"]] + [self.canFight(c, reset = False, message = False) for c in self.activePlayer.board["Creature"]] + [self.canReap(c, reset = False, message = False) for c in self.activePlayer.board["Creature"]] + [self.canOmni(c, reset = False, message = False) for c in self.activePlayer.board["Creature"]]:
         if True not in [self.canAction(c, reset = False, message = False) for c in self.activePlayer.board["Artifact"]] + [self.canOmni(c, reset = False, message = False) for c in self.activePlayer.board["Artifact"]]:
-          logging.info("Nothing left to do!")
+          # logging.info("Nothing left to do!")
           self.endBack.fill(COLORS["LIGHT_GREEN"])
           self.remaining = False
           return
-    logging.info("There's stuff left to do.")
+    # logging.info("There's stuff left to do.")
     self.remaining = True
     
 
