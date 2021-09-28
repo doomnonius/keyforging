@@ -18,65 +18,70 @@ from constants import COLORS, WIDTH, HEIGHT, CARDH, CARDW, OB
 #####################
 
 class Board():
-  def __init__(self):
+  def __init__(self, loadFile = None):
     """ first is first player, which is determined before the game is started. deck.deckName is a function that pulls the right deck from the list.
     """
-    show = "Player 1, choose a deck number:\n"
-    b = []
-    with open('decks/deckList.json', encoding='utf-8') as f:
-      data = json.load(f)
-      for x in range(0, len(data)):
-        show += f"{x}: {data[x]['name']} {data[x]['houses']}\n"
-        b.append(str(x))
-    self.first = int(pyautogui.confirm(show, buttons=b)) # None
-    show = "Player 2, choose a deck number:\n"
-    b = []
-    with open('decks/deckList.json', encoding='utf-8') as f:
-      data = json.load(f)
-      for x in range(0, len(data)):
-        if x != self.first:
+    if loadFile:
+      self.load(loadFile)
+    else:
+      # player 1 chooses deck
+      show = "Player 1, choose a deck number:\n"
+      b = []
+      with open('decks/deckList.json', encoding='utf-8') as f:
+        data = json.load(f)
+        for x in range(len(data)):
           show += f"{x}: {data[x]['name']} {data[x]['houses']}\n"
           b.append(str(x))
-    self.second = int(pyautogui.confirm(show, buttons=b))
-    self.top = 0
-    self.left = 0
-    self.mousex = 0
-    self.mousey = 0
-    self.dragging = []
-    self.response = []
-    self.turnNum = 0
+      self.first = int(pyautogui.confirm(show, buttons=b))
+      # player 2 chooses deck
+      show = "Player 2, choose a deck number:\n"
+      b = []
+      with open('decks/deckList.json', encoding='utf-8') as f:
+        data = json.load(f)
+        for x in range(len(data)):
+          if x != self.first:
+            show += f"{x}: {data[x]['name']} {data[x]['houses']}\n"
+            b.append(str(x))
+      self.second = int(pyautogui.confirm(show, buttons=b))
+      # randomly choose first player between those two decks
+      first = random.choice([self.first, self.second])
+      self.activePlayer = deck.Deck(deck.deckName(first), self.target_cardw, self.target_cardh, self.margin)
+      if first == self.first:
+        self.inactivePlayer = deck.Deck(deck.deckName(self.second), self.target_cardw, self.target_cardh, self.margin)
+      else:
+        self.inactivePlayer = deck.Deck(deck.deckName(self.first), self.target_cardw, self.target_cardh, self.margin)
+      self.turnNum = 0
+      # reset each turn cycle
+      self.miniRectsEnemy = [] # active status effects from opponent's cards
+      self.miniRectsFriend = [] # active status effects from your cards
+      self.activeHouse = []
+      self.extraFightHouses = [] # if a card has given you ability to fight with other houses
+      self.extraUseHouses = [] # if a card has given you ability to use other houses
+      self.playedThisTurn = {} # which cards were played this turn (for rule of six)
+      self.discardedThisTurn = [] # which cards were discarded this turn (for Giant Sloth and turn one)
+      self.usedThisTurn = {} # which cards were used this turn (for rule of six)
+      self.playedLastTurn = [] # which cards were played last turn (for cards like lifeweb)
+      self.discardLastTurn = [] # which cards were discarded last turn (not currently used)
+      self.usedLastTurn = [] # which cards were used last turn (not currently used)
+      self.forgedThisTurn = [] # if the player forged this turn - TODO: consider adding to Deck()
+      self.forgedLastTurn = [] # if the player forged last turn - TODO: consider adding to Deck()
+      self.destInFight = [] # cards destroyed in a fight this turn (for warchest)
+      self.turnStage = None
+      self.extraDraws = [] # extra stuff that needs to be drawn, but will shortly disappear
+      self.dataBlits = [] # data for drawing game info like amber and keys
+      self.cardBlits = [] # data for drawing cards
+      self.highlight = [] # data for drawing highlights on cards
+      self.resetCard = [] # effects on cards that need to be reset at end of turn
+      self.resetStates = [] # lasting effects that need to be reset at end of turn
+      self.resetStatesNext = [] # lasting effects that need to be reset at end of next turn
+      self.doDraw = False # used at the start of a game to determine whether or not to do initial draw
     # settings
     self.confirmHouse = True
     self.confirmSelection = False
-    # reset each turn cycle
-    self.miniRectsEnemy = []
-    self.miniRectsFriend = []
-    self.activeHouse = []
-    self.extraFightHouses = []
-    self.extraUseHouses = []
-    self.playedThisTurn = {}
-    self.discardedThisTurn = []
-    self.usedThisTurn = {}
-    self.playedLastTurn = []
-    self.discardLastTurn = []
-    self.usedLastTurn = []
-    self.forgedThisTurn = []
-    self.forgedLastTurn = []
-    self.destInFight = []
-    self.turnStage = None
-    self.pendingReloc = []
-    self.extraDraws = []
-    self.dataBlits = []
-    self.cardBlits = []
-    self.highlight = []
-    self.resetCard = []
-    self.resetStates = []
-    self.resetStatesNext = []
     # draw bools
     self.mini = False
     self.act = False
     self.ref_image = None
-    self.ref_image_rect = Rect(-500, -500, 1, 1)
     self.ref_orig_image = None
     self.ref_orig_rect = None
     self.remaining = True
@@ -97,7 +102,14 @@ class Board():
     self.closeEnemyArchive = None
     self.friendDraws = []
     self.enemyDraws = []
-    self.do = False
+    self.ref_image_rect = Rect(-500, -500, 1, 1)
+    self.top = 0
+    self.left = 0
+    self.mousex = 0
+    self.mousey = 0
+    self.dragging = []
+    self.response = []
+    self.pendingReloc = []
     self.backgroundColor = COLORS["WHITE"]
     # sprites
     self.allsprites = pygame.sprite.RenderUpdates()
@@ -134,12 +146,6 @@ class Board():
     ratio = CARDH / self.target_cardh
     self.target_cardw = int(CARDW // ratio)
     self.invisicard = card.Invisicard(self.target_cardw, self.target_cardh)
-    first = random.choice([self.first, self.second])
-    self.activePlayer = deck.Deck(deck.deckName(first), self.target_cardw, self.target_cardh, self.margin)
-    if first == self.first:
-      self.inactivePlayer = deck.Deck(deck.deckName(self.second), self.target_cardw, self.target_cardh, self.margin)
-    else:
-      self.inactivePlayer = deck.Deck(deck.deckName(self.first), self.target_cardw, self.target_cardh, self.margin)
     logging.info("pygame initialized")
     pygame.display.set_caption(f'Keyforge: {self.activePlayer.name} vs {self.inactivePlayer.name}')
     logging.info(f'{self.activePlayer.name} vs {self.inactivePlayer.name}')
@@ -160,6 +166,15 @@ class Board():
     for x in range(len(self.activePlayer.board["Artifact"])):
       s += str(x) + ': ' + str(self.activePlayer.board["Artifact"][x]) + '\n'
     return s
+
+  def save(self):
+    if self.dragging or self.response or self.pendingReloc:
+      pyautogui.alert("Cannot save in current state.")
+      return
+    pass
+
+  def load(self, loadFile):
+    pass
 
   def turnOptions(self) -> List:
     return ['House', 'Turn', 'MyDiscard', 'OppDiscard', 'MyPurge', 'OppPurge', 'MyArchive', 'OppArchive', 'OppHouses', 'Keys', 'Card', 'MyDeck', 'OppDeck','OppHand', 'Concede', 'Quit']
@@ -487,7 +502,7 @@ class Board():
         #####################
         # Draw and mulligan #
         #####################
-        if not self.do:
+        if not self.doDraw:
           logging.info(f"{self.activePlayer.name} is going first.")
           self.activePlayer += 7
           self.activePlayer.hand.sort(key = lambda x: x.house)
@@ -501,7 +516,7 @@ class Board():
             self.activePlayer.hand = []
             self.activePlayer += 6
             self.activePlayer.hand.sort(key = lambda x: x.house)
-        if not self.do:
+        if not self.doDraw:
           self.inactivePlayer += 6
           self.inactivePlayer.hand.sort(key = lambda x: x.house)
         else:
@@ -517,7 +532,7 @@ class Board():
           self.turnNum = 1
           self.turnStage = 0
         self.cardChanged()
-        self.do = True
+        self.doDraw = True
 
       ###################################
       # Step 0: "Start of turn" effects #

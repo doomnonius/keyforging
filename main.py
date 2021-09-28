@@ -34,8 +34,8 @@ def startup(choice = ''): #Called at startup
   elif choice == "Load":
     # Display saved games, then let them choose one.
     # display saves here !!!!
-    loaded = pyautogui.confirm("Which save would you like to load?", buttons=[x for x in ["A"]]) #input("Which save would you like to load?")
-    load(loaded)
+    loaded = pyautogui.confirm("Which save would you like to load?", buttons=[x for x in ["A"]])
+    Board(loaded)
   elif choice == "Decks":
     while True:
       show = "Enter a deck's number to see the cards it contains.\n\nAvailable decks:\n"
