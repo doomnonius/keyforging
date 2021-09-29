@@ -19,7 +19,7 @@ class Deck:
                     # card creation will give them the appropriate reap  and etc functions
                     random.shuffle(self.deck)
         self.hand = [] #first index is always size of full hand
-        self.handSize = 16
+        self.handSize = 16 #6
         self.chains = 0
         self.discard = []
         self.archive = []
@@ -59,6 +59,29 @@ class Deck:
                 s += '.\n'
         return s
 
+    def save(self) -> str:
+        # need so save the state of each card
+        pass
+
+    def load(self):
+        self.deck = []
+        self.hand = []
+        self.handSize = 16 #6
+        self.chains = 0
+        self.discard = []
+        self.archive = []
+        self.purged = []
+        self.board = {"Creature": [], "Artifact": [], "Action": [], "Upgrade": []}
+        self.keys = 0
+        self.amber = 0
+        self.keyCost = 6
+        self.yellow = False
+        self.red = False
+        self.blue = False
+        self.states = {card.title:0 for card in self.deck}
+        self.stateImages = {card.title: [self.load_image(card.title, asset = f'cards\\card-fronts\\{card.exp}', w=CARDW, h=CARDH), self.load_image(card.title, asset = f'cards\\card-fronts\\{card.exp}', w=card_width // 2, h=card_height // 2)] for card in self.deck}
+        pass
+    
     def drawEOT(self, game):
         """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have.
         """
@@ -90,7 +113,7 @@ class Deck:
             else:
                 self.shuffleDiscard()
         self.hand.sort(key = lambda x: x.house, reverse=True)
-        # self.deck.sort(key = lambda x: x.house, reverse=True) # why was this even here? testing
+        # self.deck.sort(key = lambda x: x.house, reverse=True) # why was this even here? -> testing
     
     def shuffleDiscard(self):
         """ Deals with an empty deck.

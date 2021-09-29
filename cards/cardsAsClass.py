@@ -73,7 +73,7 @@ class Card(pygame.sprite.Sprite):
             self.action = [eval(f"action.{self.title}")]
         else:
             self.action = []
-        # omni abilitiestry:
+        # omni abilities
         if f"omni_{self.title}" in dir(action):
             self.omni = [eval(f"action.omni_{self.title}")]
         else:

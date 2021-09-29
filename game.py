@@ -66,50 +66,50 @@ class Board():
       self.forgedThisTurn = [] # if the player forged this turn - TODO: consider adding to Deck()
       self.forgedLastTurn = [] # if the player forged last turn - TODO: consider adding to Deck()
       self.destInFight = [] # cards destroyed in a fight this turn (for warchest)
+      self.pendingReloc = [] # used to track if multiple things die/leave battlefield at once
       self.turnStage = None
-      self.extraDraws = [] # extra stuff that needs to be drawn, but will shortly disappear
-      self.dataBlits = [] # data for drawing game info like amber and keys
-      self.cardBlits = [] # data for drawing cards
-      self.highlight = [] # data for drawing highlights on cards
       self.resetCard = [] # effects on cards that need to be reset at end of turn
       self.resetStates = [] # lasting effects that need to be reset at end of turn
       self.resetStatesNext = [] # lasting effects that need to be reset at end of next turn
       self.doDraw = False # used at the start of a game to determine whether or not to do initial draw
+    self.extraDraws = [] # extra stuff that needs to be drawn, but will shortly disappear
+    self.dataBlits = [] # data for drawing game info like amber and keys
+    self.cardBlits = [] # data for drawing cards
+    self.highlight = [] # data for drawing highlights on cards
     # settings
-    self.confirmHouse = True
-    self.confirmSelection = False
+    self.confirmHouse = True # if true, asks player for confirmation when they pick a house
+    self.confirmSelection = False # if true, asks player for confirmation on card choices
     # draw bools
-    self.mini = False
-    self.act = False
-    self.ref_image = None
-    self.ref_orig_image = None
-    self.ref_orig_rect = None
-    self.remaining = True
-    self.drawAction = True
-    self.drawFriendDiscard = False
-    self.closeFriendDiscard = None
-    self.drawEnemyDiscard = False
-    self.closeEnemyDiscard = None
-    self.drawFlanks = False
-    self.deploy = False
-    self.drawFriendPurge = False
-    self.closeFriendPurge = None
-    self.drawEnemyPurge = False
-    self.closeFriendPurge = None
-    self.drawFriendArchive = False
-    self.closeFriendArchive = None
-    self.drawEnemyArchive = False
-    self.closeEnemyArchive = None
-    self.friendDraws = []
-    self.enemyDraws = []
-    self.ref_image_rect = Rect(-500, -500, 1, 1)
+    self.mini = False # used in hover card if a lasting effect is hovered
+    self.act = False # used in hover card if a card on the stack is hovered
+    self.ref_image = None # used in displaying cards on stack
+    self.ref_image_rect = Rect(-500, -500, 1, 1) # used for drawing ref image
+    self.ref_orig_image = None # used in displaying cards on stack
+    self.ref_orig_rect = None # used in displaying cards on stack
+    self.remaining = True # used to calculate if the player can do anything else this turn
+    self.drawAction = True # used to decide to draw stack or not
+    self.drawFriendDiscard = False # used to decide to draw friendly discard
+    self.closeFriendDiscard = None # used for button for closing friendly discard
+    self.drawEnemyDiscard = False # used to decide to draw enemy discard
+    self.closeEnemyDiscard = None # used for button for closing enemy discard
+    self.drawFlanks = False # ????
+    self.deploy = False # ???? possibly intended for use in second set
+    self.drawFriendPurge = False # used to decide to draw friend purge
+    self.closeFriendPurge = None # used for button for closing friendly purge
+    self.drawEnemyPurge = False # used to decide to draw enemy purge
+    self.closeEnemyPurge = None # used for button for closing enemy purge
+    self.drawFriendArchive = False # used to decide to draw friend archive
+    self.closeFriendArchive = None # used for button for closing friendly archive
+    self.drawEnemyArchive = False # used to decide to draw enemy archive (which you shouldn't be able to see, but you could know what's there)
+    self.closeEnemyArchive = None # used for button for closing enemy archive
+    self.friendDraws = [] # a list containing friendly archive, discard, purge
+    self.enemyDraws = [] # a list containing enemy archive, discard, purge
     self.top = 0
     self.left = 0
     self.mousex = 0
     self.mousey = 0
-    self.dragging = []
-    self.response = []
-    self.pendingReloc = []
+    self.dragging = [] # used to draw a card while it's being dragged
+    self.response = [] # used to track response
     self.backgroundColor = COLORS["WHITE"]
     # sprites
     self.allsprites = pygame.sprite.RenderUpdates()
@@ -168,12 +168,41 @@ class Board():
     return s
 
   def save(self):
-    if self.dragging or self.response or self.pendingReloc:
+    """ Builds a json to save the game state. How do I keep the deck secret? I can't necessarily re-randomize it, b/c there are a couple things that can mess with the top of the deck.
+    """
+    if self.dragging or self.response or self.activePlayer.board["Action"] or self.pendingReloc:
       pyautogui.alert("Cannot save in current state.")
       return
+    retVal = {"active": self.activePlayer.save(), "inactive": self.inactivePlayer.save(), "turn": self.turnNum = 0, "enemy_effects": self.miniRectsEnemy, "friend_effects": self.miniRectsFriend, "house": self.activeHouse, "extraFight": self.extraFightHouses, "extraUse": self.extraUseHouses, "played": self.playedThisTurn, "discarded": self.discardedThisTurn, "used": self.usedThisTurn, "last_played": self.playedLastTurn, "last_discard": self.discardLastTurn, "last_used": self.usedLastTurn, "forged": self.forgedThisTurn, "forged_last": self.forgedLastTurn, "fight_destroyed": self.destInFight, "turnStage": self.turnStage, "resetCard": self.resetCard, "resetState": self.resetStates, "resetStateNext": self.resetStatesNext}
     pass
 
   def load(self, loadFile):
+    """ Loads the saved json.
+    """
+    data = json.loads(loadFile)
+    self.activePlayer = data["active"]
+    self.inactivePlayer = data["inactive"]
+    self.turnNum = data["turn"]
+    # reset each turn cycle
+    self.miniRectsEnemy = data["enemy_effects"]
+    self.miniRectsFriend = data["friend_effects"]
+    self.activeHouse = data["house"]
+    self.extraFightHouses = data["extraFight"]
+    self.extraUseHouses = data["extraUse"]
+    self.playedThisTurn = set(data["played"])
+    self.discardedThisTurn = data["discard"]
+    self.usedThisTurn = set(data["used"])
+    self.playedLastTurn = data["last_played"]
+    self.discardLastTurn = data["last_discard"]
+    self.usedLastTurn = data["last_used"]
+    self.forgedThisTurn = data["forged"]
+    self.forgedLastTurn = data["forged_last"]
+    self.destInFight = data["fight_destroyed"]
+    self.turnStage = data["turnStage"]
+    self.resetCard = data["resetCard"]
+    self.resetStates = data["resetState"]
+    self.resetStatesNext = data["resetStateNext"]
+    self.doDraw = True
     pass
 
   def turnOptions(self) -> List:
