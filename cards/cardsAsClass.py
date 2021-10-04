@@ -1,4 +1,4 @@
-import os
+import os, json
 from typing import List
 import pyautogui
 
@@ -166,7 +166,13 @@ class Card(pygame.sprite.Sprite):
             self.dest = []
             if self.title == "spangler_box":
                 self.spangler = []
-        
+    
+    def save(self, quick = False) -> str:
+        pass
+    
+    def load(self, loadCard, quick = False):
+        data = json.loads(loadCard)
+        pass
 
     def __repr__(self):
         """ How to represent a card when called.

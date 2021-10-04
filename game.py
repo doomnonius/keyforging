@@ -180,10 +180,9 @@ class Board():
     """ Loads the saved json.
     """
     data = json.loads(loadFile)
-    self.activePlayer = data["active"]
-    self.inactivePlayer = data["inactive"]
+    self.activePlayer = Deck.load(data["active"])
+    self.inactivePlayer = Deck.load(data["inactive"])
     self.turnNum = data["turn"]
-    # reset each turn cycle
     self.miniRectsEnemy = data["enemy_effects"]
     self.miniRectsFriend = data["friend_effects"]
     self.activeHouse = data["house"]

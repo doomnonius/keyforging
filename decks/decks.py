@@ -18,6 +18,8 @@ class Deck:
                         # eventually will add edge cases here for errata, i.e. if self.deck[len(self.deck)-1].title == "Bait and Switch"
                     # card creation will give them the appropriate reap  and etc functions
                     random.shuffle(self.deck)
+        self.card_width = card_width
+        self.card_height = card_height
         self.hand = [] #first index is always size of full hand
         self.handSize = 16 #6
         self.chains = 0
@@ -60,30 +62,31 @@ class Deck:
         return s
 
     def save(self) -> str:
-        # need so save the state of each card
-        pass
+        retVal = {"deck": [c.save(True) for c in self.deck], "hand": [c.save(True) for c in self.hand], "discard": [c.save(True) for c in self.discard], "archive": [c.save(True) for c in self.archive], "purge": [c.save(True) for c in self.purged], "chains": self.chains, "board": {"Creature": [c.save() for c in self.board["Creature"]], "Artifact": [c.save() for c in self.board["Artifact"]], "Action": [c.save() for c in self.board["Action"]], "Upgrade": [c.save() for c in self.board["Upgrade"]]}, "keys": self.keys, "amber": self.amber, "yellow": self.yellow, "red": self.red, "blue": self.blue, "states": self.states}
+        return retVal
 
-    def load(self):
-        self.deck = []
-        self.hand = []
-        self.handSize = 16 #6
-        self.chains = 0
-        self.discard = []
-        self.archive = []
-        self.purged = []
-        self.board = {"Creature": [], "Artifact": [], "Action": [], "Upgrade": []}
-        self.keys = 0
-        self.amber = 0
+    def load(self, loadDeck):
+        data = json.loads(loadDeck)
+        self.deck = [Card.load(c, True) for c in data["deck"]]
+        self.hand = [Card.load(c, True) for c in data["hand"]]
+        self.discard = [Card.load(c, True) for c in data["discard"]]
+        self.archive = [Card.load(c, True) for c in data["archive"]]
+        self.purged = [Card.load(c, True) for c in data["purge"]]
+        self.chains = int(data["chains"])
+        self.board = {"Creature": [Card.load(c) for c in data["board"]["Creature"]], "Artifact": [Card.load(c) for c in data["board"]["Artifact"]], "Action": [Card.load(c) for c in data["board"]["Action"]], "Upgrade": [Card.load(c) for c in data["board"]["Upgrade"]]}
+        self.keys = data["keys"]
+        self.amber = data["amber"]
+        self.yellow = data["yellow"]
+        self.red = data["red"]
+        self.blue = data["blue"]
+        self.states = {card.title:0 for card in self.deck + self.hand + self.discard + self.archive + self.purged + self.board["Creature"] + self.board["Artifact"] + self.board["Action"] + self.board["Upgrade"]}
+        self.stateImages = {card.title: [self.load_image(card.title, asset = f'cards\\card-fronts\\{card.exp}', w=CARDW, h=CARDH), self.load_image(card.title, asset = f'cards\\card-fronts\\{card.exp}', w=card_width // 2, h=card_height // 2)] for card in self.deck + self.hand + self.discard + self.archive + self.purged + self.board["Creature"] + self.board["Artifact"] + self.board["Action"] + self.board["Upgrade"]}
+        self.handSize = 16 #6 # constant
         self.keyCost = 6
-        self.yellow = False
-        self.red = False
-        self.blue = False
-        self.states = {card.title:0 for card in self.deck}
-        self.stateImages = {card.title: [self.load_image(card.title, asset = f'cards\\card-fronts\\{card.exp}', w=CARDW, h=CARDH), self.load_image(card.title, asset = f'cards\\card-fronts\\{card.exp}', w=card_width // 2, h=card_height // 2)] for card in self.deck}
         pass
     
     def drawEOT(self, game):
-        """Draws until hand is full. Index 0 of each hand is the number of cards a hand should have.
+        """Draws until hand is full.
         """
         draw = self.handSize
         activeA = [x.title for x in game.activePlayer.board["Artifact"]]
